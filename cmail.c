@@ -24,7 +24,8 @@ int main(int argc, char** argv){
 	};
 
 	CONFIGURATION config = {
-		.listeners {
+		.master = NULL,
+		.listeners = {
 			.count = 0,
 			.fds = NULL
 		},
@@ -35,8 +36,7 @@ int main(int argc, char** argv){
 		.log = {
 			.stream = stderr,
 			.verbosity = 0
-		},
-		.master = NULL
+		}
 	};
 
 	//parse arguments

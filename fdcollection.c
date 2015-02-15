@@ -40,6 +40,7 @@ int fdcollection_add(FDCOLLECTION* coll, int fd){
 	}
 
 	coll->fds[free_slot]=fd;
+	return 0;
 }
 
 int fdcollection_remove(FDCOLLECTION* coll, int fd){
@@ -60,6 +61,10 @@ int fdcollection_remove(FDCOLLECTION* coll, int fd){
 }
 
 void fdcollection_free(FDCOLLECTION* coll){
+	if(!coll){
+		return;
+	}
+
 	if(coll->fds){
 		free(coll->fds);
 		coll->fds=NULL;

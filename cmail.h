@@ -6,11 +6,16 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <grp.h>
+#include <pwd.h>
 
 #include <sqlite3.h>
 
 #define VERSION "cmail 0.1"
 #define MAX_CFGLINE 2048
+#define LISTEN_QUEUE_LENGTH 128
 
 typedef struct /*_ARGS*/ {
 	char* config_file;
@@ -43,6 +48,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #define LOG_DEBUG 	3
 
 #include "fdcollection.c"
+#include "network.c"
 
 #include "arguments.c"
 #include "config.c"
