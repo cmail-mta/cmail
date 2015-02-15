@@ -107,6 +107,10 @@ int main(int argc, char** argv){
 	//detach from console (or dont)
 	if(args.detach && config.log.stream!=stderr){
 		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
+		
+		//flush the stream so we do not get everything twice
+		fflush(config.log.stream);
+		
 		switch(daemonize(config.log)){
 			case 0:
 				break;
@@ -129,7 +133,6 @@ int main(int argc, char** argv){
 	//enter main processing loop
 	//TODO
 	logprintf(config.log, LOG_INFO, "MAIN THREAD STUFF\n");
-	fflush(config.log.stream);
 	sleep(60);
 	
 	//clean up allocated resources
