@@ -5,12 +5,12 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <ctype.h>
 
 #include <sqlite3.h>
 
 #define VERSION "cmail 0.1"
-
-volatile unsigned int verbosity=0;
+#define MAX_CFGLINE 2048
 
 typedef struct /*_ARGS*/ {
 	char* config_file;
@@ -18,17 +18,29 @@ typedef struct /*_ARGS*/ {
 	bool detach;
 } ARGUMENTS;
 
-typedef struct /*_LISTEN_FDS*/ {
+typedef struct /*_FD_COLLECTION*/ {
 	unsigned count;
 	int* fds;
-} LISTENERS;
+} SOCKET_FDS;
+
+typedef struct /*_LOGGER*/ {
+	FILE* stream;
+	unsigned verbosity;
+} LOGGER;
 
 typedef struct /*_CONF_META*/ {
-	LISTENERS listeners;
+	SOCKET_FDS listeners;
 	struct {int uid; int gid;} privileges;
+	LOGGER log;
 	sqlite3* master;
-	int logfd;
 } CONFIGURATION;
+
+void logprintf(LOGGER log, unsigned level, char* fmt, ...);
+
+#define LOG_ERROR 	0
+#define LOG_WARNING 	0
+#define LOG_INFO 	1
+#define LOG_DEBUG 	3
 
 #include "arguments.c"
 #include "config.c"

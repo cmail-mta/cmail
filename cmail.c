@@ -6,6 +6,16 @@ int usage(char* filename){
 	return EXIT_FAILURE;
 }
 
+void logprintf(LOGGER log, unsigned level, char* fmt, ...){
+	va_list args;
+
+	va_start(args, fmt);
+	if(log.verbosity>=level){
+		vfprintf(log.stream, fmt, args);
+	}
+	va_end(args);
+}
+
 int main(int argc, char** argv){
 	ARGUMENTS args = {
 		.config_file = NULL,
@@ -22,8 +32,11 @@ int main(int argc, char** argv){
 			.uid=0,
 			.gid=0
 		},
-		.master = NULL,
-		.logfd = -1
+		.log = {
+			.stream = stderr,
+			.verbosity = 0
+		},
+		.master = NULL
 	};
 
 	//parse arguments
@@ -39,7 +52,7 @@ int main(int argc, char** argv){
 		exit(usage(argv[0]));
 	}
 
-	fprintf(stderr, "This is %s, starting up\n", VERSION);
+	logprintf(config.log, LOG_INFO, "This is %s, starting up\n", VERSION);
 
 	//attach aux databases
 	//TODO
@@ -65,9 +78,9 @@ int main(int argc, char** argv){
 	//TODO
 	
 	//clean up allocated resources
+	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");
 	arguments_free(&args);
 	config_free(&config);
 
-	fprintf(stderr, "Bye.");
 	return EXIT_SUCCESS;
 }
