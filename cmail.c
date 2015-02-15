@@ -111,6 +111,7 @@ int main(int argc, char** argv){
 			case 0:
 				break;
 			case 1:
+				logprintf(config.log, LOG_INFO, "Parent process going down\n");
 				arguments_free(&args);
 				config_free(&config);
 				exit(EXIT_SUCCESS);
@@ -128,6 +129,8 @@ int main(int argc, char** argv){
 	//enter main processing loop
 	//TODO
 	logprintf(config.log, LOG_INFO, "MAIN THREAD STUFF\n");
+	fflush(config.log.stream);
+	sleep(60);
 	
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");

@@ -1,5 +1,5 @@
 int network_listener(LOGGER log, char* bindhost, char* port){
-	int fd=-1, status;
+	int fd=-1, status, yes=1;
 	struct addrinfo hints;
 	struct addrinfo* info;
 	struct addrinfo* addr_it;
@@ -20,6 +20,10 @@ int network_listener(LOGGER log, char* bindhost, char* port){
 		fd=socket(addr_it->ai_family, addr_it->ai_socktype, addr_it->ai_protocol);
 		if(fd<0){
 			continue;
+		}
+
+		if(setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&yes, sizeof(yes))<0){
+			logprintf(log, LOG_WARNING, "Failed to set IPV6_V6ONLY on socket for %s port %s: %s\n", bindhost, port, strerror(errno));
 		}
 
 		status=bind(fd, addr_it->ai_addr, addr_it->ai_addrlen);
