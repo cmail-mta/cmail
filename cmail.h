@@ -21,7 +21,7 @@ typedef struct /*_ARGS*/ {
 typedef struct /*_FD_COLLECTION*/ {
 	unsigned count;
 	int* fds;
-} SOCKET_FDS;
+} FDCOLLECTION;
 
 typedef struct /*_LOGGER*/ {
 	FILE* stream;
@@ -29,7 +29,7 @@ typedef struct /*_LOGGER*/ {
 } LOGGER;
 
 typedef struct /*_CONF_META*/ {
-	SOCKET_FDS listeners;
+	FDCOLLECTION listeners;
 	struct {int uid; int gid;} privileges;
 	LOGGER log;
 	sqlite3* master;
@@ -41,6 +41,8 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #define LOG_WARNING 	0
 #define LOG_INFO 	1
 #define LOG_DEBUG 	3
+
+#include "fdcollection.c"
 
 #include "arguments.c"
 #include "config.c"
