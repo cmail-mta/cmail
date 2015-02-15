@@ -49,6 +49,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 
 #include "fdcollection.c"
 #include "network.c"
+#include "database.c"
 
 #include "arguments.c"
 #include "config.c"
