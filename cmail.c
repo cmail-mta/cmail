@@ -46,6 +46,7 @@ int main(int argc, char** argv){
 
 	//drop privileges
 	if(getuid() == 0 && args.drop_privileges){
+		//TODO initgroups
 		if(setgid(config.privileges.gid) != 0){
 			perror("setgid");
 			exit(EXIT_FAILURE);
@@ -54,6 +55,7 @@ int main(int argc, char** argv){
 			perror("setuid");
 			exit(EXIT_FAILURE);
 		}
+		//TODO check for success
 	}
 	
 	//detach from console (or dont)
