@@ -1,18 +1,23 @@
 int config_bind(CONFIGURATION* config, char* directive, char* params){
 	unsigned i;
-	char* bindhost=params;
-	char* port="25";
+	char* token=NULL;
+	char* bindhost=NULL;
+	char* port=NULL;
 	
-	//separate bindhost and port
-	for(i=0;!isspace(bindhost[i]) && bindhost[i]!=0;i++){
-	}
-	if(bindhost[i]!=0){
-		bindhost[i]=0;
-		port=bindhost+i+1;
-	}
-
-	for(;isspace(port[0]);port++){
-	}
+	//tokenize line
+	bindhost=strtok(params, " ");
+	do{
+		token=strtok(NULL, " ");
+		if(token){
+			if(!port){
+				port=token;
+			}
+			else{
+				//use additional parameters
+				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
+			}
+		}
+	}while(token);
 
 	//try to open a listening socket
 	int listen_fd=network_listener(config->log, bindhost, port);
@@ -21,8 +26,8 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		return -1;
 	}
 
-	//add the fd to the collection
-	switch(fdcollection_add(&(config->listeners), listen_fd)){
+	//add the new listener to the pool
+	switch(connpool_add(&(config->listeners), listen_fd, NULL)){
 		case 0:
 			logprintf(config->log, LOG_INFO, "Bound to %s port %s\n", bindhost, port);
 			return 0;
@@ -30,7 +35,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			logprintf(config->log, LOG_ERROR, "Failed to store listen socket, already in set\n");
 			return -1;
 		case -127:
-			logprintf(config->log, LOG_ERROR, "Failed to allocate memory for fdcollection\n");
+			logprintf(config->log, LOG_ERROR, "Failed to allocate memory for connection pool\n");
 			return -1;
 	}
 
@@ -186,16 +191,7 @@ int config_parse(CONFIGURATION* config, char* conf_file){
 }
 
 void config_free(CONFIGURATION* config){
-	unsigned i;
-	
-	for(i=0;i<config->listeners.count;i++){
-		if(config->listeners.fds[i]>=0){
-			close(config->listeners.fds[i]);
-			config->listeners.fds[i]=-1;
-		}
-	}
-	
-	fdcollection_free(&(config->listeners));
+	connpool_free(&(config->listeners));
 	if(config->log.stream!=stderr){
 		fclose(config->log.stream);
 		config->log.stream=stderr;

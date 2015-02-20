@@ -17,16 +17,21 @@
 #define MAX_CFGLINE 2048
 #define LISTEN_QUEUE_LENGTH 128
 
+typedef struct /*_CONNECTION*/ {
+	int fd;
+	void* aux_data;
+} CONNECTION;
+
+typedef struct /*_CONNECTION_AGGREGATE*/ {
+	unsigned count;
+	CONNECTION* conns;
+} CONNPOOL;
+
 typedef struct /*_ARGS*/ {
 	char* config_file;
 	bool drop_privileges;
 	bool detach;
 } ARGUMENTS;
-
-typedef struct /*_FD_COLLECTION*/ {
-	unsigned count;
-	int* fds;
-} FDCOLLECTION;
 
 typedef struct /*_LOGGER*/ {
 	FILE* stream;
@@ -34,7 +39,7 @@ typedef struct /*_LOGGER*/ {
 } LOGGER;
 
 typedef struct /*_CONF_META*/ {
-	FDCOLLECTION listeners;
+	CONNPOOL listeners;
 	struct {int uid; int gid;} privileges;
 	LOGGER log;
 	sqlite3* master;
@@ -47,9 +52,9 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #define LOG_INFO 	1
 #define LOG_DEBUG 	3
 
-#include "fdcollection.c"
 #include "network.c"
 #include "database.c"
+#include "connpool.c"
 
 #include "arguments.c"
 #include "config.c"

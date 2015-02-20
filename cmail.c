@@ -47,7 +47,7 @@ int main(int argc, char** argv){
 		.master = NULL,
 		.listeners = {
 			.count = 0,
-			.fds = NULL
+			.conns = NULL
 		},
 		.privileges = {
 			.uid=0,
@@ -131,9 +131,7 @@ int main(int argc, char** argv){
 	}
 	
 	//enter main processing loop
-	//TODO
-	logprintf(config.log, LOG_INFO, "MAIN THREAD STUFF\n");
-	sleep(60);
+	
 	
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");

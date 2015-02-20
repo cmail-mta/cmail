@@ -18,7 +18,7 @@ sqlite3_stmt* database_prepare(LOGGER log, sqlite3* master, char* query){
 
 int database_initialize(LOGGER log, sqlite3* master){
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
-	char* QUERY_SELECT_DATABASES="SELECT user_name, user_route FROM users WHERE user_router='store' AND user_route NOT NULL GROUP BY user_route;";
+	char* QUERY_SELECT_DATABASES="SELECT user_name, user_inroute FROM users WHERE user_inrouter='store' AND user_inroute NOT NULL GROUP BY user_inroute;";
 	int status=SQLITE_ROW;
 	int rv=0;
 
