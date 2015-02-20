@@ -1,0 +1,90 @@
+int connpool_add(CONNPOOL* pool, int fd, void* aux_data){
+	unsigned i;
+	int free_slot;
+
+	if(fd<0||!pool){
+		return -1;
+	}
+
+	//initialize if needed
+	if(!pool->conns){
+		pool->conns=malloc(sizeof(CONNECTION));
+		if(!pool->conns){
+			return -127;
+		}
+		
+		pool->conns[0].fd=fd;
+		pool->conns[0].aux_data=aux_data;
+		pool->count=1;
+		return 0;
+	}
+
+	//check if already in set, search for free slots at same time
+	free_slot=-1;
+	for(i=0;i<pool->count;i++){
+		if(pool->conns[i].fd==fd){
+			return 1;
+		}
+		if(pool->conns[i].fd==-1){
+			free_slot=i;
+		}
+	}
+
+	//reallocate if needed
+	if(free_slot<0){
+		pool->conns=realloc(pool->conns, sizeof(CONNECTION)*((pool->count)+1));
+		if(!pool->conns){
+			return -127;
+		}
+
+		free_slot=pool->count++;
+	}
+
+	pool->conns[free_slot].fd=fd;
+	pool->conns[free_slot].aux_data=aux_data;
+	return 0;
+}
+
+int connpool_remove(CONNPOOL* pool, int fd){
+	unsigned i;
+
+	if(fd<0||!pool||!(pool->conns)){
+		return -1;
+	}
+
+	for(i=0;i<pool->count;i++){
+		if(pool->conns[i].fd==fd){
+			pool->conns[i].fd=-1;
+			free(pool->conns[i].aux_data);
+			pool->conns[i].aux_data=NULL;
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+void connpool_free(CONNPOOL* pool){
+	unsigned i;
+
+	if(!pool){
+		return;
+	}
+
+	if(pool->conns){
+		for(i=0;i<pool->count;i++){
+			if(pool->conns[i].fd>=0){
+				close(pool->conns[i].fd);
+			}
+			
+			if(pool->conns[i].aux_data){
+				free(pool->conns[i].aux_data);
+			}
+		}
+	
+		free(pool->conns);
+		pool->conns=NULL;
+	}
+
+	pool->count=0;
+}
