@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netdb.h>
 #include <grp.h>
 #include <pwd.h>
@@ -55,6 +56,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #include "network.c"
 #include "database.c"
 #include "connpool.c"
+#include "coreloop.c"
 
 #include "arguments.c"
 #include "config.c"

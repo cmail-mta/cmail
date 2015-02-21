@@ -1,5 +1,4 @@
 int config_bind(CONFIGURATION* config, char* directive, char* params){
-	unsigned i;
 	char* token=NULL;
 	char* bindhost=NULL;
 	char* port=NULL;

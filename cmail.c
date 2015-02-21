@@ -101,7 +101,7 @@ int main(int argc, char** argv){
 		//TODO check for success
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not dropping privileges\n");
+		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (You are not root)":""));
 	}
 	
 	//detach from console (or dont)
@@ -127,11 +127,11 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not detaching from console\n");
+		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Error output stream is stderr)":""));
 	}
 	
 	//enter main processing loop
-	
+	core_loop(config.log, &(config.listeners), config.master);
 	
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");
