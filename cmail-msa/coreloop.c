@@ -50,13 +50,15 @@ int core_loop(LOGGER log, CONNPOOL listeners, sqlite3* master){
 		for(i=0;i<clients.count;i++){
 			if(clients.conns[i].fd>0 && FD_ISSET(clients.conns[i].fd, &readfds)){
 				//handle data
-				//TODO handle closing, data, etc
+				//FIXME handle return value
+				client_process(&(clients.conns[i]));
 			}
 		}
 		
 		//check listen fds
 		for(i=0;i<listeners.count;i++){
 			if(listeners.conns[i].fd>0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
+				//FIXME might need to store listener used to connect for TLS info etc
 				//handle new client
 				switch(connpool_add(&clients, accept(listeners.conns[i].fd, NULL, NULL), NULL)){
 					case 0:

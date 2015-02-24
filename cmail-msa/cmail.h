@@ -56,6 +56,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #include "network.c"
 #include "database.c"
 #include "connpool.c"
+#include "client.c"
 #include "coreloop.c"
 
 #include "arguments.c"
