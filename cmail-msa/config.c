@@ -26,18 +26,11 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	}
 
 	//add the new listener to the pool
-	switch(connpool_add(&(config->listeners), listen_fd, NULL)){
-		case 0:
-			logprintf(config->log, LOG_INFO, "Bound to %s port %s\n", bindhost, port);
-			return 0;
-		case 1:
-			logprintf(config->log, LOG_ERROR, "Failed to store listen socket, already in set\n");
-			return -1;
-		case -127:
-			logprintf(config->log, LOG_ERROR, "Failed to allocate memory for connection pool\n");
-			return -1;
+	if(connpool_add(&(config->listeners), listen_fd)>=0){
+		logprintf(config->log, LOG_INFO, "Bound to %s port %s\n", bindhost, port);
+		return 0;
 	}
-
+	
 	logprintf(config->log, LOG_ERROR, "Failed to store listen socket\n");
 	return -1;
 }

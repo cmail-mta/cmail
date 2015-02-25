@@ -18,10 +18,29 @@
 #define MAX_CFGLINE 2048
 #define LISTEN_QUEUE_LENGTH 128
 
+#include "smtplimits.h"
+
+typedef enum /*_SMTP_STATE*/ {
+	STATE_NEW,
+	STATE_HELO,
+	STATE_IDLE
+} SMTPSTATE;
+
 typedef struct /*_CONNECTION*/ {
 	int fd;
 	void* aux_data;
 } CONNECTION;
+
+typedef struct /*_LISTEN_DATA*/ {
+	char* greeting;
+} LISTENER;
+
+typedef struct /*_CLIENT_DATA*/ {
+	CONNECTION* listener;
+	SMTPSTATE state;
+	char recv_buffer[SMTP_MAX_LINE_LENGTH];
+	unsigned recv_offset;
+} CLIENT;
 
 typedef struct /*_CONNECTION_AGGREGATE*/ {
 	unsigned count;

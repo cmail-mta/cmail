@@ -1,4 +1,4 @@
-int connpool_add(CONNPOOL* pool, int fd, void* aux_data){
+int connpool_add(CONNPOOL* pool, int fd){
 	unsigned i;
 	int free_slot;
 
@@ -14,7 +14,7 @@ int connpool_add(CONNPOOL* pool, int fd, void* aux_data){
 		}
 		
 		pool->conns[0].fd=fd;
-		pool->conns[0].aux_data=aux_data;
+		pool->conns[0].aux_data=NULL;
 		pool->count=1;
 		return 0;
 	}
@@ -23,7 +23,7 @@ int connpool_add(CONNPOOL* pool, int fd, void* aux_data){
 	free_slot=-1;
 	for(i=0;i<pool->count;i++){
 		if(pool->conns[i].fd==fd){
-			return 1;
+			return i;
 		}
 		if(pool->conns[i].fd==-1){
 			free_slot=i;
@@ -41,8 +41,7 @@ int connpool_add(CONNPOOL* pool, int fd, void* aux_data){
 	}
 
 	pool->conns[free_slot].fd=fd;
-	pool->conns[free_slot].aux_data=aux_data;
-	return 0;
+	return free_slot;
 }
 
 int connpool_remove(CONNPOOL* pool, int fd){
@@ -55,8 +54,6 @@ int connpool_remove(CONNPOOL* pool, int fd){
 	for(i=0;i<pool->count;i++){
 		if(pool->conns[i].fd==fd){
 			pool->conns[i].fd=-1;
-			free(pool->conns[i].aux_data);
-			pool->conns[i].aux_data=NULL;
 			return 0;
 		}
 	}

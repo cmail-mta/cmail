@@ -1,0 +1,1 @@
+#define SMTP_MAX_LINE_LENGTH 	1500	//RFC 5321 4.5.3.1.6: 1000 Bytes

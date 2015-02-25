@@ -51,24 +51,16 @@ int core_loop(LOGGER log, CONNPOOL listeners, sqlite3* master){
 			if(clients.conns[i].fd>0 && FD_ISSET(clients.conns[i].fd, &readfds)){
 				//handle data
 				//FIXME handle return value
-				client_process(&(clients.conns[i]));
+				client_process(log, &(clients.conns[i]));
 			}
 		}
 		
 		//check listen fds
 		for(i=0;i<listeners.count;i++){
 			if(listeners.conns[i].fd>0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
-				//FIXME might need to store listener used to connect for TLS info etc
 				//handle new client
-				switch(connpool_add(&clients, accept(listeners.conns[i].fd, NULL, NULL), NULL)){
-					case 0:
-						logprintf(log, LOG_INFO, "New client accepted\n");
-						break;
-					case 1:
-					case -127:
-						logprintf(log, LOG_ERROR, "Failed to allocate memory for connection pool\n");
-						break;
-				}
+				//FIXME handle return value
+				client_accept(log, &(listeners.conns[i]), &clients);
 			}
 		}
 	}
