@@ -26,7 +26,9 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 
 	//logprintf(log, LOG_DEBUG, "Initialized client data to offset %d\n", ((CLIENT*)clients->conns[client_slot].aux_data)->input_offset);
 
-	send(clients->conns[client_slot].fd, "220 qmail ready\r\n", 17, 0);
+	send(clients->conns[client_slot].fd, "220 ", 4, 0);
+	send(clients->conns[client_slot].fd, ((LISTENER*)listener->aux_data)->announce_domain, strlen(((LISTENER*)listener->aux_data)->announce_domain), 0);
+	send(clients->conns[client_slot].fd, " service ready\r\n", 16, 0);
 	return 0;
 }
 
@@ -35,12 +37,12 @@ int client_process(LOGGER log, CONNECTION* client){
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
 
-	if(left<2){
-		//TODO line too long, send error
-	}
+	//TODO handle client timeout
+	//TODO factor out writing operations
 
 	bytes=recv(client->fd, client_data->recv_buffer+client_data->recv_offset, left, 0);
 
+	//failed to read from socket
 	if(bytes<0){
 		logprintf(log, LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
 		//close socket & release slot
@@ -48,7 +50,8 @@ int client_process(LOGGER log, CONNECTION* client){
 		client->fd=-1;
 		return -1;
 	}
-	if(bytes==0){
+	//client disconnect
+	else if(bytes==0){
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
 		//close socket & release slot
 		close(client->fd);
@@ -57,6 +60,16 @@ int client_process(LOGGER log, CONNECTION* client){
 	}
 
 	logprintf(log, LOG_DEBUG, "Received %d bytes of data\n", bytes);
+
+	left-=bytes;
+	if(left<2){
+		logprintf(log, LOG_WARNING, "Connection read buffer exhausted, resetting\n");
+		//TODO scan until next newline
+		send(client->fd, "500 Line too long\r\n", 19, 0);
+		client_data->recv_offset=0;
+		return 0;
+	}
+
 
 	//TODO scan recv_buffer for newlines, handle and shift, update recv_offset
 

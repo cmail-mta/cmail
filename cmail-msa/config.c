@@ -2,7 +2,12 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	char* token=NULL;
 	char* bindhost=NULL;
 	char* port=NULL;
-	
+	int listener_slot=-1;
+	LISTENER settings = {
+		.announce_domain = "cmail"
+	};
+	LISTENER* listener_data=NULL;
+
 	//tokenize line
 	bindhost=strtok(params, " ");
 	do{
@@ -13,7 +18,12 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			}
 			else{
 				//use additional parameters
-				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
+				if(!strncmp(token, "announce=", 9)){
+					settings.announce_domain=token+9;
+				}
+				else{
+					logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
+				}
 			}
 		}
 	}while(token);
@@ -26,8 +36,28 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	}
 
 	//add the new listener to the pool
-	if(connpool_add(&(config->listeners), listen_fd)>=0){
-		logprintf(config->log, LOG_INFO, "Bound to %s port %s\n", bindhost, port);
+	listener_slot=connpool_add(&(config->listeners), listen_fd);
+	if(listener_slot>=0){
+		logprintf(config->log, LOG_INFO, "Bound to %s port %s (slot %d)\n", bindhost, port, listener_slot);
+
+		//create listener auxdata
+		config->listeners.conns[listener_slot].aux_data=malloc(sizeof(LISTENER));
+		if(!config->listeners.conns[listener_slot].aux_data){
+			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener\n");
+			return -1;
+		}
+
+		listener_data=(LISTENER*)config->listeners.conns[listener_slot].aux_data;
+
+		//copy data to heap
+		listener_data->announce_domain=calloc(strlen(settings.announce_domain)+1, sizeof(char));
+		if(!listener_data->announce_domain){
+			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
+			return -1;
+		}
+
+		strncpy(listener_data->announce_domain, settings.announce_domain, strlen(settings.announce_domain));
+
 		return 0;
 	}
 	

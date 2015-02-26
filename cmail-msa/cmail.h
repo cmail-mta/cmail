@@ -32,7 +32,7 @@ typedef struct /*_CONNECTION*/ {
 } CONNECTION;
 
 typedef struct /*_LISTEN_DATA*/ {
-	char* greeting;
+	char* announce_domain;
 } LISTENER;
 
 typedef struct /*_CLIENT_DATA*/ {
@@ -40,6 +40,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	SMTPSTATE state;
 	char recv_buffer[SMTP_MAX_LINE_LENGTH];
 	unsigned recv_offset;
+	/*last_action*/
 } CLIENT;
 
 typedef struct /*_CONNECTION_AGGREGATE*/ {
