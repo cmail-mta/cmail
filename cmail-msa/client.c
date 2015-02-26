@@ -1,3 +1,8 @@
+int client_line(LOGGER log, CONNECTION* client){
+	logprintf(log, LOG_DEBUG, "Client processing of line started: %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
+	return 0;
+}
+
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1;
 	CLIENT client_data = {
@@ -36,6 +41,7 @@ int client_process(LOGGER log, CONNECTION* client){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
+	unsigned i, c;
 
 	//TODO handle client timeout
 	//TODO factor out writing operations
@@ -59,19 +65,44 @@ int client_process(LOGGER log, CONNECTION* client){
 		return 0;
 	}
 
-	logprintf(log, LOG_DEBUG, "Received %d bytes of data\n", bytes);
+	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
 
 	left-=bytes;
 	if(left<2){
 		logprintf(log, LOG_WARNING, "Connection read buffer exhausted, resetting\n");
-		//TODO scan until next newline
+		//TODO set errflag in order to ignore trailing characters in next read
 		send(client->fd, "500 Line too long\r\n", 19, 0);
 		client_data->recv_offset=0;
 		return 0;
 	}
 
+	//scan the newly received data for terminators
+	for(i=0;i<bytes-1;i++){
+		if(client_data->recv_buffer[client_data->recv_offset+i]=='\r' 
+				&& client_data->recv_buffer[client_data->recv_offset+i+1]=='\n'){
+			//terminate line
+			client_data->recv_buffer[client_data->recv_offset+i]=0;
+			//process by state machine (FIXME might use the return value for something)
+			logprintf(log, LOG_DEBUG, "Extracted line spans %d bytes\n", client_data->recv_offset+i);
+			client_line(log, client);
+			//copyback
+			i++;
+			for(c=0;c+i<bytes-1;c++){
+				//logprintf(log, LOG_DEBUG, "Moving character %02X from position %d to %d\n", client_data->recv_buffer[client_data->recv_offset+i+1+c], client_data->recv_offset+i+1+c, c);
+				client_data->recv_buffer[c]=client_data->recv_buffer[client_data->recv_offset+i+1+c];
+			}
+			
+			i=-1;
+			bytes=c;
+			
+			logprintf(log, LOG_DEBUG, "recv_offset is now %d, first byte %02X\n", client_data->recv_offset, client_data->recv_buffer[0]);
+		}
+	}
 
-	//TODO scan recv_buffer for newlines, handle and shift, update recv_offset
-
+	//update recv_offset
+	client_data->recv_offset+=bytes;
+	
 	return 0;
 }
+
+
