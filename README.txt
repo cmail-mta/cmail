@@ -26,14 +26,14 @@ master database structure
 		Mail routing function and parameter used for outgoing
 		mail from this user.
 
-	Valid inbound mail routing functions are as follows
+	Valid inbound mail routing functions are as follows:
 
 		Router: store
 		Parameter: target database path (NULL defaults to 
 			master database)
 		Store the incoming messages in the 'mails' table of
 		a database. Local system users may want to have their
-		mail delivered to their home directories.
+		mail delivered to a database in their home directories.
 	
 		Router: forward
 		Parameter: address (NULL behaves the same way as
@@ -81,8 +81,8 @@ master database structure
 		Router: handoff
 		Parameter: Mail server address (NULL behaves the same 
 			way as the drop router)
-		Hand off all outgoing mail to another server (smarthost)
-		for relaying.
+		Hand off all outbound mail for this user to another server 
+		(smarthost) for relaying.
 
 		Router: alias
 		Parameter: locally defined user (NULL behaves the same
@@ -91,8 +91,8 @@ master database structure
 
 		Router: none
 		Parameter: None
-		Reject outgoing messages for this user.
+		Reject outbound messages for this user.
 
 		Router: drop
 		Parameter: None
-		Accept, but do not send outgoing messages for this user.
+		Accept, but do not send outbound messages for this user.
