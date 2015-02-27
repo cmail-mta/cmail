@@ -2,7 +2,7 @@
 
 int usage(char* filename){
 	printf("%s usage information\n", VERSION);
-	//TODO
+	//TODO usage info
 	return EXIT_FAILURE;
 }
 
