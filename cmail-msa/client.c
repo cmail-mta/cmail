@@ -3,8 +3,6 @@ int client_line(LOGGER log, CONNECTION* client, sqlite3* master){
 	switch(((CLIENT*)client->aux_data)->state){
 		case STATE_NEW:
 			return smtpstate_new(log, client, master);
-		case STATE_HELO:
-			return smtpstate_helo(log, client, master);
 		case STATE_IDLE:
 			return smtpstate_idle(log, client, master);
 		case STATE_MAIL:
