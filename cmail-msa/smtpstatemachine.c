@@ -64,6 +64,13 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master){
 		return client_close(client);
 	}
 
+	//this needs to be implemented as per RFC5321 3.3
+	if(!strncasecmp(client_data->recv_buffer, "rcpt ", 5)){
+		logprintf(log, LOG_INFO, "Client tried to use RCPT in IDLE\n");
+		send(client->fd, "503 Bad sequence of commands\r\n", 30, 0);
+		return 0;
+	}
+
 	if(!strncasecmp(client_data->recv_buffer, "mail from:", 10)){
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
 		//TODO extract reverse path and store it
