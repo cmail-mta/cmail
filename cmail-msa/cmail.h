@@ -24,7 +24,8 @@
 typedef enum /*_SMTP_STATE*/ {
 	STATE_NEW,
 	STATE_IDLE,
-	STATE_MAIL
+	STATE_RECIPIENTS,
+	STATE_DATA
 } SMTPSTATE;
 
 typedef struct /*_CONNECTION*/ {
@@ -73,6 +74,9 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #define LOG_WARNING 	0
 #define LOG_INFO 	1
 #define LOG_DEBUG 	3
+
+//PROTOTYPES
+int client_close(CONNECTION* client);
 
 #include "network.c"
 #include "database.c"

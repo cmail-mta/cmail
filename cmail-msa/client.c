@@ -5,8 +5,10 @@ int client_line(LOGGER log, CONNECTION* client, sqlite3* master){
 			return smtpstate_new(log, client, master);
 		case STATE_IDLE:
 			return smtpstate_idle(log, client, master);
-		case STATE_MAIL:
-			return smtpstate_mail(log, client, master);
+		case STATE_RECIPIENTS:
+			return smtpstate_recipients(log, client, master);
+		case STATE_DATA:
+			return smtpstate_data(log, client, master);
 		default:
 			//TODO resolve to plugin handler
 			break;
@@ -53,6 +55,12 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	return 0;
 }
 
+int client_close(CONNECTION* client){
+	close(client->fd);
+	client->fd=-1;
+	return 0;
+}
+
 int client_process(LOGGER log, CONNECTION* client, sqlite3* master){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
@@ -67,17 +75,13 @@ int client_process(LOGGER log, CONNECTION* client, sqlite3* master){
 	//failed to read from socket
 	if(bytes<0){
 		logprintf(log, LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
-		//close socket & release slot
-		close(client->fd);
-		client->fd=-1;
+		client_close(client);
 		return -1;
 	}
 	//client disconnect
 	else if(bytes==0){
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
-		//close socket & release slot
-		close(client->fd);
-		client->fd=-1;
+		client_close(client);
 		return 0;
 	}
 
@@ -120,5 +124,4 @@ int client_process(LOGGER log, CONNECTION* client, sqlite3* master){
 	
 	return 0;
 }
-
 
