@@ -21,6 +21,11 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.state=STATE_NEW,
 		.recv_offset=0
 	};
+
+	if(connpool_active(*clients)>=MAX_SIMULTANEOUS_CLIENTS){
+		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
+		return 1;
+	}
 	
 	client_slot=connpool_add(clients, accept(listener->fd, NULL, NULL));
 	

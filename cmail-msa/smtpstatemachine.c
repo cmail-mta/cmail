@@ -23,7 +23,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, sqlite3* master){
 
 		send(client->fd, "250 ", 4, 0);
 		send(client->fd, ((LISTENER*)client_data->listener->aux_data)->announce_domain, strlen(((LISTENER*)client_data->listener->aux_data)->announce_domain), 0);
-		send(client->fd, " welcomes you\r\n", 16, 0);
+		send(client->fd, " at your service\r\n", 18, 0);
 		return 0;
 	}
 	

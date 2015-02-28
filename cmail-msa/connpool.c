@@ -61,6 +61,18 @@ int connpool_remove(CONNPOOL* pool, int fd){
 	return 1;
 }
 
+int connpool_active(CONNPOOL pool){
+	unsigned i, count=0;
+
+	for(i=0;i<pool.count;i++){
+		if(pool.conns[i].fd>=0){
+			count++;
+		}
+	}
+
+	return count;
+}
+
 void connpool_free(CONNPOOL* pool){
 	unsigned i;
 
