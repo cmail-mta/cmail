@@ -21,7 +21,8 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	CLIENT client_data = {
 		.listener=listener,
 		.state=STATE_NEW,
-		.recv_offset=0
+		.recv_offset=0,
+		.current_mail=NULL
 	};
 
 	if(connpool_active(*clients)>=MAX_SIMULTANEOUS_CLIENTS){
@@ -58,6 +59,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 int client_close(CONNECTION* client){
 	close(client->fd);
 	client->fd=-1;
+	//TODO return current mailbuffer
 	return 0;
 }
 

@@ -21,6 +21,20 @@
 
 #include "smtplimits.h"
 
+typedef struct /*_MAIL_PATH*/ {
+	bool in_transaction;
+	char path[SMTP_MAX_PATH_LENGTH];
+	char* resolved_user;
+} MAILPATH;
+
+typedef struct /*_MAIL_STRUCT*/ {
+	bool in_transaction;
+	MAILPATH reverse_path;
+	MAILPATH* forward_paths[SMTP_MAX_RECIPIENTS];
+	unsigned data_allocated;
+	char* data;
+} MAIL;
+
 typedef enum /*_SMTP_STATE*/ {
 	STATE_NEW,
 	STATE_IDLE,
@@ -42,6 +56,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	SMTPSTATE state;
 	char recv_buffer[SMTP_MAX_LINE_LENGTH];
 	unsigned recv_offset;
+	MAIL* current_mail;
 	/*last_action*/
 } CLIENT;
 
@@ -68,6 +83,8 @@ typedef struct /*_CONF_META*/ {
 	sqlite3* master;
 } CONFIGURATION;
 
+//PROTOTYPES
+int client_close(CONNECTION* client);
 void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 
 #define LOG_ERROR 	0
@@ -75,11 +92,9 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #define LOG_INFO 	1
 #define LOG_DEBUG 	3
 
-//PROTOTYPES
-int client_close(CONNECTION* client);
-
 #include "network.c"
 #include "database.c"
+#include "path.c"
 #include "connpool.c"
 #include "smtpstatemachine.c"
 #include "client.c"
