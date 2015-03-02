@@ -95,6 +95,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #include "database.c"
 #include "path.c"
 #include "connpool.c"
+#include "pathpool.c"
 #include "smtpstatemachine.c"
 #include "client.c"
 #include "coreloop.c"
