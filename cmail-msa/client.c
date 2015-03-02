@@ -22,8 +22,21 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.listener=listener,
 		.state=STATE_NEW,
 		.recv_offset=0,
-		.current_mail=NULL
+		.current_mail = {
+			.reverse_path = {
+				.in_transaction = false,
+				.path = "",
+				.resolved_user = NULL
+			},
+			.forward_paths = {
+				NULL
+			},
+			//these need to persist between clients
+			.data_allocated = 0,
+			.data = NULL
+		}
 	};
+	CLIENT* original_data;
 
 	if(connpool_active(*clients)>=MAX_SIMULTANEOUS_CLIENTS){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
@@ -44,6 +57,12 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			return -1;
 		}
 	}
+	else{
+		//preserve old data
+		original_data=(CLIENT*)clients->conns[client_slot].aux_data;
+		client_data.current_mail.data_allocated=original_data->current_mail.data_allocated;
+		client_data.current_mail.data=original_data->current_mail.data;
+	}
 
 	//initialise / reset client data structure
 	(*((CLIENT*)clients->conns[client_slot].aux_data)) = client_data;
@@ -57,9 +76,21 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 }
 
 int client_close(CONNECTION* client){
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+
+	//close the socket
 	close(client->fd);
+
+	//reset mail buffer contents
+	client_data->current_mail.reverse_path.path[0]=0;
+	if(client_data->current_mail.data){
+		client_data->current_mail.data[0]=0;
+	}
+	client_data->current_mail.forward_paths[0]=NULL;
+	
+	//return the conpool slot
 	client->fd=-1;
-	//TODO return current mailbuffer
+	
 	return 0;
 }
 

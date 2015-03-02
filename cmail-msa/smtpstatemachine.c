@@ -55,6 +55,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master){
 	if(!strncasecmp(client_data->recv_buffer, "xyzzy", 5)){
 		send(client->fd, "250 Nothing happens\r\n", 21, 0);
 		logprintf(log, LOG_INFO, "Client performs incantation\n");
+
 		return 0;
 	}
 

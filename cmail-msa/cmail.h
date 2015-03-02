@@ -24,15 +24,14 @@
 typedef struct /*_MAIL_PATH*/ {
 	bool in_transaction;
 	char path[SMTP_MAX_PATH_LENGTH];
-	char* resolved_user;
+	char* resolved_user;				//HEAP'd
 } MAILPATH;
 
 typedef struct /*_MAIL_STRUCT*/ {
-	bool in_transaction;
 	MAILPATH reverse_path;
 	MAILPATH* forward_paths[SMTP_MAX_RECIPIENTS];
-	unsigned data_allocated;
-	char* data;
+	unsigned data_allocated;			//STACK'd, persistent
+	char* data;					//HEAP'd
 } MAIL;
 
 typedef enum /*_SMTP_STATE*/ {
@@ -56,7 +55,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	SMTPSTATE state;
 	char recv_buffer[SMTP_MAX_LINE_LENGTH];
 	unsigned recv_offset;
-	MAIL* current_mail;
+	MAIL current_mail;
 	/*last_action*/
 } CLIENT;
 
