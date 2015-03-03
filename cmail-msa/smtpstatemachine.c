@@ -76,7 +76,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pa
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
 		//extract reverse path and store it
 		if(path_parse(log, client_data->recv_buffer+10, &(client_data->current_mail.reverse_path))<0){
-			//send malformed address
+			//TODO send malformed address
 			return -1;
 		}
 		//TODO check sending address
@@ -93,14 +93,42 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pa
 
 int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
+	unsigned i;
+	MAILPATH* current_path;
 
 	if(!strncasecmp(client_data->recv_buffer, "rcpt to:", 8)){
-		//TODO extract forward path
-			//get slot in forward_paths
-			//get pathpool path
-			//path_parse
+		//get slot in forward_paths
+		for(i=0;i<SMTP_MAX_RECIPIENTS;i++){
+			if(!client_data->current_mail.forward_paths[i]){
+				break;
+			}
+		}
+
+		if(i==SMTP_MAX_RECIPIENTS){
+			//to many recipients, fail this one
+			logprintf(log, LOG_INFO, "Mail exceeded recipient limit\n");
+			send(client->fd, "550 Too many recipients\r\n", 25, 0); //FIXME correct message
+			return 0;
+		}
+
+		//get path from pool
+		current_path=pathpool_get(log, path_pool);
+		if(!current_path){
+			logprintf(log, LOG_ERROR, "Failed to get path, failing recipient\n");
+			send(client->fd, "420 Recipients pool maxed out\r\n", 31, 0); //FIXME correct message
+			return 0;
+		}
+
+		if(path_parse(log, client_data->recv_buffer+8, current_path)<0){
+			//TODO send malformed address
+			return -1;
+		}
+
 		//TODO validate it and store or reject it
 		//path_resolve
+		//TODO call plugins
+
+		client_data->current_mail.forward_paths[i]=current_path;
 		send(client->fd, "250 Accepted\r\n", 14, 0);
 		return 0;
 	}
@@ -120,7 +148,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPO
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
 		client_data->state=STATE_IDLE;
 		//reset forward/reverse paths
-		mail_reset(log, &(client_data->current_mail));
+		mail_reset(&(client_data->current_mail));
 		logprintf(log, LOG_INFO, "Client reset\n");
 		send(client->fd, "250 OK\r\n", 8, 0);
 		return 0;

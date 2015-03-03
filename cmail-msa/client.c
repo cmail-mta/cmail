@@ -82,11 +82,7 @@ int client_close(CONNECTION* client){
 	close(client->fd);
 
 	//reset mail buffer contents
-	client_data->current_mail.reverse_path.path[0]=0;
-	if(client_data->current_mail.data){
-		client_data->current_mail.data[0]=0;
-	}
-	client_data->current_mail.forward_paths[0]=NULL;
+	mail_reset(&(client_data)->current_mail);
 	
 	//return the conpool slot
 	client->fd=-1;

@@ -3,7 +3,7 @@ int mail_route(){
 	return -1;
 }
 
-int mail_reset(LOGGER log, MAIL* mail){
+int mail_reset(MAIL* mail){
 	unsigned i;
 
 	//changes made here must be reflected in client_accept
@@ -27,7 +27,11 @@ int mail_reset(LOGGER log, MAIL* mail){
 	empty_mail.data_allocated=mail->data_allocated;
 	empty_mail.data=mail->data;
 
-	for(i=0;mail->forward_paths[i];i++){
+	if(mail->data){
+		mail->data[0]=0;
+	}
+
+	for(i=0;mail->forward_paths[i]&&i<SMTP_MAX_RECIPIENTS;i++){
 		pathpool_return(mail->forward_paths[i]);
 	}
 

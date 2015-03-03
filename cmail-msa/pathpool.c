@@ -29,6 +29,8 @@ MAILPATH* pathpool_get(LOGGER log, PATHPOOL* pool){
 		}
 
 		path_reset(pool->paths[pool->count]);
+		logprintf(log, LOG_DEBUG, "Reallocated path pool to %d entries\n", pool->count+1);
+		pool->paths[pool->count]->in_transaction=true;
 
 		return pool->paths[pool->count++];
 	}
