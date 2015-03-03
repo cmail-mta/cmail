@@ -7,7 +7,7 @@
  *	MAIL | RSET	-> IDLE | 250 OK
  */
 
-int smtpstate_new(LOGGER log, CONNECTION* client, sqlite3* master){
+int smtpstate_new(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "ehlo ", 5)){
@@ -42,7 +42,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, sqlite3* master){
 	return -1;		
 }
 
-int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master){
+int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "noop", 4)
@@ -74,7 +74,13 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master){
 
 	if(!strncasecmp(client_data->recv_buffer, "mail from:", 10)){
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
-		//TODO extract reverse path and store it
+		//extract reverse path and store it
+		if(path_parse(log, client_data->recv_buffer+10, &(client_data->current_mail.reverse_path))<0){
+			//send malformed address
+			return -1;
+		}
+		//TODO check sending address
+		//TODO call plugins
 		send(client->fd, "250 OK\r\n", 8, 0);
 		client_data->state=STATE_RECIPIENTS;
 		return 0;
@@ -85,11 +91,16 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master){
 	return -1;
 }
 
-int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master){
+int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "rcpt to:", 8)){
-		//TODO extract forward path, validate it and store or reject it
+		//TODO extract forward path
+			//get slot in forward_paths
+			//get pathpool path
+			//path_parse
+		//TODO validate it and store or reject it
+		//path_resolve
 		send(client->fd, "250 Accepted\r\n", 14, 0);
 		return 0;
 	}
@@ -108,7 +119,8 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master){
 	
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
 		client_data->state=STATE_IDLE;
-		//TODO reset forward/reverse paths
+		//reset forward/reverse paths
+		mail_reset(log, &(client_data->current_mail));
 		logprintf(log, LOG_INFO, "Client reset\n");
 		send(client->fd, "250 OK\r\n", 8, 0);
 		return 0;
@@ -116,7 +128,6 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master){
 
 	if(!strncasecmp(client_data->recv_buffer, "data", 4)){
 		client_data->state=STATE_DATA;
-		//TODO reset forward/reverse paths
 		logprintf(log, LOG_INFO, "Client wants to begin data transmission\n");
 		send(client->fd, "354 Go ahead\r\n", 14, 0);
 		return 0;
@@ -127,12 +138,13 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master){
 	return -1;
 }
 
-int smtpstate_data(LOGGER log, CONNECTION* client, sqlite3* master){
+int smtpstate_data(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	
 	//TODO scan for data end
 
 	logprintf(log, LOG_INFO, "DATA: %s\n", client_data->recv_buffer);
 //	send(client->fd, "500 Unknown command\r\n", 21, 0);
+//	TODO after end, route mail and reset
 	return 0;
 }

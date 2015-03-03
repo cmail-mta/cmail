@@ -4,9 +4,14 @@ int core_loop(LOGGER log, CONNPOOL listeners, sqlite3* master){
 	int status;
 	unsigned i;
 	bool shutdown_signal=false;
-	CONNPOOL clients={
+	CONNPOOL clients = {
 		.count = 0,
 		.conns = NULL
+	};
+
+	PATHPOOL path_pool = {
+		.count = 0,
+		.paths = NULL
 	};
 
 	while(!shutdown_signal){
@@ -51,7 +56,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, sqlite3* master){
 			if(clients.conns[i].fd>0 && FD_ISSET(clients.conns[i].fd, &readfds)){
 				//handle data
 				//FIXME handle return value
-				client_process(log, &(clients.conns[i]), master);
+				client_process(log, &(clients.conns[i]), master, &path_pool);
 			}
 		}
 		
@@ -67,6 +72,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, sqlite3* master){
 
 	//TODO free connpool aux_data structures
 	connpool_free(&clients);
+	pathpool_free(&path_pool);
 
 	return 0;
 }

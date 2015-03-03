@@ -64,6 +64,11 @@ typedef struct /*_CONNECTION_AGGREGATE*/ {
 	CONNECTION* conns;
 } CONNPOOL;
 
+typedef struct /*_PATH_POOL*/{
+	unsigned count;
+	MAILPATH** paths;
+} PATHPOOL;
+
 typedef struct /*_ARGS*/ {
 	char* config_file;
 	bool drop_privileges;
@@ -96,6 +101,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #include "path.c"
 #include "connpool.c"
 #include "pathpool.c"
+#include "mail.c"
 #include "smtpstatemachine.c"
 #include "client.c"
 #include "coreloop.c"

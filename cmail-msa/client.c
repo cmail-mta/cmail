@@ -1,14 +1,14 @@
-int client_line(LOGGER log, CONNECTION* client, sqlite3* master){
+int client_line(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	logprintf(log, LOG_DEBUG, "Client processing of line started: %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
 	switch(((CLIENT*)client->aux_data)->state){
 		case STATE_NEW:
-			return smtpstate_new(log, client, master);
+			return smtpstate_new(log, client, master, path_pool);
 		case STATE_IDLE:
-			return smtpstate_idle(log, client, master);
+			return smtpstate_idle(log, client, master, path_pool);
 		case STATE_RECIPIENTS:
-			return smtpstate_recipients(log, client, master);
+			return smtpstate_recipients(log, client, master, path_pool);
 		case STATE_DATA:
-			return smtpstate_data(log, client, master);
+			return smtpstate_data(log, client, master, path_pool);
 		default:
 			//TODO resolve to plugin handler
 			break;
@@ -94,7 +94,7 @@ int client_close(CONNECTION* client){
 	return 0;
 }
 
-int client_process(LOGGER log, CONNECTION* client, sqlite3* master){
+int client_process(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
@@ -137,7 +137,7 @@ int client_process(LOGGER log, CONNECTION* client, sqlite3* master){
 			client_data->recv_buffer[client_data->recv_offset+i]=0;
 			//process by state machine (FIXME might use the return value for something)
 			logprintf(log, LOG_DEBUG, "Extracted line spans %d bytes\n", client_data->recv_offset+i);
-			client_line(log, client, master);
+			client_line(log, client, master, path_pool);
 			//copyback
 			i++;
 			for(c=0;c+i<bytes-1;c++){
