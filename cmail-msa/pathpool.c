@@ -62,6 +62,7 @@ void pathpool_free(PATHPOOL* pool){
 		for(i=0;i<pool->count;i++){
 			path_reset(pool->paths[i]);
 			free(pool->paths[i]);
+			pool->paths[i]=NULL;
 		}
 		free(pool->paths);
 	}

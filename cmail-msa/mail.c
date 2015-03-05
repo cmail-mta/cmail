@@ -1,4 +1,22 @@
-int mail_route(){
+int mail_route(LOGGER log, MAIL* mail, sqlite3* master){
+	//TODO
+	unsigned i;
+	logprintf(log, LOG_INFO, "Now routing mail from %s\n", mail->reverse_path.path);
+	for(i=0;mail->forward_paths[i];i++){
+		//FIXME second check should not be needed, unmatched paths should not be accepted
+		logprintf(log, LOG_INFO, "Forward route to %s (Resolved to %s)\n", mail->forward_paths[i]->path, (mail->forward_paths[i]->resolved_user)?mail->forward_paths[i]->resolved_user:"null");
+	}
+	if(mail->data){
+		logprintf(log, LOG_INFO, "%s\n", mail->data);
+	}
+	else{
+		logprintf(log, LOG_INFO, "No data\n");
+	}
+
+	return 0;
+}
+
+int mail_line(LOGGER log, MAIL* mail, char* line){
 	//TODO
 	return -1;
 }

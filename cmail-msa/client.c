@@ -1,5 +1,5 @@
 int client_line(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
-	logprintf(log, LOG_DEBUG, "Client processing of line started: %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
+	//logprintf(log, LOG_DEBUG, "Client processing of line started: %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
 	switch(((CLIENT*)client->aux_data)->state){
 		case STATE_NEW:
 			return smtpstate_new(log, client, master, path_pool);

@@ -86,6 +86,7 @@ void path_reset(MAILPATH* path){
 
 	if(path->resolved_user){
 		free(path->resolved_user);
+		path->resolved_user=NULL;
 	}
 
 	*path=reset_path;

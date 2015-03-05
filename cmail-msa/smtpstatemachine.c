@@ -123,9 +123,10 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPO
 			//TODO send malformed address
 			return -1;
 		}
-
-		//TODO validate it and store or reject it
-		//path_resolve
+		//TODO resolve path
+		//TODO of not resolved, reject
+		//TODO check if already in recipients list
+		//if yes, accept but dont store
 		//TODO call plugins
 
 		client_data->current_mail.forward_paths[i]=current_path;
@@ -169,10 +170,23 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPO
 int smtpstate_data(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	
-	//TODO scan for data end
+	if(client_data->recv_buffer[0]=='.'){
+		if(client_data->recv_buffer[1]){
+			//skip leading dot
+			//FIXME use return value (might indicate message too long)
+			return mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1);
+		}
+		else{
+			//end of mail
+			mail_route(log, &(client_data->current_mail), master);
+			mail_reset(&(client_data->current_mail));
+			client_data->state=STATE_IDLE;
+		}
+	}
+	else{
+		//FIXME use return value (might indicate message too long)
+		return mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1);
+	}
 
-	logprintf(log, LOG_INFO, "DATA: %s\n", client_data->recv_buffer);
-//	send(client->fd, "500 Unknown command\r\n", 21, 0);
-//	TODO after end, route mail and reset
 	return 0;
 }
