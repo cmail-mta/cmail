@@ -31,6 +31,7 @@ typedef struct /*_MAIL_STRUCT*/ {
 	MAILPATH reverse_path;
 	MAILPATH* forward_paths[SMTP_MAX_RECIPIENTS];
 	unsigned data_allocated;			//STACK'd, persistent
+	unsigned data_offset;
 	char* data;					//HEAP'd
 } MAIL;
 

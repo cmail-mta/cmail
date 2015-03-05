@@ -16,7 +16,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pat
 
 		send(client->fd, "250-", 4, 0);
 		send(client->fd, ((LISTENER*)client_data->listener->aux_data)->announce_domain, strlen(((LISTENER*)client_data->listener->aux_data)->announce_domain), 0);
-		send(client->fd, " welcomes you\r\n", 16, 0);
+		send(client->fd, " welcomes you\r\n", 15, 0);
 		
 		//TODO hook plugins here
 		
@@ -172,12 +172,16 @@ int smtpstate_data(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pa
 	
 	if(client_data->recv_buffer[0]=='.'){
 		if(client_data->recv_buffer[1]){
+			logprintf(log, LOG_INFO, "Data line with leading dot, fixing\n");
 			//skip leading dot
 			//FIXME use return value (might indicate message too long)
 			return mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1);
 		}
 		else{
 			//end of mail
+			logprintf(log, LOG_INFO, "End of mail data, accepting\n");
+			//TODO call plugins here
+			send(client->fd, "250 OK\r\n", 8, 0);
 			mail_route(log, &(client_data->current_mail), master);
 			mail_reset(&(client_data->current_mail));
 			client_data->state=STATE_IDLE;
@@ -185,7 +189,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pa
 	}
 	else{
 		//FIXME use return value (might indicate message too long)
-		return mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1);
+		return mail_line(log, &(client_data->current_mail), client_data->recv_buffer);
 	}
 
 	return 0;

@@ -32,6 +32,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 				NULL
 			},
 			//these need to persist between clients
+			.data_offset = 0,
 			.data_allocated = 0,
 			.data = NULL
 		}
