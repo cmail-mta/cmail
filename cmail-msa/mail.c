@@ -4,6 +4,7 @@ int mail_route(LOGGER log, MAIL* mail, sqlite3* master){
 	logprintf(log, LOG_INFO, "Now routing mail from %s\n", mail->reverse_path.path);
 	for(i=0;mail->forward_paths[i];i++){
 		//FIXME second check should not be needed, unmatched paths should not be accepted
+		//UPDATE yes they are in relay operation
 		logprintf(log, LOG_INFO, "Forward route to %s (Resolved to %s)\n", mail->forward_paths[i]->path, (mail->forward_paths[i]->resolved_user)?mail->forward_paths[i]->resolved_user:"null");
 	}
 	if(mail->data){
