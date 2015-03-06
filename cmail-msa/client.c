@@ -117,17 +117,18 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 
 	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
 
-	left-=bytes;
-	if(left<2){
-		logprintf(log, LOG_WARNING, "Connection read buffer exhausted, resetting\n");
-		//TODO set errflag in order to ignore trailing characters in next read
-		send(client->fd, "500 Line too long\r\n", 19, 0);
-		client_data->recv_offset=0;
-		return 0;
-	}
-
 	//scan the newly received data for terminators
 	for(i=0;i<bytes-1;i++){
+		if(client_data->recv_offset+i>=SMTP_MAX_LINE_LENGTH-2){
+			//TODO implement this properly
+			//FIXME if in data mode, process the line anyway
+			//else, skip until next newline (set flag to act accordingly in next read)
+			logprintf(log, LOG_WARNING, "Line too long, handling current contents\n");
+			send(client->fd, "500 Line too long\r\n", 19, 0);
+			client_data->recv_buffer[client_data->recv_offset+i]='\r';
+			client_data->recv_buffer[client_data->recv_offset+i+1]='\n';
+		}
+
 		if(client_data->recv_buffer[client_data->recv_offset+i]=='\r' 
 				&& client_data->recv_buffer[client_data->recv_offset+i+1]=='\n'){
 			//terminate line
@@ -144,12 +145,15 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 			
 			i=-1;
 			bytes=c;
+
+			//recv_offset points to the end of the last read, so 0 now
+			client_data->recv_offset=0;
 			
 			logprintf(log, LOG_DEBUG, "recv_offset is now %d, first byte %02X\n", client_data->recv_offset, client_data->recv_buffer[0]);
 		}
 	}
 
-	//update recv_offset
+	//update recv_offset with unprocessed bytes
 	client_data->recv_offset+=bytes;
 	
 	return 0;
