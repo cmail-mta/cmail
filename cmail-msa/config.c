@@ -96,12 +96,12 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 }
 
 int config_database(CONFIGURATION* config, char* directive, char* params){
-	if(config->master){
+	if(config->database.conn){
 		logprintf(config->log, LOG_ERROR, "Can not use %s as master database, another one is already attached\n", params);
 		return -1;
 	}
 
-	switch(sqlite3_open_v2(params, &(config->master), SQLITE_OPEN_READWRITE, NULL)){
+	switch(sqlite3_open_v2(params, &(config->database.conn), SQLITE_OPEN_READWRITE, NULL)){
 		case SQLITE_OK:
 			logprintf(config->log, LOG_DEBUG, "Attached %s as master database\n", params);
 			return 0;
@@ -220,8 +220,9 @@ void config_free(CONFIGURATION* config){
 	}
 
 	//FIXME check for SQLITE_BUSY here
-	if(config->master){
-		sqlite3_close(config->master);
-		config->master=NULL;
+	if(config->database.conn){
+		sqlite3_close(config->database.conn);
+		//TODO close and free statements
+		config->database.conn=NULL;
 	}
 }

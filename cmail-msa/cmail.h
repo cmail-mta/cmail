@@ -81,11 +81,18 @@ typedef struct /*_LOGGER*/ {
 	unsigned verbosity;
 } LOGGER;
 
+typedef struct /*_DATABASE_CONNECTION*/ {
+	sqlite3* conn;
+	sqlite3_stmt* query_address;
+	sqlite3_stmt* query_wildcards;
+	sqlite3_stmt** insert_mail;
+} DATABASE;
+
 typedef struct /*_CONF_META*/ {
 	CONNPOOL listeners;
 	struct {int uid; int gid;} privileges;
 	LOGGER log;
-	sqlite3* master;
+	DATABASE database;
 } CONFIGURATION;
 
 //PROTOTYPES

@@ -44,7 +44,12 @@ int main(int argc, char** argv){
 	};
 
 	CONFIGURATION config = {
-		.master = NULL,
+		.database = {
+			.conn = NULL,
+			.query_address = NULL,
+			.query_wildcards = NULL,
+			.insert_mail = NULL
+		},
 		.listeners = {
 			.count = 0,
 			.conns = NULL
@@ -75,7 +80,7 @@ int main(int argc, char** argv){
 	logprintf(config.log, LOG_INFO, "This is %s, starting up\n", VERSION);
 
 	//attach aux databases
-	if(database_initialize(config.log, config.master)<0){
+	if(database_initialize(config.log, &(config.database))<0){
 		arguments_free(&args);
 		config_free(&config);
 		exit(EXIT_FAILURE);
@@ -131,7 +136,7 @@ int main(int argc, char** argv){
 	}
 	
 	//enter main processing loop
-	core_loop(config.log, config.listeners, config.master);
+	core_loop(config.log, config.listeners, config.database);
 	
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");

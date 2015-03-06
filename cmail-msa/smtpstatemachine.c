@@ -7,7 +7,7 @@
  *	MAIL | RSET	-> IDLE | 250 OK
  */
 
-int smtpstate_new(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
+int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "ehlo ", 5)){
@@ -42,7 +42,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pat
 	return -1;		
 }
 
-int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
+int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "noop", 4)
@@ -91,7 +91,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pa
 	return -1;
 }
 
-int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
+int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	unsigned i;
 	MAILPATH* current_path;
@@ -128,7 +128,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPO
 			return -1;
 		}
 
-		if(path_resolve(log, current_path, master)<0){
+		if(path_resolve(log, current_path, database)<0){
 			send(client->fd, "451 Path rejected\r\n", 19, 0);
 			pathpool_return(current_path);
 			//FIXME should state transition back to idle here?
@@ -182,7 +182,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, sqlite3* master, PATHPO
 	return -1;
 }
 
-int smtpstate_data(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* path_pool){
+int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	
 	if(client_data->recv_buffer[0]=='.'){
@@ -197,7 +197,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, sqlite3* master, PATHPOOL* pa
 			logprintf(log, LOG_INFO, "End of mail data, accepting\n");
 			//TODO call plugins here
 			send(client->fd, "250 OK\r\n", 8, 0);
-			mail_route(log, &(client_data->current_mail), master);
+			mail_route(log, &(client_data->current_mail), database);
 			mail_reset(&(client_data->current_mail));
 			client_data->state=STATE_IDLE;
 		}

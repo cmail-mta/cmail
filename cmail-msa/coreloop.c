@@ -1,4 +1,4 @@
-int core_loop(LOGGER log, CONNPOOL listeners, sqlite3* master){
+int core_loop(LOGGER log, CONNPOOL listeners, DATABASE database){
 	fd_set readfds;
 	int maxfd;
 	int status;
@@ -56,7 +56,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, sqlite3* master){
 			if(clients.conns[i].fd>0 && FD_ISSET(clients.conns[i].fd, &readfds)){
 				//handle data
 				//FIXME handle return value
-				client_process(log, &(clients.conns[i]), master, &path_pool);
+				client_process(log, &(clients.conns[i]), database, &path_pool);
 			}
 		}
 		

@@ -72,7 +72,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	return 0;
 }
 
-int path_resolve(LOGGER log, MAILPATH* path, sqlite3* master){
+int path_resolve(LOGGER log, MAILPATH* path, DATABASE database){
 	//TODO
 	return -1;
 }

@@ -1,4 +1,4 @@
-int mail_route(LOGGER log, MAIL* mail, sqlite3* master){
+int mail_route(LOGGER log, MAIL* mail, DATABASE database){
 	//TODO
 	unsigned i;
 	logprintf(log, LOG_INFO, "Now routing mail from %s\n", mail->reverse_path.path);
