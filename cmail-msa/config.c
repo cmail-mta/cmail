@@ -219,10 +219,5 @@ void config_free(CONFIGURATION* config){
 		config->log.stream=stderr;
 	}
 
-	//FIXME check for SQLITE_BUSY here
-	if(config->database.conn){
-		sqlite3_close(config->database.conn);
-		//TODO close and free statements
-		config->database.conn=NULL;
-	}
+	database_free(&(config->database));
 }
