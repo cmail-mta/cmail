@@ -140,6 +140,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE database, PATH
 			send(client->fd, "551 Unknown user\r\n", 18, 0);
 			pathpool_return(current_path);
 			//TODO if authed, accept anyway
+			return 0;
 		}
 
 		//FIXME address deduplication?

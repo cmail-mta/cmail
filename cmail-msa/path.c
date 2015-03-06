@@ -54,7 +54,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 				}
 				//fall through
 			case '>':
-				//FIXME allow only printable/space characters here
+				//FIXME allow only printable nonspace(?) characters here
 				if(!quotes){
 					done_parsing=true;
 					break;
@@ -73,8 +73,55 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 }
 
 int path_resolve(LOGGER log, MAILPATH* path, DATABASE database){
+	int status;
+
+	if(path->resolved_user){
+		return 0;
+	}
+
+	//try to find exact address match
+	status=sqlite3_bind_text(database.query_address, 1, path->path, -1, SQLITE_STATIC);
+	if(status!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind address search parameter: %s\n", sqlite3_errmsg(database.conn));
+		sqlite3_reset(database.query_address);
+		sqlite3_clear_bindings(database.query_address);
+		return -1;
+	}
+
+	status=SQLITE_ROW;
+	while(status==SQLITE_ROW&&!path->resolved_user){
+		status=sqlite3_step(database.query_address);
+		switch(status){
+			case SQLITE_ROW:
+				//match found
+				path->resolved_user=calloc(sqlite3_column_bytes(database.query_address, 0)+1, sizeof(char));
+				if(!path->resolved_user){
+					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
+					sqlite3_reset(database.query_address);
+					sqlite3_clear_bindings(database.query_address);
+					return -1;
+				}
+				strncpy(path->resolved_user, (char*)sqlite3_column_text(database.query_address, 0), sqlite3_column_bytes(database.query_address, 0));
+				break;
+			case SQLITE_DONE:
+				logprintf(log, LOG_INFO, "No address match found, trying wildcards\n");
+				break;
+			default:
+				logprintf(log, LOG_ERROR, "Failed to query address: %s\n", sqlite3_errmsg(database.conn));
+				break;
+		}
+	}
+
+	sqlite3_reset(database.query_address);
+	sqlite3_clear_bindings(database.query_address);
+
+	if(path->resolved_user){
+		return 0;
+	}
+
+	//try to match wildcards
 	//TODO
-	return -1;
+	return 0;
 }
 
 void path_reset(MAILPATH* path){
