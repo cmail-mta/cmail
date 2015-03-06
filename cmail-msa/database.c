@@ -20,7 +20,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
 	char* QUERY_SELECT_DATABASES="SELECT user_name, user_inroute FROM users WHERE user_inrouter='store' AND user_inroute NOT NULL GROUP BY user_inroute;";
 	char* QUERY_ADDRESS="SELECT address_user FROM addresses WHERE address_text = ?;";
-	char* QUERY_WILDCARDS="SELECT wildcard_expression, wildcard_user FROM wildcards ORDER BY wildcard_order ASC;";
+	char* QUERY_WILDCARDS="SELECT wildcard_user FROM wildcards WHERE ? LIKE wildcard_expression ORDER BY wildcard_order ASC;";
 	int status=SQLITE_ROW;
 	int rv=0;
 

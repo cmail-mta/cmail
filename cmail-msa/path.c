@@ -120,7 +120,40 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE database){
 	}
 
 	//try to match wildcards
-	//TODO
+	status=sqlite3_bind_text(database.query_wildcards, 1, path->path, -1, SQLITE_STATIC);
+	if(status!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind wildcard search parameter: %s\n", sqlite3_errmsg(database.conn));
+		sqlite3_reset(database.query_wildcards);
+		sqlite3_clear_bindings(database.query_wildcards);
+		return -1;
+	}
+
+	status=SQLITE_ROW;
+	while(status==SQLITE_ROW&&!path->resolved_user){
+		status=sqlite3_step(database.query_wildcards);
+		switch(status){
+			case SQLITE_ROW:
+				//match found
+				path->resolved_user=calloc(sqlite3_column_bytes(database.query_wildcards, 0)+1, sizeof(char));
+				if(!path->resolved_user){
+					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
+					sqlite3_reset(database.query_wildcards);
+					sqlite3_clear_bindings(database.query_wildcards);
+					return -1;
+				}
+				strncpy(path->resolved_user, (char*)sqlite3_column_text(database.query_wildcards, 0), sqlite3_column_bytes(database.query_wildcards, 0));
+				break;
+			case SQLITE_DONE:
+				logprintf(log, LOG_INFO, "No address match found\n");
+				break;
+			default:
+				logprintf(log, LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database.conn));
+				break;
+		}
+	}
+
+	sqlite3_reset(database.query_wildcards);
+	sqlite3_clear_bindings(database.query_wildcards);
 	return 0;
 }
 
