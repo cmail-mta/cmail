@@ -195,10 +195,18 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 		}
 		else{
 			//end of mail
-			logprintf(log, LOG_INFO, "End of mail data, accepting\n");
+			logprintf(log, LOG_INFO, "End of mail data, routing\n");
 			//TODO call plugins here
-			send(client->fd, "250 OK\r\n", 8, 0);
-			mail_route(log, &(client_data->current_mail), database);
+			switch(mail_route(log, &(client_data->current_mail), database)){
+				case 250:
+					logprintf(log, LOG_INFO, "Mail accepted\n");
+					send(client->fd, "250 OK\r\n", 8, 0);
+					break;
+				default:
+					logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
+					send(client->fd, "500 Rejected\r\n", 14, 0);
+					break;
+			}
 			mail_reset(&(client_data->current_mail));
 			client_data->state=STATE_IDLE;
 		}

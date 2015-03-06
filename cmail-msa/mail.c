@@ -14,7 +14,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE database){
 		logprintf(log, LOG_INFO, "No data\n");
 	}
 
-	return 0;
+	return 250;
 }
 
 int mail_line(LOGGER log, MAIL* mail, char* line){
