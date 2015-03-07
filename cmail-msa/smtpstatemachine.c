@@ -204,7 +204,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 					break;
 				default:
 					logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
-					send(client->fd, "500 Rejected\r\n", 14, 0);
+					send(client->fd, "500 Rejected\r\n", 14, 0); //FIXME correct response code
 					break;
 			}
 			mail_reset(&(client_data->current_mail));
