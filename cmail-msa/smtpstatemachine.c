@@ -23,6 +23,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* p
 		//send hardcoded esmtp options
 		send(client->fd, "250-SIZE 52428800\r\n", 19, 0); //FIXME make this configurable
 		send(client->fd, "250-8BITMIME\r\n", 14, 0); //FIXME this might provide some fun down the road...
+		send(client->fd, "250-SMTPUTF8\r\n", 14, 0); //RFC 6531
 		send(client->fd, "250 XYZZY\r\n", 11, 0); //RFC 5321 2.2.2
 		return 0;
 	}
