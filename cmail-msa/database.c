@@ -60,6 +60,8 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
 	char* QUERY_SELECT_DATABASES="SELECT MIN(user_name), user_inroute FROM users WHERE user_inrouter='store' AND user_inroute NOT NULL GROUP BY user_inroute;";
 	char* QUERY_ADDRESS_USER="SELECT address_user FROM addresses WHERE ? LIKE address_expression ORDER BY address_order ASC;";
+	char* QUERY_USER_ROUTER_INBOUND="SELECT user_inrouter, user_inroute FROM users WHERE user_name = ?;";
+	char* QUERY_USER_ROUTER_OUTBOUND="SELECT user_outrouter, user_outroute FROM users WHERE user_name = ?;";
 	int status=SQLITE_ROW;
 	int rv=0;
 
@@ -67,6 +69,8 @@ int database_initialize(LOGGER log, DATABASE* database){
 	sqlite3_stmt* select_dbs=database_prepare(log, database->conn, QUERY_SELECT_DATABASES);
 	
 	database->query_addresses=database_prepare(log, database->conn, QUERY_ADDRESS_USER);
+	database->query_inrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_INBOUND);
+	database->query_outrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_OUTBOUND);
 
 	if(!attach_db||!select_dbs){
 		logprintf(log, LOG_ERROR, "Failed to prepare auxiliary attach statements\n");
@@ -75,6 +79,11 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 	if(!database->query_addresses){
 		logprintf(log, LOG_ERROR, "Failed to prepare address query statement\n");
+		return -1;
+	}
+
+	if(!database->query_inrouter || !database->query_outrouter){
+		logprintf(log, LOG_ERROR, "Failed to prepare router query statement\n");
 		return -1;
 	}
 
@@ -118,6 +127,8 @@ void database_free(DATABASE* database){
 	//FIXME check for SQLITE_BUSY here
 	if(database->conn){
 		sqlite3_finalize(database->query_addresses);
+		sqlite3_finalize(database->query_inrouter);
+		sqlite3_finalize(database->query_outrouter);
 		
 		sqlite3_close(database->conn);
 		database->conn=NULL;

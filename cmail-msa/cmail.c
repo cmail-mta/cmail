@@ -47,6 +47,8 @@ int main(int argc, char** argv){
 		.database = {
 			.conn = NULL,
 			.query_addresses = NULL,
+			.query_inrouter = NULL,
+			.query_outrouter = NULL,
 			.mail_storage = {
 				.statements = NULL,
 				.users = NULL
@@ -108,7 +110,7 @@ int main(int argc, char** argv){
 		//TODO check for success
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (You are not root)":""));
+		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));
 	}
 	
 	//detach from console (or dont)
@@ -134,7 +136,7 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Error output stream is stderr)":""));
+		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Because the log output stream is stderr)":""));
 	}
 	
 	//enter main processing loop

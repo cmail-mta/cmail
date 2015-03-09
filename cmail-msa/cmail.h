@@ -14,10 +14,11 @@
 
 #include <sqlite3.h>
 
-#define VERSION "cmail 0.1"
-#define MAX_CFGLINE 2048
-#define LISTEN_QUEUE_LENGTH 128
-#define MAX_SIMULTANEOUS_CLIENTS 64
+#define VERSION 			"cmail 0.1"
+#define MAX_CFGLINE 			2048
+#define LISTEN_QUEUE_LENGTH 		128
+#define MAX_SIMULTANEOUS_CLIENTS 	64
+#define MAX_FQDN_LENGTH			300 //actually, 255
 
 #include "smtplimits.h"
 
@@ -28,6 +29,7 @@ typedef struct /*_MAIL_PATH*/ {
 } MAILPATH;
 
 typedef struct /*_MAIL_STRUCT*/ {
+	char submitter[MAX_FQDN_LENGTH];
 	MAILPATH reverse_path;
 	MAILPATH* forward_paths[SMTP_MAX_RECIPIENTS];
 	unsigned data_allocated;			//STACK'd, persistent
@@ -84,6 +86,8 @@ typedef struct /*_LOGGER*/ {
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_addresses;
+	sqlite3_stmt* query_inrouter;
+	sqlite3_stmt* query_outrouter;
 	struct {
 		sqlite3_stmt** statements;
 		char** users;
@@ -97,6 +101,11 @@ typedef struct /*_CONF_META*/ {
 	DATABASE database;
 } CONFIGURATION;
 
+typedef struct /*_MAIL_ROUTE*/ {
+	char* router;
+	char* argument;
+} MAILROUTE;
+
 //PROTOTYPES
 int client_close(CONNECTION* client);
 void logprintf(LOGGER log, unsigned level, char* fmt, ...);
@@ -109,6 +118,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 #include "network.c"
 #include "database.c"
 #include "path.c"
+#include "route.c"
 #include "connpool.c"
 #include "pathpool.c"
 #include "mail.c"

@@ -1,20 +1,26 @@
 int mail_route(LOGGER log, MAIL* mail, DATABASE database){
-	//TODO
+	MAILROUTE route;
 	unsigned i;
-	logprintf(log, LOG_INFO, "Now routing mail from %s\n", mail->reverse_path.path);
+
+	//iterate over recipients	
 	for(i=0;mail->forward_paths[i];i++){
-		//FIXME second check should not be needed, unmatched paths should not be accepted
-		//UPDATE yes they are in relay operation
-		logprintf(log, LOG_INFO, "Forward route to %s (Resolved to %s)\n", mail->forward_paths[i]->path, (mail->forward_paths[i]->resolved_user)?mail->forward_paths[i]->resolved_user:"null");
-	}
-	if(mail->data){
-		logprintf(log, LOG_INFO, "%s\n", mail->data);
-	}
-	else{
-		logprintf(log, LOG_INFO, "No data\n");
+		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s\n", i, mail->forward_paths[i]->path);
+		if(mail->forward_paths[i]->resolved_user){
+			//inbound mail, apply inrouter
+			route=route_query(log, database, true, mail->forward_paths[i]->resolved_user);
+
+
+		}
+		else{
+			//outbound mail, apply outrouter
+			//route=route_query(log, database, false, SENDING_USER);
+			//TODO
+		}
+
+		route_free(&route);
 	}
 
-	return 250;
+	return 500;
 }
 
 int mail_line(LOGGER log, MAIL* mail, char* line){

@@ -16,6 +16,28 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* pat
 	return 0;
 }
 
+int client_resolve(LOGGER log, CONNECTION* client){
+	struct sockaddr_storage data;
+	socklen_t len=sizeof(struct sockaddr_storage);
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+	int status;
+
+	if(getpeername(client->fd, (struct sockaddr*)&data, &len)<0){
+		logprintf(log, LOG_ERROR, "Failed to get peer name: %s\n", strerror(errno));
+		return -1;
+	}
+
+	status=getnameinfo((struct sockaddr*)&data, len, client_data->current_mail.submitter, MAX_FQDN_LENGTH-1, NULL, 0, 0);
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to resolve peer: %s\n", gai_strerror(status));
+		return -1;
+	}
+
+	logprintf(log, LOG_INFO, "Connection from %s\n", client_data->current_mail.submitter);
+
+	return 0;
+}
+
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1;
 	CLIENT client_data = {
@@ -23,6 +45,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.state=STATE_NEW,
 		.recv_offset=0,
 		.current_mail = {
+			.submitter="",
 			.reverse_path = {
 				.in_transaction = false,
 				.path = "",
@@ -67,6 +90,11 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 
 	//initialise / reset client data structure
 	(*((CLIENT*)clients->conns[client_slot].aux_data)) = client_data;
+	
+	if(client_resolve(log, &(clients->conns[client_slot]))<0){
+		logprintf(log, LOG_WARNING, "Peer resolution failed\n");
+		//FIXME this might be bigger than we think
+	}
 
 	//logprintf(log, LOG_DEBUG, "Initialized client data to offset %d\n", ((CLIENT*)clients->conns[client_slot].aux_data)->input_offset);
 
