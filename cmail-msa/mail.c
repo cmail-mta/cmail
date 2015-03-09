@@ -1,25 +1,23 @@
 int mail_route(LOGGER log, MAIL* mail, DATABASE database){
-	MAILROUTE route;
 	unsigned i;
-	unsigned rv=200;
+	unsigned rv=250;
 
+	//FIXME routing errors should probably cause mails to be rejected
 	//iterate over recipients	
 	for(i=0;mail->forward_paths[i];i++){
 		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s\n", i, mail->forward_paths[i]->path);
 		if(mail->forward_paths[i]->resolved_user){
 			//inbound mail, apply inrouter
-			route=route_query(log, database, true, mail->forward_paths[i]->resolved_user);
-			if(route_apply(log, database, route, mail)<0){
-				logprintf(log, LOG_ERROR, "Failed to route path!\n");
+			if(route_apply_inbound(log, database, mail->forward_paths[i]->resolved_user, mail)<0){
+				logprintf(log, LOG_WARNING, "Failed to route path %s inbound\n", mail->forward_paths[i]->path);
 			}
 		}
 		else{
 			//outbound mail, apply outrouter
-			//route=route_query(log, database, false, SENDING_USER);
-			//TODO
+			if(route_apply_outbound(log, database, "REVERSEUSER", mail)<0){ //TODO pass authenticated sending user
+				logprintf(log, LOG_WARNING, "Failed to route path %s outbound\n", mail->forward_paths[i]->path);
+			}
 		}
-
-		route_free(&route);
 	}
 
 	return rv;
