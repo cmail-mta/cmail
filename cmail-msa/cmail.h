@@ -29,12 +29,12 @@ typedef struct /*_MAIL_PATH*/ {
 } MAILPATH;
 
 typedef struct /*_MAIL_STRUCT*/ {
-	char submitter[MAX_FQDN_LENGTH];
 	MAILPATH reverse_path;
 	MAILPATH* forward_paths[SMTP_MAX_RECIPIENTS];
 	unsigned data_allocated;			//STACK'd, persistent
 	unsigned data_offset;
 	char* data;					//HEAP'd
+	char* submitter;
 } MAIL;
 
 typedef enum /*_SMTP_STATE*/ {
@@ -58,6 +58,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	SMTPSTATE state;
 	char recv_buffer[SMTP_MAX_LINE_LENGTH];
 	unsigned recv_offset;
+	char peer_name[MAX_FQDN_LENGTH];
 	MAIL current_mail;
 	/*last_action*/
 } CLIENT;

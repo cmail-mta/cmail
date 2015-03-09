@@ -27,13 +27,13 @@ int client_resolve(LOGGER log, CONNECTION* client){
 		return -1;
 	}
 
-	status=getnameinfo((struct sockaddr*)&data, len, client_data->current_mail.submitter, MAX_FQDN_LENGTH-1, NULL, 0, 0);
+	status=getnameinfo((struct sockaddr*)&data, len, client_data->peer_name, MAX_FQDN_LENGTH-1, NULL, 0, 0);
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to resolve peer: %s\n", gai_strerror(status));
 		return -1;
 	}
 
-	logprintf(log, LOG_INFO, "Connection from %s\n", client_data->current_mail.submitter);
+	logprintf(log, LOG_INFO, "Connection from %s\n", client_data->peer_name);
 
 	return 0;
 }
@@ -44,8 +44,9 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.listener=listener,
 		.state=STATE_NEW,
 		.recv_offset=0,
+		.peer_name="",
 		.current_mail = {
-			.submitter="",
+			.submitter=NULL,
 			.reverse_path = {
 				.in_transaction = false,
 				.path = "",
@@ -86,6 +87,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		original_data=(CLIENT*)clients->conns[client_slot].aux_data;
 		client_data.current_mail.data_allocated=original_data->current_mail.data_allocated;
 		client_data.current_mail.data=original_data->current_mail.data;
+		client_data.current_mail.submitter=client_data.peer_name;
 	}
 
 	//initialise / reset client data structure

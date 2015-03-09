@@ -1,6 +1,7 @@
 int mail_route(LOGGER log, MAIL* mail, DATABASE database){
 	MAILROUTE route;
 	unsigned i;
+	unsigned rv=200;
 
 	//iterate over recipients	
 	for(i=0;mail->forward_paths[i];i++){
@@ -8,8 +9,9 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE database){
 		if(mail->forward_paths[i]->resolved_user){
 			//inbound mail, apply inrouter
 			route=route_query(log, database, true, mail->forward_paths[i]->resolved_user);
-
-
+			if(route_apply(log, database, route, mail)<0){
+				logprintf(log, LOG_ERROR, "Failed to route path!\n");
+			}
 		}
 		else{
 			//outbound mail, apply outrouter
@@ -20,7 +22,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE database){
 		route_free(&route);
 	}
 
-	return 500;
+	return rv;
 }
 
 int mail_line(LOGGER log, MAIL* mail, char* line){
@@ -74,6 +76,7 @@ int mail_reset(MAIL* mail){
 
 	empty_mail.data_allocated=mail->data_allocated;
 	empty_mail.data=mail->data;
+	empty_mail.submitter=mail->submitter;
 
 	if(mail->data){
 		mail->data[0]=0;
