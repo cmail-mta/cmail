@@ -90,6 +90,7 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3_stmt* query_inrouter;
 	sqlite3_stmt* query_outrouter;
 	struct {
+		sqlite3_stmt* store_master;
 		sqlite3_stmt** statements;
 		char** users;
 	} mail_storage;
@@ -110,6 +111,7 @@ typedef struct /*_MAIL_ROUTE*/ {
 //PROTOTYPES
 int client_close(CONNECTION* client);
 void logprintf(LOGGER log, unsigned level, char* fmt, ...);
+int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path);
 
 #define LOG_ERROR 	0
 #define LOG_WARNING 	0

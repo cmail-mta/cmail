@@ -8,13 +8,13 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE database){
 		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s\n", i, mail->forward_paths[i]->path);
 		if(mail->forward_paths[i]->resolved_user){
 			//inbound mail, apply inrouter
-			if(route_apply_inbound(log, database, mail->forward_paths[i]->resolved_user, mail)<0){
+			if(route_apply_inbound(log, database, mail, mail->forward_paths[i])<0){
 				logprintf(log, LOG_WARNING, "Failed to route path %s inbound\n", mail->forward_paths[i]->path);
 			}
 		}
 		else{
 			//outbound mail, apply outrouter
-			if(route_apply_outbound(log, database, "REVERSEUSER", mail)<0){ //TODO pass authenticated sending user
+			if(route_apply_outbound(log, database, mail, NULL)<0){ //TODO pass authenticated sending user
 				logprintf(log, LOG_WARNING, "Failed to route path %s outbound\n", mail->forward_paths[i]->path);
 			}
 		}
@@ -65,7 +65,8 @@ int mail_reset(MAIL* mail){
 		},
 		.data_offset = 0,
 		.data_allocated = 0,
-		.data = NULL
+		.data = NULL,
+		.submitter = NULL
 	};
 
 	if(!mail){
@@ -86,4 +87,33 @@ int mail_reset(MAIL* mail){
 
 	*mail=empty_mail;
 	return 0;
+}
+
+int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path){
+	int status;
+	
+	if(sqlite3_bind_text(stmt, 1, current_path->resolved_user, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 2, current_path->path, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 3, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 4, mail->submitter, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 5, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
+		sqlite3_reset(stmt);
+		sqlite3_clear_bindings(stmt);
+		return -1;
+	}
+	
+	status=sqlite3_step(stmt);
+	switch(status){
+		case SQLITE_DONE:
+			status=0;
+			break;
+		default:
+			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
+			status=1;
+	}
+	
+	sqlite3_reset(stmt);
+	sqlite3_clear_bindings(stmt);
+	return status;
 }

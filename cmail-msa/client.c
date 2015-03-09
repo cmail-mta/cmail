@@ -40,13 +40,13 @@ int client_resolve(LOGGER log, CONNECTION* client){
 
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1;
-	CLIENT client_data = {
+	CLIENT empty_data = {
 		.listener=listener,
 		.state=STATE_NEW,
 		.recv_offset=0,
 		.peer_name="",
 		.current_mail = {
-			.submitter=NULL,
+			.submitter = NULL,
 			.reverse_path = {
 				.in_transaction = false,
 				.path = "",
@@ -61,7 +61,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			.data = NULL
 		}
 	};
-	CLIENT* original_data;
+	CLIENT* actual_data;
 
 	if(connpool_active(*clients)>=MAX_SIMULTANEOUS_CLIENTS){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
@@ -84,21 +84,24 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	}
 	else{
 		//preserve old data
-		original_data=(CLIENT*)clients->conns[client_slot].aux_data;
-		client_data.current_mail.data_allocated=original_data->current_mail.data_allocated;
-		client_data.current_mail.data=original_data->current_mail.data;
-		client_data.current_mail.submitter=client_data.peer_name;
+		//FIXME does this work?
+		actual_data=(CLIENT*)clients->conns[client_slot].aux_data;
+		empty_data.current_mail.data_allocated=actual_data->current_mail.data_allocated;
+		empty_data.current_mail.data=actual_data->current_mail.data;
 	}
 
 	//initialise / reset client data structure
-	(*((CLIENT*)clients->conns[client_slot].aux_data)) = client_data;
+	actual_data=(CLIENT*)clients->conns[client_slot].aux_data;
+	*actual_data = empty_data;
 	
 	if(client_resolve(log, &(clients->conns[client_slot]))<0){
 		logprintf(log, LOG_WARNING, "Peer resolution failed\n");
 		//FIXME this might be bigger than we think
 	}
+	
+	actual_data->current_mail.submitter=actual_data->peer_name;
 
-	//logprintf(log, LOG_DEBUG, "Initialized client data to offset %d\n", ((CLIENT*)clients->conns[client_slot].aux_data)->input_offset);
+	logprintf(log, LOG_DEBUG, "Initialized client data to peername %s, submitter %s\n", actual_data->peer_name, actual_data->current_mail.submitter);
 
 	send(clients->conns[client_slot].fd, "220 ", 4, 0);
 	send(clients->conns[client_slot].fd, ((LISTENER*)listener->aux_data)->announce_domain, strlen(((LISTENER*)listener->aux_data)->announce_domain), 0);

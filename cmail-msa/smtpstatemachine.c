@@ -46,17 +46,24 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* p
 int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
-	if(!strncasecmp(client_data->recv_buffer, "noop", 4)
-			|| !strncasecmp(client_data->recv_buffer, "rset", 4)){
+	if(!strncasecmp(client_data->recv_buffer, "noop", 4)){
 		logprintf(log, LOG_INFO, "Client noop\n");
 		send(client->fd, "250 OK\r\n", 8, 0);
+		return 0;
+	}
+
+	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
+		logprintf(log, LOG_INFO, "Client reset\n");
+		mail_reset(&(client_data->current_mail));
+		send(client->fd, "250 Reset OK\r\n", 14, 0);
 		return 0;
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "xyzzy", 5)){
 		send(client->fd, "250 Nothing happens\r\n", 21, 0);
 		logprintf(log, LOG_INFO, "Client performs incantation\n");
-
+		//Using this command for some debug output...
+		logprintf(log, LOG_DEBUG, "Peer name is %s, mail submitter is %s\n", client_data->peer_name, client_data->current_mail.submitter);
 		return 0;
 	}
 
@@ -201,7 +208,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 			//TODO call plugins here
 			switch(mail_route(log, &(client_data->current_mail), database)){
 				case 250:
-					logprintf(log, LOG_INFO, "Mail accepted\n");
+					logprintf(log, LOG_INFO, "Mail accepted from %s\n", client_data->peer_name);
 					send(client->fd, "250 OK\r\n", 8, 0);
 					break;
 				default:

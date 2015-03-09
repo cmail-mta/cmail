@@ -7,6 +7,10 @@ MAILROUTE route_query(LOGGER log, DATABASE database, bool route_inbound, char* u
 	int status;
 	char* recursion_temp;
 
+	if(!user){
+		return route;
+	}
+
 	status=sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC);
 	if(status!=SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind router user parameter: %s\n", sqlite3_errmsg(database.conn));
@@ -76,21 +80,35 @@ void route_free(MAILROUTE* route){
 	}
 }
 
-int route_apply_inbound(LOGGER log, DATABASE database, char* user, MAIL* mail){
+int route_apply_inbound(LOGGER log, DATABASE database, MAIL* mail, MAILPATH* current_path){
 	int rv=0;
-	MAILROUTE route=route_query(log, database, true, user);
+	MAILROUTE route=route_query(log, database, true, current_path->resolved_user);
 
-	logprintf(log, LOG_DEBUG, "Inbound router %s (%s)\n", route.router, route.argument);
+	logprintf(log, LOG_DEBUG, "Inbound router %s (%s) for %s\n", route.router, route.argument?route.argument:"none", current_path->path);
 
 	if(route.router){
 		if(!strcmp(route.router, "store")){
-			//TODO insert into mail table
+			//insert into (user) mail table
+			if(!route.argument){
+				//the simple case, we insert into the master db
+				rv=mail_store_inbox(log, database.mail_storage.store_master, mail, current_path);
+				if(rv>0){
+					logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database.conn));
+				}
+			}
+			else{
+				//gotta find the statement first...
+				//TODO
+				logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: USER DEFINED STORAGE\n");
+			}
 		}
 		else if(!strcmp(route.router, "forward")){
 			//TODO insert into outbound table
+			logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: FORWARD ROUTING\n");
 		}
 		else if(!strcmp(route.router, "handoff")){
 			//TODO insert into outbound table
+			logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: INBOUND HANDOFF ROUTING\n");
 		}
 		else if(!strcmp(route.router, "reject")){
 			//this should probably never be reached as the path
@@ -106,11 +124,14 @@ int route_apply_inbound(LOGGER log, DATABASE database, char* user, MAIL* mail){
 	return rv;
 }
 
-int route_apply_outbound(LOGGER log, DATABASE database, char* user, MAIL* mail){
-	MAILROUTE route=route_query(log, database, false, user);
+int route_apply_outbound(LOGGER log, DATABASE database, MAIL* mail, MAILPATH* current_path){
+	MAILROUTE route=route_query(log, database, false, NULL); //TODO implement this properly
 
-	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument);
+	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument?route.argument:"none");
+	//TODO implement outbound routers
 	
+	logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: OUTBOUND ROUTING\n");
+
 	route_free(&route);
 	return -1;
 }

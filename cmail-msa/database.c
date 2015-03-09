@@ -62,6 +62,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_ADDRESS_USER="SELECT address_user FROM addresses WHERE ? LIKE address_expression ORDER BY address_order ASC;";
 	char* QUERY_USER_ROUTER_INBOUND="SELECT user_inrouter, user_inroute FROM users WHERE user_name = ?;";
 	char* QUERY_USER_ROUTER_OUTBOUND="SELECT user_outrouter, user_outroute FROM users WHERE user_name = ?;";
+	char* INSERT_MAIL_MASTER="INSERT INTO mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	int status=SQLITE_ROW;
 	int rv=0;
 
@@ -71,6 +72,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	database->query_addresses=database_prepare(log, database->conn, QUERY_ADDRESS_USER);
 	database->query_inrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_INBOUND);
 	database->query_outrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_OUTBOUND);
+	database->mail_storage.store_master=database_prepare(log, database->conn, INSERT_MAIL_MASTER);
 
 	if(!attach_db||!select_dbs){
 		logprintf(log, LOG_ERROR, "Failed to prepare auxiliary attach statements\n");
@@ -84,6 +86,11 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 	if(!database->query_inrouter || !database->query_outrouter){
 		logprintf(log, LOG_ERROR, "Failed to prepare router query statement\n");
+		return -1;
+	}
+
+	if(!database->mail_storage.store_master){
+		logprintf(log, LOG_ERROR, "Failed to prepare mail storage statement\n");
 		return -1;
 	}
 
@@ -129,6 +136,7 @@ void database_free(DATABASE* database){
 		sqlite3_finalize(database->query_addresses);
 		sqlite3_finalize(database->query_inrouter);
 		sqlite3_finalize(database->query_outrouter);
+		sqlite3_finalize(database->mail_storage.store_master);
 		
 		sqlite3_close(database->conn);
 		database->conn=NULL;
