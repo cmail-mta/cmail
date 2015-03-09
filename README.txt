@@ -13,8 +13,14 @@ master database structure
 
 		user_name	TEXT NOT NULL
 		Textual user identifier, not directly related to
-		any mailbox name. Should be in for authentication
-		scenarios (e.g. IMAP auth, SMTP auth)
+		any mailbox name. Should be used as user identifier
+		in all authentication scenarios (e.g. IMAP auth, 
+		POP auth, SMTP auth)
+
+		user_authdata	TEXT
+		Representation of the shared secret used in
+		authentication scenarios. Should be a GNU crypt
+		string.		
 
 		user_inrouter	TEXT NOT NULL DEFAULT 'store'
 		user_inroute	TEXT
@@ -96,3 +102,23 @@ master database structure
 		Router: drop
 		Parameter: None
 		Accept, but do not send outbound messages for this user.
+
+	'addresses' table
+	-----------------
+	Contains the mapping of addresses (or rather, mail paths)
+	to users.
+
+		address_expression	TEXT NOT NULL UNIQUE
+		SQLite regular expression defining the path to be mapped.
+		
+		address_order		INTEGER NOT NULL UNIQUE
+		Integer allowing total ordering of addresses for matching.
+		If multiple addresses match a given path, the one with the
+		lowest order index "wins".
+
+		address_user		TEXT NOT NULL
+		Foreign key into the 'users' table.
+
+	'mails' table
+	-------------
+		TBD

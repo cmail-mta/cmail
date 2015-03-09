@@ -16,38 +16,86 @@ sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 	return NULL;
 }
 
+int database_attach(LOGGER log, sqlite3_stmt* attach, char* database, char* name){
+	int status, rv=0;
+	
+	status=sqlite3_bind_text(attach, 1, database, -1, SQLITE_STATIC);
+	if(status!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind database parameter\n");
+		sqlite3_reset(attach);
+		sqlite3_clear_bindings(attach);
+		return -1;
+	}
+
+	status=sqlite3_bind_text(attach, 2, name, -1, SQLITE_STATIC);
+	if(status!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind database name parameter\n");
+		sqlite3_reset(attach);
+		sqlite3_clear_bindings(attach);
+		return -1;
+	}
+
+	status=sqlite3_step(attach);
+
+	switch(status){
+		case SQLITE_DONE:
+			logprintf(log, LOG_INFO, "Attached database %s as %s\n", database, name);
+			//FIXME check result
+			break;
+		case SQLITE_ERROR:
+			rv=-1;
+			break;
+		default:
+			logprintf(log, LOG_WARNING, "Uncaught attach response code %d\n", status);
+			rv=1;
+			break;
+	}
+
+	sqlite3_reset(attach);
+	sqlite3_clear_bindings(attach);
+	return rv;
+}
+
 int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
-	char* QUERY_SELECT_DATABASES="SELECT user_name, user_inroute FROM users WHERE user_inrouter='store' AND user_inroute NOT NULL GROUP BY user_inroute;";
-	char* QUERY_ADDRESS="SELECT address_user FROM addresses WHERE address_text = ?;";
-	char* QUERY_WILDCARDS="SELECT wildcard_user FROM wildcards WHERE ? LIKE wildcard_expression ORDER BY wildcard_order ASC;";
+	char* QUERY_SELECT_DATABASES="SELECT MIN(user_name), user_inroute FROM users WHERE user_inrouter='store' AND user_inroute NOT NULL GROUP BY user_inroute;";
+	char* QUERY_ADDRESS_USER="SELECT address_user FROM addresses WHERE ? LIKE address_expression ORDER BY address_order ASC;";
 	int status=SQLITE_ROW;
 	int rv=0;
 
 	sqlite3_stmt* attach_db=database_prepare(log, database->conn, QUERY_ATTACH_DB);
 	sqlite3_stmt* select_dbs=database_prepare(log, database->conn, QUERY_SELECT_DATABASES);
 	
-	database->query_address=database_prepare(log, database->conn, QUERY_ADDRESS);
-	database->query_wildcards=database_prepare(log, database->conn, QUERY_WILDCARDS);
+	database->query_addresses=database_prepare(log, database->conn, QUERY_ADDRESS_USER);
 
 	if(!attach_db||!select_dbs){
 		logprintf(log, LOG_ERROR, "Failed to prepare auxiliary attach statements\n");
 		return -1;
 	}
 
-	if(!database->query_address || !database->query_wildcards){
-		logprintf(log, LOG_ERROR, "Failed to prepare address query statements\n");
+	if(!database->query_addresses){
+		logprintf(log, LOG_ERROR, "Failed to prepare address query statement\n");
 		return -1;
 	}
 
 	//attach user databases if needed
-	while(status==SQLITE_ROW){
+	do{
 		status=sqlite3_step(select_dbs);
 		switch(status){
 			case SQLITE_ROW:
-				logprintf(log, LOG_INFO, "Attaching database %s as %s\n", sqlite3_column_text(select_dbs, 1), sqlite3_column_text(select_dbs, 0));
-				//TODO attach database
-				//TODO compile insert statements
+				//attach the user database
+				switch(database_attach(log, attach_db, (char*)sqlite3_column_text(select_dbs, 1), (char*)sqlite3_column_text(select_dbs, 0))){
+					case -1:
+						logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
+						status=SQLITE_ERROR;
+						rv=-1;
+						break;
+					case 1:
+						logprintf(log, LOG_ERROR, "Additional Information: %s\n", sqlite3_errmsg(database->conn));
+					default:
+						//TODO compile insert statements
+						break;
+				}
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "Database initialization done\n");
@@ -58,6 +106,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 				break;
 		}
 	}
+	while(status==SQLITE_ROW);
 	
 	sqlite3_finalize(attach_db);
 	sqlite3_finalize(select_dbs);
@@ -68,8 +117,7 @@ void database_free(DATABASE* database){
 	
 	//FIXME check for SQLITE_BUSY here
 	if(database->conn){
-		sqlite3_finalize(database->query_address);
-		sqlite3_finalize(database->query_wildcards);
+		sqlite3_finalize(database->query_addresses);
 		
 		sqlite3_close(database->conn);
 		database->conn=NULL;

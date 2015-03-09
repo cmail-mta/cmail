@@ -83,9 +83,11 @@ typedef struct /*_LOGGER*/ {
 
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
-	sqlite3_stmt* query_address;
-	sqlite3_stmt* query_wildcards;
-	sqlite3_stmt** insert_mail;
+	sqlite3_stmt* query_addresses;
+	struct {
+		sqlite3_stmt** statements;
+		char** users;
+	} mail_storage;
 } DATABASE;
 
 typedef struct /*_CONF_META*/ {

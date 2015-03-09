@@ -46,9 +46,11 @@ int main(int argc, char** argv){
 	CONFIGURATION config = {
 		.database = {
 			.conn = NULL,
-			.query_address = NULL,
-			.query_wildcards = NULL,
-			.insert_mail = NULL
+			.query_addresses = NULL,
+			.mail_storage = {
+				.statements = NULL,
+				.users = NULL
+			}
 		},
 		.listeners = {
 			.count = 0,
