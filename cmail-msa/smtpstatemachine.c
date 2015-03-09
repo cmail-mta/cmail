@@ -63,7 +63,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 		send(client->fd, "250 Nothing happens\r\n", 21, 0);
 		logprintf(log, LOG_INFO, "Client performs incantation\n");
 		//Using this command for some debug output...
-		logprintf(log, LOG_DEBUG, "Peer name is %s, mail submitter is %s\n", client_data->peer_name, client_data->current_mail.submitter);
+		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
 		return 0;
 	}
 
