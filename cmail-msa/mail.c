@@ -19,7 +19,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE database){
 
 int mail_line(LOGGER log, MAIL* mail, char* line){
 	logprintf(log, LOG_DEBUG, "Mail line is \"%s\"\n", line);
-	//TODO check for max line length
+	//FIXME check for max line length
 	if(!mail->data || mail->data_allocated < mail->data_offset+strlen(line)+3){
 		mail->data=realloc(mail->data, mail->data_allocated+strlen(line)+3);
 		if(!mail->data){

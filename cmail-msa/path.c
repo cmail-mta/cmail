@@ -1,4 +1,4 @@
-//TODO test this
+//TODO test this thoroughly
 int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	//See http://cr.yp.to/smtp/address.html for hints on address parsing
 	bool quotes=false, done_parsing=false;

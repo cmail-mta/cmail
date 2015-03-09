@@ -93,7 +93,8 @@ int database_initialize(LOGGER log, DATABASE* database){
 					case 1:
 						logprintf(log, LOG_ERROR, "Additional Information: %s\n", sqlite3_errmsg(database->conn));
 					default:
-						//TODO compile insert statements
+						//TODO compile insert statement
+
 						break;
 				}
 				break;
@@ -114,7 +115,6 @@ int database_initialize(LOGGER log, DATABASE* database){
 }
 
 void database_free(DATABASE* database){
-	
 	//FIXME check for SQLITE_BUSY here
 	if(database->conn){
 		sqlite3_finalize(database->query_addresses);

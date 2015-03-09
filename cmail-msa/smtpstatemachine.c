@@ -77,11 +77,12 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
 		//extract reverse path and store it
 		if(path_parse(log, client_data->recv_buffer+10, &(client_data->current_mail.reverse_path))<0){
-			//TODO send malformed address
+			send(client->fd, "501 Path rejected\r\n", 19, 0);
 			return -1;
 		}
-		//TODO check sending address
-		//TODO call plugins
+
+		//TODO call plugins for spf, etc
+
 		send(client->fd, "250 OK\r\n", 8, 0);
 		client_data->state=STATE_RECIPIENTS;
 		return 0;
