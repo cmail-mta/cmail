@@ -72,7 +72,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	return 0;
 }
 
-int path_resolve(LOGGER log, MAILPATH* path, DATABASE database){
+int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database){
 	//TODO reject path if inbound router is reject
 	int status;
 
@@ -80,40 +80,40 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE database){
 		return 0;
 	}
 
-	status=sqlite3_bind_text(database.query_addresses, 1, path->path, -1, SQLITE_STATIC);
+	status=sqlite3_bind_text(database->query_addresses, 1, path->path, -1, SQLITE_STATIC);
 	if(status!=SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database.conn));
-		sqlite3_reset(database.query_addresses);
-		sqlite3_clear_bindings(database.query_addresses);
+		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
+		sqlite3_reset(database->query_addresses);
+		sqlite3_clear_bindings(database->query_addresses);
 		return -1;
 	}
 
 	do{
-		status=sqlite3_step(database.query_addresses);
+		status=sqlite3_step(database->query_addresses);
 		switch(status){
 			case SQLITE_ROW:
 				//match found
-				path->resolved_user=calloc(sqlite3_column_bytes(database.query_addresses, 0)+1, sizeof(char));
+				path->resolved_user=calloc(sqlite3_column_bytes(database->query_addresses, 0)+1, sizeof(char));
 				if(!path->resolved_user){
 					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
-					sqlite3_reset(database.query_addresses);
-					sqlite3_clear_bindings(database.query_addresses);
+					sqlite3_reset(database->query_addresses);
+					sqlite3_clear_bindings(database->query_addresses);
 					return -1;
 				}
-				strncpy(path->resolved_user, (char*)sqlite3_column_text(database.query_addresses, 0), sqlite3_column_bytes(database.query_addresses, 0));
+				strncpy(path->resolved_user, (char*)sqlite3_column_text(database->query_addresses, 0), sqlite3_column_bytes(database->query_addresses, 0));
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "No address match found\n");
 				break;
 			default:
-				logprintf(log, LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database.conn));
+				logprintf(log, LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database->conn));
 				break;
 		}
 	}
 	while(status==SQLITE_ROW&&!path->resolved_user);
 
-	sqlite3_reset(database.query_addresses);
-	sqlite3_clear_bindings(database.query_addresses);
+	sqlite3_reset(database->query_addresses);
+	sqlite3_clear_bindings(database->query_addresses);
 	return 0;
 }
 

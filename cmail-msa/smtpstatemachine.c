@@ -7,7 +7,7 @@
  *	MAIL | RSET	-> IDLE | 250 OK
  */
 
-int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
+int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "ehlo ", 5)){
@@ -43,7 +43,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* p
 	return -1;		
 }
 
-int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
+int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "noop", 4)){
@@ -100,7 +100,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* 
 	return -1;
 }
 
-int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
+int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	unsigned i;
 	MAILPATH* current_path;
@@ -192,7 +192,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE database, PATH
 	return -1;
 }
 
-int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
+int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	
 	if(client_data->recv_buffer[0]=='.'){

@@ -1,4 +1,4 @@
-int client_line(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
+int client_line(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	//logprintf(log, LOG_DEBUG, "Client processing of line started: %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
 	switch(((CLIENT*)client->aux_data)->state){
 		case STATE_NEW:
@@ -124,7 +124,7 @@ int client_close(CONNECTION* client){
 	return 0;
 }
 
-int client_process(LOGGER log, CONNECTION* client, DATABASE database, PATHPOOL* path_pool){
+int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;

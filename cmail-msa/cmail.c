@@ -141,7 +141,7 @@ int main(int argc, char** argv){
 	}
 	
 	//enter main processing loop
-	core_loop(config.log, config.listeners, config.database);
+	core_loop(config.log, config.listeners, &(config.database));
 	
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");

@@ -1,4 +1,4 @@
-int core_loop(LOGGER log, CONNPOOL listeners, DATABASE database){
+int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	fd_set readfds;
 	int maxfd;
 	int status;

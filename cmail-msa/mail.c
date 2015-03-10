@@ -1,4 +1,4 @@
-int mail_route(LOGGER log, MAIL* mail, DATABASE database){
+int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	unsigned i;
 	unsigned rv=250;
 

@@ -1,9 +1,9 @@
-MAILROUTE route_query(LOGGER log, DATABASE database, bool route_inbound, char* user){
+MAILROUTE route_query(LOGGER log, DATABASE* database, bool route_inbound, char* user){
 	MAILROUTE route = {
 		.router = NULL,
 		.argument = NULL
 	};
-	sqlite3_stmt* stmt=((route_inbound)?database.query_inrouter:database.query_outrouter);
+	sqlite3_stmt* stmt=((route_inbound)?database->query_inrouter:database->query_outrouter);
 	int status;
 	char* recursion_temp;
 
@@ -13,7 +13,7 @@ MAILROUTE route_query(LOGGER log, DATABASE database, bool route_inbound, char* u
 
 	status=sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC);
 	if(status!=SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind router user parameter: %s\n", sqlite3_errmsg(database.conn));
+		logprintf(log, LOG_ERROR, "Failed to bind router user parameter: %s\n", sqlite3_errmsg(database->conn));
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);
 		return route;
@@ -47,7 +47,7 @@ MAILROUTE route_query(LOGGER log, DATABASE database, bool route_inbound, char* u
 			logprintf(log, LOG_ERROR, "User to be routed to (%s) does not exist\n", user);
 			break;
 		default:
-			logprintf(log, LOG_WARNING, "Unhandled query return value: %s\n", sqlite3_errmsg(database.conn));
+			logprintf(log, LOG_WARNING, "Unhandled query return value: %s\n", sqlite3_errmsg(database->conn));
 			break;
 	}
 
@@ -80,7 +80,7 @@ void route_free(MAILROUTE* route){
 	}
 }
 
-int route_apply_inbound(LOGGER log, DATABASE database, MAIL* mail, MAILPATH* current_path){
+int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	int rv=0;
 	MAILROUTE route=route_query(log, database, true, current_path->resolved_user);
 
@@ -91,9 +91,9 @@ int route_apply_inbound(LOGGER log, DATABASE database, MAIL* mail, MAILPATH* cur
 			//insert into (user) mail table
 			if(!route.argument){
 				//the simple case, we insert into the master db
-				rv=mail_store_inbox(log, database.mail_storage.mailbox_master, mail, current_path);
+				rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 				if(rv>0){
-					logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database.conn));
+					logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
 				}
 			}
 			else{
@@ -124,7 +124,7 @@ int route_apply_inbound(LOGGER log, DATABASE database, MAIL* mail, MAILPATH* cur
 	return rv;
 }
 
-int route_apply_outbound(LOGGER log, DATABASE database, MAIL* mail, MAILPATH* current_path){
+int route_apply_outbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	MAILROUTE route=route_query(log, database, false, NULL); //TODO implement this properly
 
 	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument?route.argument:"none");
