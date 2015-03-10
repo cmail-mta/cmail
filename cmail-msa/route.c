@@ -80,7 +80,7 @@ void route_free(MAILROUTE* route){
 	}
 }
 
-int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
+int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	int rv=0;
 	MAILROUTE route=route_query(log, database, true, current_path->resolved_user);
 
@@ -114,6 +114,9 @@ int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* cu
 			//rejecting recipient
 			rv=-1;
 		}
+		else{
+			//TODO call plugins for other routers
+		}
 		
 		if(rv>0){
 			logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
@@ -124,7 +127,7 @@ int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* cu
 	return rv;
 }
 
-int route_apply_outbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
+int route_outbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	MAILROUTE route=route_query(log, database, false, NULL); //TODO implement this properly
 
 	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument?route.argument:"none");

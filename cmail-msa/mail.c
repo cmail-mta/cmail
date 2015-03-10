@@ -8,13 +8,13 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s\n", i, mail->forward_paths[i]->path);
 		if(mail->forward_paths[i]->resolved_user){
 			//inbound mail, apply inrouter
-			if(route_apply_inbound(log, database, mail, mail->forward_paths[i])<0){
+			if(route_inbound(log, database, mail, mail->forward_paths[i])<0){
 				logprintf(log, LOG_WARNING, "Failed to route path %s inbound\n", mail->forward_paths[i]->path);
 			}
 		}
 		else{
 			//outbound mail, apply outrouter
-			if(route_apply_outbound(log, database, mail, NULL)<0){ //TODO pass authenticated sending user
+			if(route_outbound(log, database, mail, NULL)<0){ //TODO pass authenticated sending user
 				logprintf(log, LOG_WARNING, "Failed to route path %s outbound\n", mail->forward_paths[i]->path);
 			}
 		}
