@@ -94,8 +94,7 @@ int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* cu
 				rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 			}
 			else{
-				//gotta find the statement first...
-				//TODO
+				//TODO implement user storage
 				logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: USER DEFINED STORAGE\n");
 			}
 		}
