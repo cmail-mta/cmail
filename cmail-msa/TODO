@@ -1,7 +1,6 @@
-tls
-module system
-vrfy
-expn
-authentication
-outbound routing
-clean shutdown
+Implement Transport Layer Security (native & STARTTLS)
+Implement support for dynamically loaded modules
+	Specify API for modules
+Implement VRFY & EXPN with 'Prohibited' response
+Implement SMTP authentication
+Support clean shutdown
