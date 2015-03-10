@@ -84,15 +84,21 @@ typedef struct /*_LOGGER*/ {
 	unsigned verbosity;
 } LOGGER;
 
+typedef struct /*_USER_MAILBOX_DB*/{
+	sqlite3_stmt* mailbox;
+	char* file_name;
+	char* conn_handle;
+} USER_DATABASE;
+
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_addresses;
 	sqlite3_stmt* query_inrouter;
 	sqlite3_stmt* query_outrouter;
 	struct {
-		sqlite3_stmt* store_master;
-		sqlite3_stmt** statements;
-		char** users;
+		sqlite3_stmt* mailbox_master;
+		sqlite3_stmt* outbox_master;
+		USER_DATABASE** users;
 	} mail_storage;
 } DATABASE;
 

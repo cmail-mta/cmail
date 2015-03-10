@@ -91,7 +91,7 @@ int route_apply_inbound(LOGGER log, DATABASE database, MAIL* mail, MAILPATH* cur
 			//insert into (user) mail table
 			if(!route.argument){
 				//the simple case, we insert into the master db
-				rv=mail_store_inbox(log, database.mail_storage.store_master, mail, current_path);
+				rv=mail_store_inbox(log, database.mail_storage.mailbox_master, mail, current_path);
 				if(rv>0){
 					logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database.conn));
 				}

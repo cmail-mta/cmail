@@ -50,8 +50,8 @@ int main(int argc, char** argv){
 			.query_inrouter = NULL,
 			.query_outrouter = NULL,
 			.mail_storage = {
-				.store_master = NULL,
-				.statements = NULL,
+				.mailbox_master = NULL,
+				.outbox_master = NULL,
 				.users = NULL
 			}
 		},
