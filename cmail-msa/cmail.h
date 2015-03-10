@@ -118,6 +118,7 @@ typedef struct /*_MAIL_ROUTE*/ {
 int client_close(CONNECTION* client);
 void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path);
+int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail);
 
 #define LOG_ERROR 	0
 #define LOG_WARNING 	0

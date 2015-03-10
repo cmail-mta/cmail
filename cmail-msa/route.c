@@ -92,9 +92,6 @@ int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* cu
 			if(!route.argument){
 				//the simple case, we insert into the master db
 				rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
-				if(rv>0){
-					logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
-				}
 			}
 			else{
 				//gotta find the statement first...
@@ -103,12 +100,12 @@ int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* cu
 			}
 		}
 		else if(!strcmp(route.router, "forward")){
-			//TODO insert into outbound table
-			logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: FORWARD ROUTING\n");
+			//insert into outbound table
+			rv=mail_store_outbox(log, database->mail_storage.outbox_master, NULL, route.argument, mail);
 		}
 		else if(!strcmp(route.router, "handoff")){
-			//TODO insert into outbound table
-			logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: INBOUND HANDOFF ROUTING\n");
+			//insert into outbound table
+			rv=mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, current_path->path, mail);
 		}
 		else if(!strcmp(route.router, "reject")){
 			//this should probably never be reached as the path
@@ -117,6 +114,10 @@ int route_apply_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* cu
 			//this one might get bounced on the basis of one
 			//rejecting recipient
 			rv=-1;
+		}
+		
+		if(rv>0){
+			logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
 		}
 	}
 	
