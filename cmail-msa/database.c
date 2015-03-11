@@ -30,7 +30,7 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 	}
 
 	//create/reuse entry in user storage structure	
-	for(slot=0;database->mail_storage.users[slot];i++){
+	for(slot=0;database->mail_storage.users[slot];slot++){
 		if(!database->mail_storage.users[slot]->file_name){
 			break;
 		}
@@ -38,7 +38,7 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 
 	//if no usable slot, reallocate
 	if(!database->mail_storage.users[slot]){
-		database->mail_storage.users=realloc(database->mail_storage.uesrs, (slot+2)*sizeof(USER_DATABASE*));
+		database->mail_storage.users=realloc(database->mail_storage.users, (slot+2)*sizeof(USER_DATABASE*));
 		if(!database->mail_storage.users){
 			logprintf(log, LOG_ERROR, "Failed to reallocate user storage database structure\n");
 			return -1;
@@ -133,7 +133,7 @@ USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
 	}
 
 	for(i=0;database->mail_storage.users[i];i++){
-		if(!strcmp(database->mail_storage.users[i]->file_name, filename)){
+		if(database->mail_storage.users[i]->file_name && !strcmp(database->mail_storage.users[i]->file_name, filename)){
 			return database->mail_storage.users[i];
 		}
 	}
