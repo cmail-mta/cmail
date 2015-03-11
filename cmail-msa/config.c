@@ -214,10 +214,10 @@ int config_parse(CONFIGURATION* config, char* conf_file){
 
 void config_free(CONFIGURATION* config){
 	connpool_free(&(config->listeners));
+	database_free(config->log, &(config->database));
+
 	if(config->log.stream!=stderr){
 		fclose(config->log.stream);
 		config->log.stream=stderr;
 	}
-
-	database_free(&(config->database));
 }

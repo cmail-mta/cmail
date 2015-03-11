@@ -82,6 +82,7 @@ void route_free(MAILROUTE* route){
 
 int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	int rv=0;
+	USER_DATABASE* user_db;
 	MAILROUTE route=route_query(log, database, true, current_path->resolved_user);
 
 	logprintf(log, LOG_DEBUG, "Inbound router %s (%s) for %s\n", route.router, route.argument?route.argument:"none", current_path->path);
@@ -94,8 +95,31 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 				rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 			}
 			else{
-				//TODO implement user storage
-				logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: USER DEFINED STORAGE\n");
+				//get user storage database entry
+				user_db=database_userdb(log, database, route.argument);
+				if(!user_db){
+					//try to refresh the user database set
+					database_refresh(log, database);
+					user_db=database_userdb(log, database, route.argument);
+				
+					if(!user_db){
+						//as last resort, store to master db	
+						logprintf(log, LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->resolved_user);
+						rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+					}
+					else{
+						rv=mail_store_inbox(log, user_db->mailbox, mail, current_path);
+					}
+				}
+				else{
+					rv=mail_store_inbox(log, user_db->mailbox, mail, current_path);
+				}
+			}
+
+			//if we could not store mail, retry with master
+			if(rv){
+				logprintf(log, LOG_WARNING, "Failed to store mail for %s, retrying one last time with master db\n", current_path->resolved_user);
+				rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 			}
 		}
 		else if(!strcmp(route.router, "forward")){

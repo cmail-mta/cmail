@@ -85,6 +85,7 @@ typedef struct /*_LOGGER*/ {
 } LOGGER;
 
 typedef struct /*_USER_MAILBOX_DB*/{
+	bool active;
 	sqlite3_stmt* mailbox;
 	char* file_name;
 	char* conn_handle;
