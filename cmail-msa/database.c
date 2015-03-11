@@ -57,8 +57,9 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 
 		switch(status){
 			case SQLITE_DONE:
-				logprintf(log, LOG_INFO, "Attached database %s as %s\n", database, name);
+				logprintf(log, LOG_INFO, "Attached database %s as %s\n", dbfile, name);
 				//FIXME check result
+
 				//TODO fill slot with statement, database name and file name
 				break;
 			case SQLITE_ERROR:
@@ -90,12 +91,12 @@ int database_detach(LOGGER log, DATABASE* database, sqlite3_stmt* detach, USER_D
 	};
 	
 	if(detach){
-		if(sqlite3_bind_text(detach, 1, db->file_name, -1, SQLITE_STATIC)==SQLITE_OK){
+		if(sqlite3_bind_text(detach, 1, db->conn_handle, -1, SQLITE_STATIC)==SQLITE_OK){
 			status=sqlite3_step(detach);
 
 			switch(status){
 				case SQLITE_DONE:
-					logprintf(log, LOG_INFO, "Detached database %s\n", database);
+					logprintf(log, LOG_INFO, "Detached database %s\n", db->conn_handle);
 					//FIXME check result
 					break;
 				case SQLITE_ERROR:
