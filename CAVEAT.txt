@@ -1,20 +1,32 @@
-A collection and discussion of pitfalls in cmail
-that might not be immediately evident.
+A collection and discussion of pitfalls in cmail that might 
+not be immediately evident.
 
 Database schema versioning
 --------------------------
-The 'meta' table contains a key describing the
-current database schema version. The schema is,
-as of currently, extremely volatile and might
-change between versions, commits and without
-notice. Upgrade paths will be provided for point
-releases.
+The 'meta' table contains a key describing the current database 
+schema version. The schema is, as of currently, extremely 
+volatile and might change between versions, commits and without
+notice. Upgrade paths will only be reliably provided between 
+tagged releases.
 
 Infinite alias recursion
 ------------------------
-It is currently possible to have users be aliased
-to other aliased users, including the original user.
-This creates an inifinite loop at the time the
-alias is resolved (mail routing). Aliases should
-for the time being only be created by administrators,
+It is currently possible to have users be aliased to other 
+aliased users, including the original user. This creates an 
+infinite loop at the time the alias is resolved (mail routing). 
+Aliases should for the time being only be created by administrators,
 not directly b end users.
+
+Internationalized Email
+-----------------------
+While cmail supports UTF8 characters in paths as well
+as mail data (via SMTPUTF8/8BITMIME), RFC 6531 specifies
+that the domain part may be transmitted as either
+A-label (punycode) or U-label (UTF-encoded string).
+Care must be taken when specifying adresses and wildcards
+containing non-ASCII chracters.
+
+Case-sensitive matching
+-----------------------
+Currently, all paths are matched completely case-sensitive,
+including the domain parts. This may be fixed in the future.
