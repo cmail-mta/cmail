@@ -4,3 +4,5 @@ Implement support for dynamically loaded modules
 Implement VRFY & EXPN with 'Prohibited' response
 Implement SMTP authentication
 Support clean shutdown
+Implement client timeouts
+Periodically release unused memory

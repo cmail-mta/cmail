@@ -124,7 +124,8 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 	if(sqlite3_bind_text(stmt, 1, mail_remote, -1, SQLITE_STATIC)!=SQLITE_OK
 		|| sqlite3_bind_text(stmt, 2, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK
 		|| sqlite3_bind_text(stmt, 3, envelope_to, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 4, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
+		|| sqlite3_bind_text(stmt, 4, mail->submitter, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 5, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);

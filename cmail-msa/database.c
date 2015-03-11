@@ -77,6 +77,10 @@ int database_detach(LOGGER log, sqlite3_stmt* detach, char* database){
 	return rv;
 }
 
+USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
+	return NULL;
+}
+
 int database_refresh(LOGGER log, DATABASE* database){
 	int status, rv=0;
 	
@@ -98,20 +102,24 @@ int database_refresh(LOGGER log, DATABASE* database){
 		status=sqlite3_step(select_dbs);
 		switch(status){
 			case SQLITE_ROW:
-				//TODO if not attached, attach
+				//if not attached, attach
+				if(!database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 1))){
+					//attach
+					switch(database_attach(log, attach_db, (char*)sqlite3_column_text(select_dbs, 1), (char*)sqlite3_column_text(select_dbs, 0))){
+						case -1:
+							logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
+							status=SQLITE_ERROR;
+							rv=-1;
+							break;
+						case 1:
+							logprintf(log, LOG_ERROR, "Additional Information: %s\n", sqlite3_errmsg(database->conn));
+						default:
+							//TODO compile insert statement
+							break;
+					}
+				}
+
 				//TODO mark database active
-				//switch(database_attach(log, attach_db, (char*)sqlite3_column_text(select_dbs, 1), (char*)sqlite3_column_text(select_dbs, 0))){
-				//	case -1:
-				//		logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
-				//		status=SQLITE_ERROR;
-				//		rv=-1;
-				//		break;
-				//	case 1:
-				//		logprintf(log, LOG_ERROR, "Additional Information: %s\n", sqlite3_errmsg(database->conn));
-				//	default:
-				//		//TODO compile insert statement
-				//		break;
-				//}
 				break;
 			case SQLITE_DONE:
 				break;
@@ -136,7 +144,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_USER_ROUTER_INBOUND="SELECT user_inrouter, user_inroute FROM main.users WHERE user_name = ?;";
 	char* QUERY_USER_ROUTER_OUTBOUND="SELECT user_outrouter, user_outroute FROM main.users WHERE user_name = ?;";
 	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
-	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_data) VALUES (?, ?, ?, ?);";
+	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	
 	database->query_addresses=database_prepare(log, database->conn, QUERY_ADDRESS_USER);
 	database->query_inrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_INBOUND);
