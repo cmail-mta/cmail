@@ -39,7 +39,6 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		//select over fds
-		//TODO signalmask for clean exit
 		status=pselect(maxfd+1, &readfds, NULL, NULL, NULL, NULL);
 
 		if(status<=0){
