@@ -17,8 +17,11 @@ sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 }
 
 int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* dbfile, char* name){
+	char* INSERT_USER_MAILBOX="INSERT INTO %s.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
+	char* user_stmt=NULL;
 	int status, rv=0;
 	unsigned slot;
+	USER_DATABASE* entry;
 
 	//initialize user storage structure
 	if(!database->mail_storage.users){
@@ -51,6 +54,8 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 		}
 	}
 
+	entry=database->mail_storage.users[slot];
+
 	if(sqlite3_bind_text(attach, 1, dbfile, -1, SQLITE_STATIC)==SQLITE_OK
 			&& sqlite3_bind_text(attach, 2, name, -1, SQLITE_STATIC)==SQLITE_OK){
 		status=sqlite3_step(attach);
@@ -58,9 +63,36 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 		switch(status){
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "Attached database %s as %s\n", dbfile, name);
-				//FIXME check result
 
-				//TODO fill slot with statement, database name and file name
+				//create statement
+				user_stmt=calloc(strlen(INSERT_USER_MAILBOX)+strlen(name)+2, sizeof(char));
+				if(!user_stmt){
+					logprintf(log, LOG_ERROR, "Failed to allocate temporary statement storage\n");
+					rv=-1;
+					break;
+				}
+
+				snprintf(user_stmt, strlen(INSERT_USER_MAILBOX)+strlen(name)+1, INSERT_USER_MAILBOX, name);
+				entry->mailbox=database_prepare(log, database->conn, user_stmt);
+				free(user_stmt);
+
+				if(!entry->mailbox){
+					logprintf(log, LOG_ERROR, "Failed to create user mailbox insert query\n");
+					rv=-1;
+					break;
+				}
+
+				//fill entry
+				entry->file_name=calloc(strlen(dbfile)+1, sizeof(char));
+				entry->conn_handle=calloc(strlen(name)+1, sizeof(char));
+
+				if(!entry->file_name || !entry->conn_handle){
+					logprintf(log, LOG_ERROR, "Failed to allocate user storage structure members\n");
+					rv=-1;
+					break;
+				}
+				strncpy(entry->file_name, dbfile, strlen(dbfile));
+				strncpy(entry->conn_handle, name, strlen(name));
 				break;
 			case SQLITE_ERROR:
 				rv=-1;
@@ -200,14 +232,12 @@ int database_refresh(LOGGER log, DATABASE* database){
 	}
 	while(status==SQLITE_ROW);
 
-	if(!rv){ //FIXME this condititon might prevent databases from being released
-		//detach inactive databases
-		if(database->mail_storage.users){
-			for(i=0;database->mail_storage.users[i];i++){
-				if(!database->mail_storage.users[i]->active){
-					//FIXME check this for return value
-					database_detach(log, database, detach_db, database->mail_storage.users[i]);
-				}
+	//detach inactive databases
+	if(database->mail_storage.users){
+		for(i=0;database->mail_storage.users[i];i++){
+			if(!database->mail_storage.users[i]->active){
+				//FIXME check this for return value
+				database_detach(log, database, detach_db, database->mail_storage.users[i]);
 			}
 		}
 	}
