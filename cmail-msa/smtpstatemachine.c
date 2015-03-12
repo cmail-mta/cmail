@@ -97,7 +97,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 
 	if(!strncasecmp(client_data->recv_buffer, "vrfy ", 5)
 			|| !strncasecmp(client_data->recv_buffer, "expn ", 5)){
-		logprintf("Client tried to verify / expand an address, unsupported\n");
+		logprintf(log, LOG_WARNING, "Client tried to verify / expand an address, unsupported\n");
 		send(client->fd, "502 Not implemented\r\n", 21, 0);
 		return 0;
 	}
