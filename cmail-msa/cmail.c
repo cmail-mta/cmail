@@ -84,6 +84,12 @@ int main(int argc, char** argv){
 
 	logprintf(config.log, LOG_INFO, "This is %s, starting up\n", VERSION);
 
+	if(signal_init(config.log)<0){
+		arguments_free(&args);
+		config_free(&config);
+		exit(EXIT_FAILURE);
+	}
+
 	//attach aux databases
 	if(database_initialize(config.log, &(config.database))<0){
 		arguments_free(&args);

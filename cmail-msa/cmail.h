@@ -11,6 +11,7 @@
 #include <netdb.h>
 #include <grp.h>
 #include <pwd.h>
+#include <signal.h>
 
 #include <sqlite3.h>
 
@@ -126,6 +127,9 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 #define LOG_INFO 	1
 #define LOG_DEBUG 	3
 
+volatile sig_atomic_t abort_signaled=0;
+
+#include "signal.c"
 #include "network.c"
 #include "database.c"
 #include "path.c"

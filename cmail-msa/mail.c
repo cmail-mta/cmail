@@ -5,7 +5,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	//FIXME routing errors should probably cause mails to be rejected
 	//iterate over recipients	
 	for(i=0;mail->forward_paths[i];i++){
-		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s\n", i, mail->forward_paths[i]->path);
+		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->resolved_user?(mail->forward_paths[i]->resolved_user):"outbound");
 		if(mail->forward_paths[i]->resolved_user){
 			//inbound mail, apply inrouter
 			if(route_inbound(log, database, mail, mail->forward_paths[i])<0){

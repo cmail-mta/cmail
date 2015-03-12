@@ -3,7 +3,6 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	int maxfd;
 	int status;
 	unsigned i;
-	bool shutdown_signal=false;
 	CONNPOOL clients = {
 		.count = 0,
 		.conns = NULL
@@ -14,7 +13,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		.paths = NULL
 	};
 
-	while(!shutdown_signal){
+	while(!abort_signaled){
 		//clear listen fds
 		FD_ZERO(&readfds);
 		maxfd=-1;

@@ -3,7 +3,6 @@ Implement support for dynamically loaded modules
 	Specify API for modules
 Implement VRFY & EXPN with 'Prohibited' response
 Implement SMTP authentication
-Support clean shutdown
 Implement client timeouts
 Periodically release unused memory
 Implement database schema upgrade paths (including user databases)
