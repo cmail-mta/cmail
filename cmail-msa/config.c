@@ -213,6 +213,12 @@ int config_parse(CONFIGURATION* config, char* conf_file){
 }
 
 void config_free(CONFIGURATION* config){
+	unsigned i;
+
+	for(i=0;i<config->listeners.count;i++){
+		free(((LISTENER*)config->listeners.conns[i].aux_data)->announce_domain);
+	}
+
 	connpool_free(&(config->listeners));
 	database_free(config->log, &(config->database));
 
