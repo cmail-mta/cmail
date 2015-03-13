@@ -12,6 +12,20 @@
 #include <grp.h>
 #include <pwd.h>
 #include <signal.h>
+#include <fcntl.h>
+
+#define CMAIL_NO_TLS
+#ifndef CMAIL_NO_TLS
+	#include <gnutls/gnutls.h>
+	#define TLSSUPPORT(x) (x)
+	typedef enum /*_TLS_MODE*/ {
+		TLS_ONLY,
+		TLS_NEGOTIATE,
+		TLS_NONE
+	} TLSMODE;
+#else
+	#define TLSSUPPORT(x)
+#endif
 
 #include <sqlite3.h>
 
@@ -50,6 +64,11 @@ typedef struct /*_CONNECTION*/ {
 
 typedef struct /*_LISTEN_DATA*/ {
 	char* announce_domain;
+	#ifndef CMAIL_NO_TLS
+	TLSMODE tls_mode;
+	gnutls_certificate_credentials_t tls_cert;
+	gnutls_priority_t tls_priorities;
+	#endif
 } LISTENER;
 
 typedef struct /*_CLIENT_DATA*/ {
@@ -60,6 +79,10 @@ typedef struct /*_CLIENT_DATA*/ {
 	char peer_name[MAX_FQDN_LENGTH];
 	MAIL current_mail;
 	/*last_action*/
+	#ifndef CMAIL_NO_TLS
+	gnutls_session_t tls_session;
+	TLSMODE tls_mode;
+	#endif
 } CLIENT;
 
 typedef struct /*_CONNECTION_AGGREGATE*/ {
@@ -116,9 +139,13 @@ typedef struct /*_MAIL_ROUTE*/ {
 
 //PROTOTYPES
 int client_close(CONNECTION* client);
+int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
 void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path);
 int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail);
+#ifndef CMAIL_NO_TLS
+int client_starttls(LOGGER log, CONNECTION* client);
+#endif
 
 #define LOG_ERROR 	0
 #define LOG_WARNING 	0

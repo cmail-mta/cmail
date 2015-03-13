@@ -2,8 +2,19 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	char* token=NULL;
 	char* bindhost=NULL;
 	char* port=NULL;
+	
+	#ifndef CMAIL_NO_TLS
+	char* tls_keyfile=NULL;
+	char* tls_certfile=NULL;
+	char* tls_priorities=NULL;
+	gnutls_dh_params_t tls_dhparams;
+	#endif
+
 	int listener_slot=-1;
 	LISTENER settings = {
+		#ifndef CMAIL_NO_TLS
+		.tls_mode = TLS_NONE,
+		#endif
 		.announce_domain = "cmail"
 	};
 	LISTENER* listener_data=NULL;
@@ -16,17 +27,65 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			if(!port){
 				port=token;
 			}
+			#ifndef CMAIL_NO_TLS
+			else if(!strncmp(token, "cert=", 5)){
+				tls_certfile=token+5;
+			}
+			else if(!strncmp(token, "key=", 4)){
+				tls_keyfile=token+4;
+			}
+			else if(!strcmp(token, "tlsonly")){
+				settings.tls_mode=TLS_ONLY;
+			}
+			else if(!strncmp(token, "ciphers=", 8)){
+				tls_priorities=token+8;
+			}
+			#endif
+			else if(!strncmp(token, "announce=", 9)){
+				settings.announce_domain=token+9;
+			}
 			else{
-				//use additional parameters
-				if(!strncmp(token, "announce=", 9)){
-					settings.announce_domain=token+9;
-				}
-				else{
-					logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
-				}
+				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
 			}
 		}
 	}while(token);
+
+	#ifndef CMAIL_NO_TLS
+	if(tls_keyfile && tls_certfile){
+		if(settings.tls_mode==TLS_NONE){
+			settings.tls_mode=TLS_NEGOTIATE;
+		}
+
+		logprintf(config->log, LOG_DEBUG, "Initializing TLS priorities\n");
+		if(gnutls_priority_init(&(settings.tls_priorities), (tls_priorities)?tls_priorities:"PERFORMANCE:%SERVER_PRECEDENCE", NULL)){
+			logprintf(config->log, LOG_ERROR, "Failed to initialize TLS priorities\n");
+			return -1;
+		}
+
+		logprintf(config->log, LOG_DEBUG, "Initializing TLS certificate structure\n");
+		if(gnutls_certificate_allocate_credentials(&(settings.tls_cert))){
+			logprintf(config->log, LOG_ERROR, "Failed to allocate storage for TLS cert structure\n");
+			return -1;
+		}
+		
+		logprintf(config->log, LOG_DEBUG, "Initializing TLS certificate\n");
+		if(gnutls_certificate_set_x509_key_file(settings.tls_cert, tls_certfile, tls_keyfile, GNUTLS_X509_FMT_PEM)){
+			logprintf(config->log, LOG_ERROR, "Failed to find key or certificate files\n");
+			return -1;
+		}
+
+		//FIXME error check this lot
+		logprintf(config->log, LOG_DEBUG, "Generating Diffie-Hellman parameters\n");
+        	gnutls_dh_params_init(&tls_dhparams);
+	        gnutls_dh_params_generate2(tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LOW));
+		gnutls_certificate_set_dh_params(settings.tls_cert, tls_dhparams);
+
+	}
+	else if(tls_keyfile || tls_certfile){
+		logprintf(config->log, LOG_ERROR, "Need both certificate and key for TLS\n");
+		return -1;
+	}
+	#endif
 
 	//try to open a listening socket
 	int listen_fd=network_listener(config->log, bindhost, port);

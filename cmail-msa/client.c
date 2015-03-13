@@ -38,13 +38,62 @@ int client_resolve(LOGGER log, CONNECTION* client){
 	return 0;
 }
 
+int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
+	va_list args;
+	ssize_t bytes;
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+
+	va_start(args, fmt);
+	//TODO sprintf the vararg into a string, send that
+	
+	#ifndef CMAIL_NO_TLS
+	switch(client_data->tls_mode){
+		case TLS_NONE:
+			bytes=send(client->fd, fmt, strlen(fmt), 0);
+			break;
+		case TLS_NEGOTIATE:
+			logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
+			break;
+		case TLS_ONLY:
+			//TODO TLS send
+			bytes=gnutls_record_send(client_data->tls_session, fmt, strlen(fmt));
+			break;
+	}
+	#else
+	bytes=send(client->fd, fmt, strlen(fmt), 0);
+	#endif
+
+	va_end(args);
+	return bytes;
+}
+
+#ifndef CMAIL_NO_TLS
+int client_starttls(LOGGER log, CONNECTION* client){
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+
+	client_data->tls_mode=TLS_NEGOTIATE;
+	//FIXME check return values from this lot
+	gnutls_init(&(client_data->tls_session), GNUTLS_SERVER);
+	gnutls_priority_set(client_data->tls_session, listener_data->tls_priorities);
+	gnutls_credentials_set(client_data->tls_session, GNUTLS_CRD_CERTIFICATE, listener_data->tls_cert);
+	gnutls_certificate_server_set_request(client_data->tls_session, GNUTLS_CERT_IGNORE);
+	gnutls_transport_set_int(client_data->tls_session, client->fd);
+
+	return 0;
+}
+#endif
+
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
-	int client_slot=-1;
+	int client_slot=-1, flags;
 	CLIENT empty_data = {
 		.listener=listener,
 		.state=STATE_NEW,
 		.recv_offset=0,
 		.peer_name="",
+		#ifndef CMAIL_NO_TLS
+		.tls_mode=TLS_NONE,
+		#endif
 		.current_mail = {
 			.submitter = NULL,
 			.reverse_path = {
@@ -62,6 +111,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		}
 	};
 	CLIENT* actual_data;
+	LISTENER* listener_data=(LISTENER*)listener->aux_data;
 
 	if(connpool_active(*clients)>=CMAIL_MAX_CONCURRENT_CLIENTS){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
@@ -74,6 +124,14 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		logprintf(log, LOG_ERROR, "Failed to pool client socket\n");
 		return -1;
 	}
+
+	//set socket nonblocking
+	flags=fcntl(clients->conns[client_slot].fd, F_GETFL, 0);
+	if(flags<0){
+		flags=0;
+	}
+	//FIXME check errno
+  	fcntl(clients->conns[client_slot].fd, F_SETFL, flags|O_NONBLOCK);
 
 	if(!(clients->conns[client_slot].aux_data)){
 		clients->conns[client_slot].aux_data=malloc(sizeof(CLIENT));
@@ -100,17 +158,29 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	}
 	
 	actual_data->current_mail.submitter=actual_data->peer_name;
-
 	logprintf(log, LOG_DEBUG, "Initialized client data to peername %s, submitter %s\n", actual_data->peer_name, actual_data->current_mail.submitter);
 
-	send(clients->conns[client_slot].fd, "220 ", 4, 0);
-	send(clients->conns[client_slot].fd, ((LISTENER*)listener->aux_data)->announce_domain, strlen(((LISTENER*)listener->aux_data)->announce_domain), 0);
-	send(clients->conns[client_slot].fd, " service ready\r\n", 16, 0);
+	#ifndef CMAIL_NO_TLS
+	//if on tlsonly port, immediately wait for negotiation
+	if(listener_data->tls_mode==TLS_ONLY){
+		return client_starttls(log, &(clients->conns[client_slot])); 
+	}
+	#endif
+
+	client_send(log, &(clients->conns[client_slot]), "220 ");
+	client_send(log, &(clients->conns[client_slot]), listener_data->announce_domain);
+	client_send(log, &(clients->conns[client_slot]), "service ready\r\n");
 	return 0;
 }
 
 int client_close(CONNECTION* client){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
+
+	#ifndef CMAIL_NO_TLS
+	if(client_data->tls_mode!=TLS_NONE){
+		gnutls_deinit(client_data->tls_session);
+	}
+	#endif
 
 	//close the socket
 	close(client->fd);
@@ -128,18 +198,51 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
-	unsigned i, c;
+	unsigned i, c, status;
 
 	//TODO handle client timeout
-	//TODO factor out writing operations
-
+	
+	#ifndef CMAIL_NO_TLS
+	switch(client_data->tls_mode){
+		case TLS_NONE:
+			//non-tls client
+			bytes=recv(client->fd, client_data->recv_buffer+client_data->recv_offset, left, 0);
+			break;
+		case TLS_NEGOTIATE:
+			//tls handshake not completed
+			status=gnutls_handshake(client_data->tls_session);
+			if(status<0){
+				if(gnutls_error_is_fatal(status)){
+					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error\n");
+					client_close(client);
+					return -1;
+				}
+				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error\n");
+				return 0;
+			}
+			client_data->tls_mode=TLS_ONLY;
+			return 0;
+		case TLS_ONLY:
+			//read with tls
+			//TODO handle gnutls error codes
+			bytes=gnutls_record_recv(client_data->tls_session, client_data->recv_buffer+client_data->recv_offset, left);
+			break;
+	}
+	#else
 	bytes=recv(client->fd, client_data->recv_buffer+client_data->recv_offset, left, 0);
+	#endif
 
 	//failed to read from socket
 	if(bytes<0){
-		logprintf(log, LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
-		client_close(client);
-		return -1;
+		switch(errno){
+			case EAGAIN:
+				logprintf(log, LOG_WARNING, "Read signaled, but blocked\n");
+				return 0;
+			default:
+				logprintf(log, LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
+				client_close(client);
+				return -1;
+		}
 	}
 	//client disconnect
 	else if(bytes==0){
@@ -157,7 +260,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			//FIXME if in data mode, process the line anyway
 			//else, skip until next newline (set flag to act accordingly in next read)
 			logprintf(log, LOG_WARNING, "Line too long, handling current contents\n");
-			send(client->fd, "500 Line too long\r\n", 19, 0);
+			client_send(log, client, "500 Line too long\r\n");
 			client_data->recv_buffer[client_data->recv_offset+i]='\r';
 			client_data->recv_buffer[client_data->recv_offset+i+1]='\n';
 		}

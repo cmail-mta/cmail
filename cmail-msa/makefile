@@ -1,6 +1,6 @@
 .PHONY: clean
 CFLAGS=-Wall -g
-LDLIBS=-lsqlite3
+LDLIBS=-lsqlite3 -lgnutls
 
 all: cmail
 	mv cmail cmail-msa

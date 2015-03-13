@@ -74,11 +74,20 @@ int main(int argc, char** argv){
 		arguments_free(&args);
 		exit(usage(argv[0]));
 	}
+
+	#ifndef CMAIL_NO_TLS
+	if(gnutls_global_init()){
+		arguments_free(&args);
+		fprintf(stderr, "Failed to initialize GnuTLS\n");
+		exit(EXIT_FAILURE);
+	}
+	#endif
 	
 	//read config file
 	if(config_parse(&config, args.config_file)<0){
 		arguments_free(&args);
 		config_free(&config);
+		TLSSUPPORT(gnutls_global_deinit());
 		exit(usage(argv[0]));
 	}
 
@@ -87,6 +96,7 @@ int main(int argc, char** argv){
 	if(signal_init(config.log)<0){
 		arguments_free(&args);
 		config_free(&config);
+		TLSSUPPORT(gnutls_global_deinit());
 		exit(EXIT_FAILURE);
 	}
 
@@ -94,6 +104,7 @@ int main(int argc, char** argv){
 	if(database_initialize(config.log, &(config.database))<0){
 		arguments_free(&args);
 		config_free(&config);
+		TLSSUPPORT(gnutls_global_deinit());
 		exit(EXIT_FAILURE);
 	}
 
@@ -153,6 +164,7 @@ int main(int argc, char** argv){
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");
 	arguments_free(&args);
 	config_free(&config);
+	TLSSUPPORT(gnutls_global_deinit());
 
 	return EXIT_SUCCESS;
 }
