@@ -18,8 +18,6 @@
 #define VERSION 			"cmail 0.1"
 #define MAX_CFGLINE 			2048
 #define LISTEN_QUEUE_LENGTH 		128
-#define MAX_SIMULTANEOUS_CLIENTS 	64
-#define MAX_FQDN_LENGTH			300 //actually, 255
 
 #include "smtplimits.h"
 

@@ -63,7 +63,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	};
 	CLIENT* actual_data;
 
-	if(connpool_active(*clients)>=MAX_SIMULTANEOUS_CLIENTS){
+	if(connpool_active(*clients)>=CMAIL_MAX_CONCURRENT_CLIENTS){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
 		return 1;
 	}
