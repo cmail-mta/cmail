@@ -14,7 +14,7 @@
 #include <signal.h>
 #include <fcntl.h>
 
-#define CMAIL_NO_TLS
+//#define CMAIL_NO_TLS
 #ifndef CMAIL_NO_TLS
 	#include <gnutls/gnutls.h>
 	#define TLSSUPPORT(x) (x)
@@ -32,6 +32,7 @@
 #define VERSION 			"cmail 0.1"
 #define MAX_CFGLINE 			2048
 #define LISTEN_QUEUE_LENGTH 		128
+#define STATIC_SEND_BUFFER_LENGTH	1024
 
 #include "smtplimits.h"
 

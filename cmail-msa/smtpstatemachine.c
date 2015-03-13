@@ -15,9 +15,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_data->state=STATE_IDLE;
 		logprintf(log, LOG_INFO, "Client negotiates esmtp\n");
 
-		client_send(log, client, "250-");
-		client_send(log, client, listener_data->announce_domain);
-		client_send(log, client, " ahoy there\r\n");
+		client_send(log, client, "250-%s ahoyhoy\r\n", listener_data->announce_domain);
 		
 		//TODO hook plugins here
 		
@@ -36,9 +34,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_data->state=STATE_IDLE;
 		logprintf(log, LOG_INFO, "Client negotiates smtp\n");
 
-		client_send(log, client, "250-");
-		client_send(log, client, listener_data->announce_domain);
-		client_send(log, client, " ahoy there\r\n");
+		client_send(log, client, "250-%s ahoyhoy\r\n", listener_data->announce_domain);
 		return 0;
 	}
 	
@@ -80,6 +76,9 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_INFO, "Client performs incantation\n");
 		//Using this command for some debug output...
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
+		#ifndef CMAIL_NO_TLS
+		logprintf(log, LOG_DEBUG, "TLS State: %s\n", (client_data->tls_mode==TLS_NONE)?"none":"ok");
+		#endif
 		return 0;
 	}
 

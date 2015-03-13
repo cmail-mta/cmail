@@ -41,22 +41,23 @@ int client_resolve(LOGGER log, CONNECTION* client){
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	va_list args;
 	ssize_t bytes;
+	char send_buffer[STATIC_SEND_BUFFER_LENGTH+1];
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	va_start(args, fmt);
-	//TODO sprintf the vararg into a string, send that
+	//FIXME check if the buffer was long enough, if not, allocate a new one
+	vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
 	
 	#ifndef CMAIL_NO_TLS
 	switch(client_data->tls_mode){
 		case TLS_NONE:
-			bytes=send(client->fd, fmt, strlen(fmt), 0);
+			bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
 			break;
 		case TLS_NEGOTIATE:
 			logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
 			break;
 		case TLS_ONLY:
-			//TODO TLS send
-			bytes=gnutls_record_send(client_data->tls_session, fmt, strlen(fmt));
+			bytes=gnutls_record_send(client_data->tls_session, send_buffer, strlen(send_buffer));
 			break;
 	}
 	#else
@@ -163,13 +164,12 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	#ifndef CMAIL_NO_TLS
 	//if on tlsonly port, immediately wait for negotiation
 	if(listener_data->tls_mode==TLS_ONLY){
+		logprintf(log, LOG_INFO, "Listen socket is TLSONLY, waiting for negotiation...\n");
 		return client_starttls(log, &(clients->conns[client_slot])); 
 	}
 	#endif
 
-	client_send(log, &(clients->conns[client_slot]), "220 ");
-	client_send(log, &(clients->conns[client_slot]), listener_data->announce_domain);
-	client_send(log, &(clients->conns[client_slot]), "service ready\r\n");
+	client_send(log, &(clients->conns[client_slot]), "220 %s ESMTP service ready\r\n", listener_data->announce_domain);
 	return 0;
 }
 
@@ -178,6 +178,7 @@ int client_close(CONNECTION* client){
 
 	#ifndef CMAIL_NO_TLS
 	if(client_data->tls_mode!=TLS_NONE){
+		gnutls_bye(client_data->tls_session, GNUTLS_SHUT_RDWR);
 		gnutls_deinit(client_data->tls_session);
 	}
 	#endif
@@ -196,6 +197,7 @@ int client_close(CONNECTION* client){
 
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
+	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
 	unsigned i, c, status;
@@ -221,6 +223,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 			}
 			client_data->tls_mode=TLS_ONLY;
+			client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
 			return 0;
 		case TLS_ONLY:
 			//read with tls

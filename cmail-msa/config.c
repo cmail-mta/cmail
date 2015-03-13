@@ -100,13 +100,14 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		logprintf(config->log, LOG_INFO, "Bound to %s port %s (slot %d)\n", bindhost, port, listener_slot);
 
 		//create listener auxdata
-		config->listeners.conns[listener_slot].aux_data=malloc(sizeof(LISTENER));
+		config->listeners.conns[listener_slot].aux_data=calloc(1, sizeof(LISTENER));
 		if(!config->listeners.conns[listener_slot].aux_data){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener\n");
 			return -1;
 		}
 
 		listener_data=(LISTENER*)config->listeners.conns[listener_slot].aux_data;
+		*listener_data=settings;
 
 		//copy data to heap
 		listener_data->announce_domain=calloc(strlen(settings.announce_domain)+1, sizeof(char));
@@ -273,9 +274,17 @@ int config_parse(CONFIGURATION* config, char* conf_file){
 
 void config_free(CONFIGURATION* config){
 	unsigned i;
+	LISTENER* listener_data;
 
 	for(i=0;i<config->listeners.count;i++){
-		free(((LISTENER*)config->listeners.conns[i].aux_data)->announce_domain);
+		listener_data=(LISTENER*)config->listeners.conns[i].aux_data;
+		free(listener_data->announce_domain);
+		#ifndef CMAIL_NO_TLS
+		if(listener_data->tls_mode!=TLS_NONE){
+			gnutls_certificate_free_credentials(listener_data->tls_cert);
+			gnutls_priority_deinit(listener_data->tls_priorities);
+		}
+		#endif
 	}
 
 	connpool_free(&(config->listeners));
