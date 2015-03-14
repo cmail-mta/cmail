@@ -152,6 +152,7 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #define LOG_WARNING 	0
 #define LOG_INFO 	1
 #define LOG_DEBUG 	3
+#define LOG_ALL_IO	4
 
 volatile sig_atomic_t abort_signaled=0;
 

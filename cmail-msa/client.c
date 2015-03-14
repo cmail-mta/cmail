@@ -1,5 +1,5 @@
 int client_line(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	//logprintf(log, LOG_DEBUG, "Client processing of line started: %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
+	logprintf(log, LOG_ALL_IO, ">> %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
 	switch(((CLIENT*)client->aux_data)->state){
 		case STATE_NEW:
 			return smtpstate_new(log, client, database, path_pool);
@@ -63,6 +63,8 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	#else
 	bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
 	#endif
+
+	logprintf(log, LOG_ALL_IO, "<< %s\n", send_buffer);
 
 	va_end(args);
 	return bytes;
@@ -240,6 +242,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 			}
 			client_data->tls_mode=TLS_ONLY;
+			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
 			client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
 			return 0;
 		case TLS_ONLY:
