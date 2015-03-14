@@ -64,7 +64,7 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
 	#endif
 
-	logprintf(log, LOG_ALL_IO, "<< %s\n", send_buffer);
+	logprintf(log, LOG_ALL_IO, "<< %s", send_buffer);
 
 	va_end(args);
 	return bytes;
