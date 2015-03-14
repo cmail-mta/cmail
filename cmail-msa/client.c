@@ -61,7 +61,7 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 			break;
 	}
 	#else
-	bytes=send(client->fd, fmt, strlen(fmt), 0);
+	bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
 	#endif
 
 	va_end(args);
