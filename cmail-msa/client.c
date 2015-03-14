@@ -70,15 +70,31 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 
 #ifndef CMAIL_NO_TLS
 int client_starttls(LOGGER log, CONNECTION* client){
+	int status;
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 
 	client_data->tls_mode=TLS_NEGOTIATE;
 	//FIXME check return values from this lot
-	gnutls_init(&(client_data->tls_session), GNUTLS_SERVER);
-	gnutls_priority_set(client_data->tls_session, listener_data->tls_priorities);
-	gnutls_credentials_set(client_data->tls_session, GNUTLS_CRD_CERTIFICATE, listener_data->tls_cert);
+	status=gnutls_init(&(client_data->tls_session), GNUTLS_SERVER);
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to initialize TLS session for client: %s\n", gnutls_strerror(status));
+		return -1;
+	}
+
+	status=gnutls_priority_set(client_data->tls_session, listener_data->tls_priorities);
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to update priority set for client: %s\n", gnutls_strerror(status));
+	}
+
+	status=gnutls_credentials_set(client_data->tls_session, GNUTLS_CRD_CERTIFICATE, listener_data->tls_cert);
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to set credentials for client: %s\n", gnutls_strerror(status));
+		return -1;
+	}
+
 	gnutls_certificate_server_set_request(client_data->tls_session, GNUTLS_CERT_IGNORE);
+	
 	gnutls_transport_set_int(client_data->tls_session, client->fd);
 
 	return 0;
@@ -213,13 +229,13 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		case TLS_NEGOTIATE:
 			//tls handshake not completed
 			status=gnutls_handshake(client_data->tls_session);
-			if(status<0){
+			if(status){
 				if(gnutls_error_is_fatal(status)){
-					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error\n");
+					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
 					client_close(client);
 					return -1;
 				}
-				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error\n");
+				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
 				return 0;
 			}
 			client_data->tls_mode=TLS_ONLY;
@@ -237,6 +253,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 
 	//failed to read from socket
 	if(bytes<0){
+		#ifndef CMAIL_NO_TLS
+		switch(client_data->tls_mode){
+			case TLS_NONE:
+		#else
 		switch(errno){
 			case EAGAIN:
 				logprintf(log, LOG_WARNING, "Read signaled, but blocked\n");
@@ -246,6 +266,25 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				client_close(client);
 				return -1;
 		}
+		#endif
+			break;
+			case TLS_NEGOTIATE:
+				logprintf(log, LOG_WARNING, "This should not never have been reached\n");
+				return 0;
+			case TLS_ONLY:
+				switch(bytes){
+					case GNUTLS_E_INTERRUPTED:
+					case GNUTLS_E_AGAIN:
+						logprintf(log, LOG_WARNING, "TLS read signaled, but blocked\n");
+						return 0;
+					default:
+						logprintf(log, LOG_ERROR, "GnuTLS reported an error while reading: %s\n", gnutls_strerror(bytes));
+						client_close(client);
+						return -1;
+				}
+		#ifndef CMAIL_NOTLS
+		}
+		#endif
 	}
 	//client disconnect
 	else if(bytes==0){
