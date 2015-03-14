@@ -1,10 +1,16 @@
 int connpool_add(CONNPOOL* pool, int fd){
 	unsigned i;
 	int free_slot;
+	CONNECTION new_connection = {
+		.fd = -1,
+		.aux_data = NULL
+	};
 
 	if(fd<0||!pool){
 		return -1;
 	}
+
+	new_connection.fd = fd;
 
 	//initialize if needed
 	if(!pool->conns){
@@ -13,8 +19,7 @@ int connpool_add(CONNPOOL* pool, int fd){
 			return -127;
 		}
 		
-		pool->conns[0].fd=fd;
-		pool->conns[0].aux_data=NULL;
+		pool->conns[0]=new_connection;
 		pool->count=1;
 		return 0;
 	}
@@ -27,6 +32,8 @@ int connpool_add(CONNPOOL* pool, int fd){
 		}
 		if(pool->conns[i].fd==-1){
 			free_slot=i;
+			new_connection.aux_data=pool->conns[free_slot].aux_data;
+			break;
 		}
 	}
 
@@ -40,7 +47,8 @@ int connpool_add(CONNPOOL* pool, int fd){
 		free_slot=pool->count++;
 	}
 
-	pool->conns[free_slot].fd=fd;
+	pool->conns[free_slot]=new_connection;
+
 	return free_slot;
 }
 
