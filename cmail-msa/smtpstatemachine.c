@@ -36,7 +36,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_data->state=STATE_IDLE;
 		logprintf(log, LOG_INFO, "Client negotiates smtp\n");
 
-		client_send(log, client, "250-%s ahoyhoy\r\n", listener_data->announce_domain);
+		client_send(log, client, "250 %s ahoyhoy\r\n", listener_data->announce_domain);
 		return 0;
 	}
 	
