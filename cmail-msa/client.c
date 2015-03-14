@@ -243,7 +243,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			}
 			client_data->tls_mode=TLS_ONLY;
 			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
-			client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
+			//client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
 			return 0;
 		case TLS_ONLY:
 			//read with tls
