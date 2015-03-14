@@ -75,7 +75,7 @@ int client_starttls(LOGGER log, CONNECTION* client){
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 
 	client_data->tls_mode=TLS_NEGOTIATE;
-	//FIXME check return values from this lot
+
 	status=gnutls_init(&(client_data->tls_session), GNUTLS_SERVER);
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to initialize TLS session for client: %s\n", gnutls_strerror(status));
@@ -193,6 +193,7 @@ int client_close(CONNECTION* client){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	#ifndef CMAIL_NO_TLS
+	//shut down the tls session
 	if(client_data->tls_mode!=TLS_NONE){
 		gnutls_bye(client_data->tls_session, GNUTLS_SHUT_RDWR);
 		gnutls_deinit(client_data->tls_session);
@@ -243,7 +244,6 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			return 0;
 		case TLS_ONLY:
 			//read with tls
-			//TODO handle gnutls error codes
 			bytes=gnutls_record_recv(client_data->tls_session, client_data->recv_buffer+client_data->recv_offset, left);
 			break;
 	}

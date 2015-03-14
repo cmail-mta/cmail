@@ -24,7 +24,9 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_send(log, client, "250-8BITMIME\r\n"); //FIXME this might imply more processing than planned
 		client_send(log, client, "250-SMTPUTF8\r\n"); //RFC 6531
 		#ifndef CMAIL_NO_TLS
-		client_send(log, client, "250-STARTTLS\r\n"); //FIXME advertise only when possible
+		if(listener_data->tls_mode==TLS_NEGOTIATE && client_data->tls_mode==TLS_NONE){
+			client_send(log, client, "250-STARTTLS\r\n"); //advertise only when possible
+		}
 		#endif
 		client_send(log, client, "250 XYZZY\r\n"); //RFC 5321 2.2.2
 		return 0;
@@ -45,7 +47,8 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 
 int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	
+	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+
 	if(!strncasecmp(client_data->recv_buffer, "noop", 4)){
 		logprintf(log, LOG_INFO, "Client noop\n");
 		client_send(log, client, "250 OK\r\n");
@@ -60,8 +63,20 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 
 	#ifndef CMAIL_NO_TLS
-	//FIXME accept only when offered, reject when already negotiated
+	//accept only when offered, reject when already negotiated
 	if(!strncasecmp(client_data->recv_buffer, "starttls", 8)){
+		if(client_data->tls_mode!=TLS_NONE){
+			logprintf(log, LOG_WARNING, "Client with active TLS session tried to negotiate\n");
+			client_send(log, client, "503 Already in TLS session\r\n");
+			return 0;
+		}
+
+		if(listener_data->tls_mode!=TLS_NEGOTIATE){
+			logprintf(log, LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
+			client_send(log, client, "503 Not advertised\r\n");
+			return 0;
+		}
+
 		logprintf(log, LOG_INFO, "Client wants to negotiate TLS\n");
 		mail_reset(&(client_data->current_mail));
 		client_data->state=STATE_NEW;
