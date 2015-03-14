@@ -1,4 +1,3 @@
-Implement Transport Layer Security (native & STARTTLS)
 Implement support for dynamically loaded modules
 	Specify API for modules
 Implement SMTP authentication

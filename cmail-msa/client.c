@@ -267,6 +267,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return -1;
 		}
 		#endif
+		#ifndef CMAIL_NO_TLS
 			break;
 			case TLS_NEGOTIATE:
 				logprintf(log, LOG_WARNING, "This should not never have been reached\n");
@@ -282,7 +283,6 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 						client_close(client);
 						return -1;
 				}
-		#ifndef CMAIL_NOTLS
 		}
 		#endif
 	}
