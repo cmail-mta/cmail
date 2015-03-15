@@ -114,7 +114,7 @@ master database structure
 		address_order		INTEGER NOT NULL UNIQUE
 		Integer allowing total ordering of addresses for matching.
 		If multiple addresses match a given path, the one with the
-		lowest order index "wins".
+		highest index "wins".
 
 		address_user		TEXT NOT NULL
 		Foreign key into the 'users' table.

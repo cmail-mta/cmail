@@ -249,7 +249,7 @@ int database_refresh(LOGGER log, DATABASE* database){
 }
 
 int database_initialize(LOGGER log, DATABASE* database){
-	char* QUERY_ADDRESS_USER="SELECT address_user FROM main.addresses WHERE ? LIKE address_expression ORDER BY address_order ASC;";
+	char* QUERY_ADDRESS_USER="SELECT address_user FROM main.addresses WHERE ? LIKE address_expression ORDER BY address_order DESC;";
 	char* QUERY_USER_ROUTER_INBOUND="SELECT user_inrouter, user_inroute FROM main.users WHERE user_name = ?;";
 	char* QUERY_USER_ROUTER_OUTBOUND="SELECT user_outrouter, user_outroute FROM main.users WHERE user_name = ?;";
 	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
