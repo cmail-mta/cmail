@@ -19,9 +19,9 @@
 	#include <gnutls/gnutls.h>
 	#define TLSSUPPORT(x) (x)
 	typedef enum /*_TLS_MODE*/ {
-		TLS_ONLY,
-		TLS_NEGOTIATE,
-		TLS_NONE
+		TLS_ONLY,		//Listener: TLS-Only port, Client: TLS Session active
+		TLS_NEGOTIATE,		//Listener: STARTTLS enabled, Client: Handshake in progress
+		TLS_NONE		//Listener: No TLS, Client: No TLS session active
 	} TLSMODE;
 #else
 	#define TLSSUPPORT(x)
@@ -35,6 +35,17 @@
 #define STATIC_SEND_BUFFER_LENGTH	1024
 
 #include "smtplimits.h"
+
+typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
+	AUTH_NONE,			//Authentication not supported
+	AUTH_ANY,			//Authentication supported
+	AUTH_TLSONLY			//Authentication only in TLS session
+} AUTH_OFFER;
+
+typedef enum /*_AUTHENTICATION_MODE*/ {
+	AUTH_RELAXED,			//Reject relay paths when not authenticated
+	AUTH_SUBMISSION			//Reject any MAIL when not authenticated
+} AUTH_MODE;
 
 typedef struct /*_MAIL_PATH*/ {
 	bool in_transaction;
@@ -65,10 +76,13 @@ typedef struct /*_CONNECTION*/ {
 
 typedef struct /*_LISTEN_DATA*/ {
 	char* announce_domain;
+	AUTH_MODE auth_mode;
+	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS
 	TLSMODE tls_mode;
 	gnutls_certificate_credentials_t tls_cert;
 	gnutls_priority_t tls_priorities;
+	gnutls_dh_params_t tls_dhparams;
 	#endif
 } LISTENER;
 

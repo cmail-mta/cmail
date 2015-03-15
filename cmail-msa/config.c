@@ -1,13 +1,15 @@
 int config_bind(CONFIGURATION* config, char* directive, char* params){
+	char* tokenize_line=NULL;
+	char* tokenize_argument=NULL;
 	char* token=NULL;
+
 	char* bindhost=NULL;
 	char* port=NULL;
-	
+
 	#ifndef CMAIL_NO_TLS
 	char* tls_keyfile=NULL;
 	char* tls_certfile=NULL;
 	char* tls_priorities=NULL;
-	gnutls_dh_params_t tls_dhparams;
 	#endif
 
 	int listener_slot=-1;
@@ -15,14 +17,16 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		#ifndef CMAIL_NO_TLS
 		.tls_mode = TLS_NONE,
 		#endif
-		.announce_domain = "cmail"
+		.announce_domain = "cmail",
+		.auth_offer = AUTH_NONE,
+		.auth_mode = AUTH_RELAXED
 	};
 	LISTENER* listener_data=NULL;
 
 	//tokenize line
-	bindhost=strtok(params, " ");
+	bindhost=strtok_r(params, " ", &tokenize_line);
 	do{
-		token=strtok(NULL, " ");
+		token=strtok_r(NULL, " ", &tokenize_line);
 		if(token){
 			if(!port){
 				port=token;
@@ -41,6 +45,26 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 				tls_priorities=token+8;
 			}
 			#endif
+			else if(!strncmp(token, "auth", 4)){
+				settings.auth_offer=AUTH_ANY;
+				if(token[4]=='='){
+					token=strtok_r(token+5, ",", &tokenize_argument);
+					while(token){
+						if(!strcmp(token, "tlsonly")){
+							settings.auth_offer=AUTH_TLSONLY;
+						}
+						else if(!strcmp(token, "strict")){
+							settings.auth_mode=AUTH_SUBMISSION;
+						}
+						else{
+							logprintf(config->log, LOG_WARNING, "Unknown auth parameter %s\n", token);
+						}
+						token=strtok_r(NULL, ",", &tokenize_argument);
+					}
+
+					token=""; //reset to anything but NULL to meet condition
+				}
+			}
 			else if(!strncmp(token, "announce=", 9)){
 				settings.announce_domain=token+9;
 			}
@@ -76,10 +100,9 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 
 		//FIXME error check this lot
 		logprintf(config->log, LOG_DEBUG, "Generating Diffie-Hellman parameters\n");
-        	gnutls_dh_params_init(&tls_dhparams);
-	        gnutls_dh_params_generate2(tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LOW));
-		gnutls_certificate_set_dh_params(settings.tls_cert, tls_dhparams);
-
+        	gnutls_dh_params_init(&(settings.tls_dhparams));
+	        gnutls_dh_params_generate2(settings.tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LOW));
+		gnutls_certificate_set_dh_params(settings.tls_cert, settings.tls_dhparams);
 	}
 	else if(tls_keyfile || tls_certfile){
 		logprintf(config->log, LOG_ERROR, "Need both certificate and key for TLS\n");
@@ -283,6 +306,7 @@ void config_free(CONFIGURATION* config){
 		if(listener_data->tls_mode!=TLS_NONE){
 			gnutls_certificate_free_credentials(listener_data->tls_cert);
 			gnutls_priority_deinit(listener_data->tls_priorities);
+			gnutls_dh_params_deinit(listener_data->tls_dhparams);
 		}
 		#endif
 	}
