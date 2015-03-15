@@ -23,6 +23,20 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_send(log, client, "250-SIZE 52428800\r\n"); //FIXME make this configurable
 		client_send(log, client, "250-8BITMIME\r\n"); //FIXME this might imply more processing than planned
 		client_send(log, client, "250-SMTPUTF8\r\n"); //RFC 6531
+		switch(listener_data->auth_offer){
+			case AUTH_NONE:
+				break;
+			case AUTH_ANY:
+				client_send(log, client, "250-AUTH PLAIN\r\n");
+				break;
+			case AUTH_TLSONLY:
+				#ifndef CMAIL_NO_TLS
+				if(client_data->tls_mode==TLS_ONLY){
+					client_send(log, client, "250-AUTH PLAIN\r\n");
+				}
+				#endif
+				break;
+		}
 		#ifndef CMAIL_NO_TLS
 		if(listener_data->tls_mode==TLS_NEGOTIATE && client_data->tls_mode==TLS_NONE){
 			client_send(log, client, "250-STARTTLS\r\n"); //advertise only when possible
@@ -85,6 +99,8 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		return client_starttls(log, client);
 	}
 	#endif
+
+	//TODO implement AUTH verb
 
 	if(!strncasecmp(client_data->recv_buffer, "xyzzy", 5)){
 		client_send(log, client, "250 Nothing happens\r\n");

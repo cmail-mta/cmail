@@ -216,7 +216,6 @@ int client_close(CONNECTION* client){
 
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
 	unsigned i, c, status;
@@ -243,7 +242,6 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			}
 			client_data->tls_mode=TLS_ONLY;
 			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
-			//client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
 			return 0;
 		case TLS_ONLY:
 			//read with tls
