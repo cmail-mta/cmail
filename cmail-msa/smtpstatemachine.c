@@ -218,6 +218,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "data", 4)){
+		//FIXME reject command if no recipients
 		client_data->state=STATE_DATA;
 		logprintf(log, LOG_INFO, "Client wants to begin data transmission\n");
 		client_send(log, client, "354 Go ahead\r\n");
