@@ -17,7 +17,10 @@ main();
 function getApiEndPoint() {
 	$api_points = array(
 		"get_user",
-		"get_users",    
+		"get_users",
+	        "get_addresses",
+		"get_address",
+		"get_addresses_by_user",	
 		"add_user",
 		"delete_user",
 		"add_address",
@@ -40,6 +43,7 @@ function main() {
 	$db = new DB();
 
 	$user = new User($db, $output);
+	$address = new Address($db, $output);
 
 	// db connection
 	if (!$db->connect()) {
@@ -64,6 +68,15 @@ function main() {
 	case "get_user":
 		$user->get($obj["username"]);
 		break;
+	case "get_addresses":
+		$address->getAll();
+		break;
+	case "get_address":
+		$address->get($obj["address"]);
+		break;
+	case "get_addresses_by_user":
+		$address->getByUser($obj["username"]);
+		break;
 	case "add_user":
 		$user->add($obj["user"]);
 		break;
@@ -71,6 +84,7 @@ function main() {
 		$user->delete($obj["username"]);
 		break;
 	case "add_address":
+		$address->add($obj["address"]["address_exp"], $obj["address"]["username"], $obj["address"]["order"]);
 		break;
 	case "delete_address":
 		break;
