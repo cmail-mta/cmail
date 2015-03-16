@@ -223,6 +223,11 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				}
 				#endif
 			case AUTH_ANY:
+				if(client_data->auth.user){
+					logprintf(log, LOG_WARNING, "Authenticated client tried to authenticate again\n");
+					client_send(log, client, "503 Already authenticated\r\n");
+					return 0;
+				}
 				//continue	
 				break;
 		}
@@ -359,6 +364,12 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		mail_reset(&(client_data->current_mail));
 		logprintf(log, LOG_INFO, "Client reset\n");
 		client_send(log, client, "250 OK\r\n");
+		return 0;
+	}
+
+	if(!strncasecmp(client_data->recv_buffer, "auth", 4)){
+		logprintf(log, LOG_INFO, "Client tried to use AUTH in RECIPIENTS\n");
+		client_send(log, client, "503 Bad sequence of commands\r\n");
 		return 0;
 	}
 
