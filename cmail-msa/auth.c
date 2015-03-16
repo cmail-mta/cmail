@@ -28,5 +28,10 @@ int auth_reset(AUTH_DATA* auth_data){
 }
 
 int auth_validate(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
+	switch(auth_data->method){
+		case AUTH_PLAIN:
+			break;
+	}
+
 	return -1;
 }
