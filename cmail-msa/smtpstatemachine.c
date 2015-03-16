@@ -106,15 +106,14 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 					//evaluate
 					if(auth_validate(log, database, &(client_data->auth))<0){
 						logprintf(log, LOG_INFO, "Client failed to authenticate\n");
-						client_data->state=STATE_IDLE;
 						client_send(log, client, "535 Authentication failed\r\n");
+						auth_reset(&(client_data->auth));
 					}
 					else{
 						logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->auth.user);
-						client_data->state=STATE_IDLE;
 						client_send(log, client, "235 Authenticated\r\n");
 					}
-					auth_reset(&(client_data->auth));
+					client_data->state=STATE_IDLE;
 					return 0;
 				}
 				else{
@@ -138,7 +137,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	switch(client_data->auth.method){
 		case AUTH_PLAIN:
 			//must be parameter.
-			//duplicate to storage, try to evaluate
+			//duplicate to storage
 			client_data->auth.parameter=calloc(strlen(parameter)+1, sizeof(char));
 			if(!client_data->auth.parameter){
 				logprintf(log, LOG_ERROR, "Failed to allocate auth parameter memory\n");
@@ -148,17 +147,18 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return -1;
 			}
 			strncpy(client_data->auth.parameter, parameter, strlen(parameter));
+			
+			//evaluate
 			if(auth_validate(log, database, &(client_data->auth))<0){
 				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
-				client_data->state=STATE_IDLE;
 				client_send(log, client, "535 Authentication failed\r\n");
+				auth_reset(&(client_data->auth));
 			}
 			else{
 				logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->auth.user);
-				client_data->state=STATE_IDLE;
 				client_send(log, client, "235 Authenticated\r\n");
 			}
-			auth_reset(&(client_data->auth));
+			client_data->state=STATE_IDLE;
 			break;
 	}
 	
