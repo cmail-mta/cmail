@@ -47,6 +47,19 @@ typedef enum /*_AUTHENTICATION_MODE*/ {
 	AUTH_SUBMISSION			//Reject any MAIL when not authenticated
 } AUTH_MODE;
 
+typedef enum /*_AUTHENTICATION_METHOD*/ {
+	AUTH_PLAIN			//PLAIN only for now
+} AUTH_METHOD;
+
+typedef struct /*_AUTHENTICATION_DATA*/ {
+	AUTH_METHOD method;
+	char* user;
+
+	char* parameter;
+	char* challenge;
+	char* response;
+} AUTH_DATA;
+
 typedef struct /*_MAIL_PATH*/ {
 	bool in_transaction;
 	char path[SMTP_MAX_PATH_LENGTH];
@@ -65,6 +78,7 @@ typedef struct /*_MAIL_STRUCT*/ {
 typedef enum /*_SMTP_STATE*/ {
 	STATE_NEW,
 	STATE_IDLE,
+	STATE_AUTH,
 	STATE_RECIPIENTS,
 	STATE_DATA
 } SMTPSTATE;
@@ -93,6 +107,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	unsigned recv_offset;
 	char peer_name[MAX_FQDN_LENGTH];
 	MAIL current_mail;
+	AUTH_DATA auth;
 	/*last_action*/
 	#ifndef CMAIL_NO_TLS
 	gnutls_session_t tls_session;
@@ -178,6 +193,7 @@ volatile sig_atomic_t abort_signaled=0;
 #include "connpool.c"
 #include "pathpool.c"
 #include "mail.c"
+#include "auth.c"
 #include "smtpstatemachine.c"
 #include "client.c"
 #include "coreloop.c"

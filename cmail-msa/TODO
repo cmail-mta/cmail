@@ -6,3 +6,4 @@ Periodically release unused memory
 Implement database schema upgrade paths (including user databases)
 Implement sendmail interface
 Bind parameter autoauth=username
+Bind parameter filter-local-reverse
