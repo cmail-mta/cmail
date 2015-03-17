@@ -7,3 +7,6 @@ Implement database schema upgrade paths (including user databases)
 Implement sendmail interface
 Bind parameter autoauth=username
 Bind parameter filter-local-reverse
+Implement client command rate limiting
+Implement SO_SOCKREUSE
+Write some tests
