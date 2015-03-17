@@ -65,7 +65,13 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	char* parameter=client_data->recv_buffer;
 
-	//FIXME refactor this state.
+	if(!strcmp(client_data->recv_buffer, "*")){
+		//cancel authentication
+		logprintf(log, LOG_INFO, "Client cancelled authentication\n");
+		client_data->state=STATE_IDLE;
+		client_send(log, client, "501 Authentication failed\r\n");
+		return 0;
+	}
 
 	//method select & initial parameter
 	if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
@@ -84,53 +90,19 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		for(parameter=client_data->recv_buffer+5;!isspace(parameter[0])&&parameter[0];parameter++){
 		}
 
-		if(parameter[0]&&strlen(parameter)>0){
-			//FIXME this might be used by an attacker to supply an empty parameter string
+		if(parameter[0]&&strlen(parameter)>1){
+			//parameter supplied, continue
 			parameter++;
-
-			//duplicate the parameter to storage
-			client_data->auth.parameter=calloc(strlen(parameter)+1, sizeof(char));
-			if(!client_data->auth.parameter){
-				logprintf(log, LOG_ERROR, "Failed to allocate auth parameter memory\n");
-				client_data->state=STATE_IDLE;
-				client_send(log, client, "454 Internal Error\r\n");
-				auth_reset(&(client_data->auth));
-				return -1;
-			}
-			strncpy(client_data->auth.parameter, parameter, strlen(parameter));
 		}
-
-		switch(client_data->auth.method){
-			case AUTH_PLAIN:
-				if(client_data->auth.parameter){
-					//evaluate
-					if(auth_validate(log, database, &(client_data->auth))<0){
-						logprintf(log, LOG_INFO, "Client failed to authenticate\n");
-						client_send(log, client, "535 Authentication failed\r\n");
-						auth_reset(&(client_data->auth));
-					}
-					else{
-						logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->auth.user);
-						client_send(log, client, "235 Authenticated\r\n");
-					}
-					client_data->state=STATE_IDLE;
-					return 0;
-				}
-				else{
-					//not provided, ask
+		else{
+			//no parameter, ask for continuation
+			switch(client_data->auth.method){
+				case AUTH_PLAIN:
 					client_send(log, client, "334 \r\n");
-				}
-				break;
+					break;
+			}
+			return 0;
 		}
-		return 0;
-	}
-	
-	if(!strcmp(client_data->recv_buffer, "*")){
-		//cancel authentication
-		logprintf(log, LOG_INFO, "Client cancelled authentication\n");
-		client_data->state=STATE_IDLE;
-		client_send(log, client, "501 Authentication failed\r\n");
-		return 0;
 	}
 
 	//catch unprefixed data parameters
