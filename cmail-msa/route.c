@@ -123,12 +123,16 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 			}
 		}
 		else if(!strcmp(route.router, "forward")){
-			//insert into outbound table
-			rv=mail_store_outbox(log, database->mail_storage.outbox_master, NULL, route.argument, mail);
+			if(route.argument){
+				//insert into outbound table
+				rv=mail_store_outbox(log, database->mail_storage.outbox_master, NULL, route.argument, mail);
+			}
 		}
 		else if(!strcmp(route.router, "handoff")){
-			//insert into outbound table
-			rv=mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, current_path->path, mail);
+			if(route.argument){
+				//insert into outbound table
+				rv=mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, current_path->path, mail);
+			}
 		}
 		else if(!strcmp(route.router, "reject")){
 			//this should probably never be reached as the path
