@@ -261,6 +261,12 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "mail from:", 10)){
+		if(listener_data->auth_require && !client_data->auth.user){
+			logprintf(log, LOG_WARNING, "Client tried mail command without authentication on strict auth listener\n");
+			client_send(log, client, "530 Authentication required\r\n");
+			return 0;
+		}
+
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
 		//extract reverse path and store it
 		if(path_parse(log, client_data->recv_buffer+10, &(client_data->current_mail.reverse_path))<0){
@@ -363,7 +369,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		client_data->state=STATE_IDLE;
 		mail_reset(&(client_data->current_mail));
 		logprintf(log, LOG_INFO, "Client reset\n");
-		client_send(log, client, "250 OK\r\n");
+		client_send(log, client, "250 Reset OK\r\n");
 		return 0;
 	}
 

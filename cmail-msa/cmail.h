@@ -42,11 +42,6 @@ typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
 	AUTH_TLSONLY			//Authentication only in TLS session
 } AUTH_OFFER;
 
-typedef enum /*_AUTHENTICATION_MODE*/ {
-	AUTH_RELAXED,			//Reject relay paths when not authenticated
-	AUTH_SUBMISSION			//Reject any MAIL when not authenticated
-} AUTH_MODE;
-
 typedef enum /*_AUTHENTICATION_METHOD*/ {
 	AUTH_PLAIN			//PLAIN only for now
 } AUTH_METHOD;
@@ -90,7 +85,7 @@ typedef struct /*_CONNECTION*/ {
 
 typedef struct /*_LISTEN_DATA*/ {
 	char* announce_domain;
-	AUTH_MODE auth_mode;
+	bool auth_require;
 	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS
 	TLSMODE tls_mode;
