@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Cmail Admin</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<link rel="icon" href="static/logo.png" type="image/x-icon" />
+		<link rel="shortcut icon" href="static/logo.png" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="static/cmail.css" />
+		<meta name="description" content="Cmail Admin" />
+		<meta name="robots" content="noindex,nofollow" />
+	</head>
+	<body onload="cmail.init();">
+		<div id="headmenu">
+			<a class="item" href="#users">User</a>
+			<a class="item" href="#addresses">Adresses</a>	
+		</div>
+
+		<div id="useradd">
+			<form>
+				<input type="hidden" id="form_type" value="new"/>
+				<label>Username <br />
+					<input id="user_name" type="text" />
+				</label>
+
+				<br />
+
+				<label>Inrouter <br />
+					<select id="user_inrouter">
+					</select>
+				</label>
+
+				<br />
+
+				<label>Inroute <br />
+					<input id="user_inroute" type="text" />
+				</label>
+
+				<br />
+
+				<label>Outrouter <br />
+					<select id="user_outrouter">
+					</select>
+				</label>
+				
+				<br />
+
+				<label>Outroute <br />
+					<input id="user_outroute" type="text" />
+				</label>
+
+				<br />
+				<br />
+
+				<span class="button">Save</span><span class="button" onclick="cmail.hide_user_form()">Cancel</span>
+			</form>
+		</div>
+
+		<div id="users" class="tab">
+			<h2>Users</h2>
+			<table id="users">
+				<thead>
+					<tr>
+						<th>Name</th><th>Inrouter</th><th>Inroute</th><th>Outrouter</th><th>Outroute</th><th>Options</th>
+					</tr>
+				</thead>
+
+				<tbody id="userlist">
+				<tbody>
+			</table>
+
+			<br />
+			<div id="user_action_bar">
+				<span class="button" onclick="cmail.show_user_form()">Add</span>
+			</div>
+		</div>
+
+
+
+		<div id="addresses" class="tab">
+			<h2>Addresses</h2>
+
+		</div>
+
+		<script src="static/cmail.js"></script>
+		<script src="static/common.js"></script>
+	</body>
+</html>
