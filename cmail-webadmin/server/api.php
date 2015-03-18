@@ -43,7 +43,7 @@ function main() {
 
 	// init
 	$output = Output::getInstance();
-	$db = new DB();
+	$db = new DB($output);
 
 	$user = new User($db, $output);
 	$address = new Address($db, $output);

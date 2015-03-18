@@ -13,7 +13,11 @@ class DB {
 
 	private $db;
 	private $order = "";
+	private $output;
 
+	public function __construct($output) {
+		$this->output = $output;
+	}
 
 	/**
 	 * connect to database
@@ -47,7 +51,7 @@ class DB {
 		$stm = $this->db->prepare($sql);
 
 		if ($this->db->errorCode() > 0) {
-			$output->addDebugMessage("db", $this->db->errorInfo());
+			$this->output->addDebugMessage("db", $this->db->errorInfo());
 			return null;
 		}
 		return $stm;
@@ -59,7 +63,7 @@ class DB {
 	function execute($stm, $params) {
 		$stm->execute($params);
 		if ($this->db->errorCode() > 0) {
-			$output->addDebugMessage("db", $this->db->errorInfo());
+			$this->output->addDebugMessage("db", $this->db->errorInfo());
 			error_log($this->db->errorInfo());
 			return null;
 		}
@@ -70,7 +74,7 @@ class DB {
 	 * queries an sql statement with the given params
 	 */
 	function query($sql, $params, $fetch) {
-		global $output, $orderBy;
+		global $orderBy;
 
 		if (strpos($sql, "SELECT") !== false) {
 
@@ -118,18 +122,23 @@ class DB {
 	 * @param params list of input data.
 	 */
 	function insert($sql, $params) {
-		global $output, $orderBy;
+		global $orderBy;
 
 		$stm = $this->db->prepare($sql);
 
 		if ($this->db->errorCode() > 0) {
-			$output->addDebugMessage("db", $this->db->errorInfo());
+			$this->output->addDebugMessage("db", $this->db->errorInfo());
 			return null;
 		}
 
 		foreach ($params as $param) {
 
 			$stm->execute($param);
+
+			if ($stm->errorInfo()[1] != 0) {
+				$this->output->add("status", $stm->errorInfo()[2]);
+				return null;
+			}
 		}
 
 		return $this->lastInsertID();
@@ -140,9 +149,8 @@ class DB {
 	 * starts a transaction
 	 */
 	function beginTransaction() {
-		global $output;
 		if (!$this->db->beginTransaction()) {
-			$output->addDebugMessage("transaction", $this->db->errorInfo());
+			$this->output->addDebugMessage("transaction", $this->db->errorInfo());
 		}
 	}
 
@@ -151,9 +159,8 @@ class DB {
 	 * commits a transaction
 	 */
 	function commit() {
-		global $output;
 		if (!$this->db->commit()) {
-			$output->addDebugMessage("commit", $this->db->errorInfo());
+			$this->output->addDebugMessage("commit", $this->db->errorInfo());
 		}
 	}
 
