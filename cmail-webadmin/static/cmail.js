@@ -56,6 +56,7 @@ var cmail = {
 			var users = JSON.parse(xhr.response).users;
 			self.users = users;
 			var userlist = gui.elem("userlist");
+			userlist.innerHTML = "";
 
 			users.forEach(function(user) {
 				var tr = gui.create("tr");
@@ -115,7 +116,41 @@ var cmail = {
 	hide_user_form: function() {
 		gui.elem("useradd").style.display = "none";
 	},
-	edit_user: function() {
+	delete_user: function(name) {
+		
+		if (confirm("Do you really delete this user?") == true) {
+			var xhr = ajax.asyncPost(this.api_url + "delete_user", JSON.stringify({ username: name }), function(xhr){
+				console.log(JSON.parse(xhr.response));
+			});
+		}
+		this.reload();
+	},
+	save_user: function() {
+		var authdata = null;
 
+		var user = {
+			user_name: gui.elem("user_name").value,
+			user_authdata: authdata,
+			user_inrouter: gui.elem("user_inrouter").value,
+			user_outrouter: gui.elem("user_outrouter").value,
+			user_inroute: gui.elem("user_inroute").value,
+			user_outroute: gui.elem("user_outroute").value
+		};
+
+		if (gui.elem("form_type").value === "new") {
+			ajax.asyncPost(this.api_url + "add_user", JSON.stringify({ user: user}), function(xhr) {
+				console.log(JSON.parse(xhr.response));
+			});
+		} else {
+			ajax.asyncPost(this.api_url + "update_user", JSON.stringify({ user: user}), function(xhr) {
+				console.log(JSON.parse(xhr.response));
+			});
+
+		}
+		this.reload();
+		this.hide_user_form();
+	},
+	reload: function() {
+		this.get_users();
 	}
 };

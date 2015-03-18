@@ -77,12 +77,12 @@
 				. "VALUES (:user_name, :user_authdata, :user_inrouter, :user_inroute, :user_outrouter, :user_outroute)";
 
 			$params = array(
-				":user_name" => $user["name"],
-				":user_authdata" => $user["authdata"],
-				":user_inrouter" => $user["inrouter"],
-				":user_inroute" => $user["inroute"],
-				":user_outrouter" => $user["outrouter"],
-				":user_outroute" => $user["outroute"]
+				":user_name" => $user["user_name"],
+				":user_authdata" => $user["user_authdata"],
+				":user_inrouter" => $user["user_inrouter"],
+				":user_inroute" => $user["user_inroute"],
+				":user_outrouter" => $user["user_outrouter"],
+				":user_outroute" => $user["user_outroute"]
 			);
 
 			$id = $this->db->insert($sql, array($params));
@@ -110,7 +110,8 @@
 
 			$status = $this->db->insert($sql, array($params));
 
-			if (isset($status) && !empty($status)) {
+			$this->output->addDebugMessage("delete", $status);
+			if (isset($status)) {
 				$this->output->add("delete", "ok");
 				return true;
 			} else {
@@ -129,22 +130,22 @@
 
 			//TODO: check input
 
-			$sql = "UPDATE users SET user_name = :username, user_authdata = :user_authdata"
+			$sql = "UPDATE users SET user_authdata = :user_authdata, "
 				. "user_inrouter = :user_inrouter, user_inroute = :user_inroute, user_outrouter = :user_outrouter,"
-				. "user_outroute = :user_outroute WHERE username = :username";
+				. "user_outroute = :user_outroute WHERE user_name = :user_name";
 
 			$params = array(
-				":user_name" => $user["name"],
-				":user_authdata" => $user["authdata"],
-				":user_inrouter" => $user["inrouter"],
-				":user_inroute" => $user["inroute"],
-				":user_outrouter" => $user["outrouter"],
-				":user_outroute" => $user["outroute"]
+				":user_name" => $user["user_name"],
+				":user_authdata" => $user["user_authdata"],
+				":user_inrouter" => $user["user_inrouter"],
+				":user_inroute" => $user["user_inroute"],
+				":user_outrouter" => $user["user_outrouter"],
+				":user_outroute" => $user["user_outroute"]
 			);
 
 			$status = $this->db->insert($sql, array($params));
 
-			if (isset($status) && !empty($status)) {
+			if (isset($status)) {
 				$this->output->add("update", "ok");
 				return true;
 			} else {
