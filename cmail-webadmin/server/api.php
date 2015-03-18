@@ -12,6 +12,9 @@ include_once("pdo_sqlite.php");
 include_once("user.php");
 include_once("address.php");
 
+// auth plugin
+include_once("auth.php");
+
 main();
 
 function getApiEndPoint() {
@@ -60,6 +63,11 @@ function main() {
 	$output->addDebugMessage("payload", $obj);
 
 	//TODO: implement auth
+	if (!auth($obj["auth"])) {
+		header("WWW-Authenticate: Basic realm=\"Garfield API Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
+	        header("HTTP/1.0 401 Unauthorized");
+		die();
+	}
 
 	switch ($endPoint) {
 	case "get_users":
