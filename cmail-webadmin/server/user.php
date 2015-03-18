@@ -25,7 +25,7 @@
 		 * @return list of users that matches (should be one)
 		 */
 		public function get($username) {
-			
+
 			if (!isset($username)) {
 				$this->output->addDebugMessage("user-get","Username must be set.");
 				return array();
@@ -57,7 +57,7 @@
 		}
 
 		/**
-		 * adds a user to database
+		 * Adds a user to database.
 		 * @param $user the user object. Every user needs at least a name.
 		 *              Valid fields are:
 		 *              	* name
@@ -97,7 +97,7 @@
 		}
 
 		/**
-		 * deletes a user. 
+		 * Deletes a user.
 		 * @param $username name of the user
 		 * @output_flags delete is "ok" when everything is fine, else "not ok"
 		 * @return false on error, else true

@@ -21,9 +21,9 @@ function getApiEndPoint() {
 	$api_points = array(
 		"get_user",
 		"get_users",
-	        "get_addresses",
+		"get_addresses",
 		"get_address",
-		"get_addresses_by_user",	
+		"get_addresses_by_user",
 		"add_user",
 		"delete_user",
 		"add_address",
@@ -50,7 +50,7 @@ function main() {
 
 	// db connection
 	if (!$db->connect()) {
-		header("WWW-Authenticate: Basic realm=\"Garfield API Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
+		header("WWW-Authenticate: Basic realm=\"cmail API Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
 		header("HTTP/1.0 401 Unauthorized");
 
 		die();

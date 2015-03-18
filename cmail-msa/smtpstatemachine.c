@@ -26,20 +26,22 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		switch(listener_data->auth_offer){
 			case AUTH_NONE:
 				break;
+			case AUTH_TLSONLY:
+				#ifndef CMAIL_NO_TLS
+				if(client_data->tls_mode!=TLS_ONLY){
+					break;
+				}
+				#else
+				break;
+				#endif
 			case AUTH_ANY:
 				client_send(log, client, "250-AUTH PLAIN\r\n");
 				break;
-			case AUTH_TLSONLY:
-				#ifndef CMAIL_NO_TLS
-				if(client_data->tls_mode==TLS_ONLY){
-					client_send(log, client, "250-AUTH PLAIN\r\n");
-				}
-				#endif
-				break;
 		}
 		#ifndef CMAIL_NO_TLS
+		//advertise only when possible
 		if(listener_data->tls_mode==TLS_NEGOTIATE && client_data->tls_mode==TLS_NONE){
-			client_send(log, client, "250-STARTTLS\r\n"); //advertise only when possible
+			client_send(log, client, "250-STARTTLS\r\n"); //RFC 3207
 		}
 		#endif
 		client_send(log, client, "250 XYZZY\r\n"); //RFC 5321 2.2.2
@@ -57,6 +59,88 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 	logprintf(log, LOG_INFO, "Command not recognized in state NEW: %s\n", client_data->recv_buffer);
 	client_send(log, client, "500 Unknown command\r\n");
 	return -1;		
+}
+
+int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+	char* parameter=client_data->recv_buffer;
+
+	if(!strcmp(client_data->recv_buffer, "*")){
+		//cancel authentication
+		logprintf(log, LOG_INFO, "Client cancelled authentication\n");
+		client_data->state=STATE_IDLE;
+		client_send(log, client, "501 Authentication failed\r\n");
+		return 0;
+	}
+
+	//method select & initial parameter
+	if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
+		if(!strncasecmp(client_data->recv_buffer+5, "plain", 5)){
+			client_data->auth.method=AUTH_PLAIN;
+		}
+		//may check for other methods here
+		else{
+			logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer+5);
+			client_data->state=STATE_IDLE;
+			client_send(log, client, "504 Unknown mechanism\r\n");
+			return 0;
+		}
+
+		//scan over method
+		for(parameter=client_data->recv_buffer+5;!isspace(parameter[0])&&parameter[0];parameter++){
+		}
+
+		if(parameter[0]&&strlen(parameter)>1){
+			//parameter supplied, continue
+			parameter++;
+		}
+		else{
+			//no parameter, ask for continuation
+			switch(client_data->auth.method){
+				case AUTH_PLAIN:
+					client_send(log, client, "334 \r\n");
+					break;
+			}
+			return 0;
+		}
+	}
+	
+	//FIXME refactor this part
+	//catch (unprefixed) data parameters
+	switch(client_data->auth.method){
+		case AUTH_PLAIN:
+			//must be parameter.
+			//duplicate to storage
+			client_data->auth.parameter=calloc(strlen(parameter)+1, sizeof(char));
+			if(!client_data->auth.parameter){
+				logprintf(log, LOG_ERROR, "Failed to allocate auth parameter memory\n");
+				client_data->state=STATE_IDLE;
+				client_send(log, client, "454 Internal Error\r\n");
+				auth_reset(&(client_data->auth));
+				return -1;
+			}
+			strncpy(client_data->auth.parameter, parameter, strlen(parameter));
+			
+			//evaluate
+			switch(auth_validate(log, database, &(client_data->auth))){
+				case 1:
+					//more info required
+					//TODO more info required
+				case -1:
+					logprintf(log, LOG_INFO, "Client failed to authenticate\n");
+					client_send(log, client, "535 Authentication failed\r\n");
+					auth_reset(&(client_data->auth));
+					break;
+				case 0:
+					logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->auth.user);
+					client_send(log, client, "235 Authenticated\r\n");
+					break;
+			}
+			client_data->state=STATE_IDLE;
+			break;
+	}
+	
+	return 0;
 }
 
 int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
@@ -100,7 +184,35 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 	#endif
 
-	//TODO implement AUTH verb
+	if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
+		switch(listener_data->auth_offer){
+			case AUTH_NONE:
+				logprintf(log, LOG_WARNING, "Client tried to auth on a non-auth listener\n");
+				client_send(log, client, "503 Not advertised\r\n");
+				return 0;
+			case AUTH_TLSONLY:
+				#ifndef CMAIL_NO_TLS
+				if(client_data->tls_mode!=TLS_ONLY){
+				#endif
+					logprintf(log, LOG_WARNING, "Non-TLS client tried to auth on auth-tlsonly listener\n");
+					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is market obsolete
+					return 0;
+				#ifndef CMAIL_NO_TLS
+				}
+				#endif
+			case AUTH_ANY:
+				if(client_data->auth.user){
+					logprintf(log, LOG_WARNING, "Authenticated client tried to authenticate again\n");
+					client_send(log, client, "503 Already authenticated\r\n");
+					return 0;
+				}
+				//continue	
+				break;
+		}
+
+		client_data->state=STATE_AUTH;
+		return smtpstate_auth(log, client, database, path_pool);
+	}
 
 	if(!strncasecmp(client_data->recv_buffer, "xyzzy", 5)){
 		client_send(log, client, "250 Nothing happens\r\n");
@@ -127,6 +239,12 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "mail from:", 10)){
+		if(listener_data->auth_require && !client_data->auth.user){
+			logprintf(log, LOG_WARNING, "Client tried mail command without authentication on strict auth listener\n");
+			client_send(log, client, "530 Authentication required\r\n");
+			return 0;
+		}
+
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
 		//extract reverse path and store it
 		if(path_parse(log, client_data->recv_buffer+10, &(client_data->current_mail.reverse_path))<0){
@@ -229,7 +347,13 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		client_data->state=STATE_IDLE;
 		mail_reset(&(client_data->current_mail));
 		logprintf(log, LOG_INFO, "Client reset\n");
-		client_send(log, client, "250 OK\r\n");
+		client_send(log, client, "250 Reset OK\r\n");
+		return 0;
+	}
+
+	if(!strncasecmp(client_data->recv_buffer, "auth", 4)){
+		logprintf(log, LOG_INFO, "Client tried to use AUTH in RECIPIENTS\n");
+		client_send(log, client, "503 Bad sequence of commands\r\n");
 		return 0;
 	}
 

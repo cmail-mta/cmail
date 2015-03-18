@@ -61,6 +61,10 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 		status=sqlite3_step(attach);
 
 		switch(status){
+			case SQLITE_CANTOPEN:
+				logprintf(log, LOG_ERROR, "Database %s does not exist\n", dbfile);
+				rv=-1;
+				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "Attached database %s as %s\n", dbfile, name);
 

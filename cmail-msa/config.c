@@ -19,7 +19,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		#endif
 		.announce_domain = "cmail",
 		.auth_offer = AUTH_NONE,
-		.auth_mode = AUTH_RELAXED
+		.auth_require = false
 	};
 	LISTENER* listener_data=NULL;
 
@@ -54,7 +54,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 							settings.auth_offer=AUTH_TLSONLY;
 						}
 						else if(!strcmp(token, "strict")){
-							settings.auth_mode=AUTH_SUBMISSION;
+							settings.auth_require=true;
 						}
 						else{
 							logprintf(config->log, LOG_WARNING, "Unknown auth parameter %s\n", token);

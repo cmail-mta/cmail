@@ -5,6 +5,8 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* pa
 			return smtpstate_new(log, client, database, path_pool);
 		case STATE_IDLE:
 			return smtpstate_idle(log, client, database, path_pool);
+		case STATE_AUTH:
+			return smtpstate_auth(log, client, database, path_pool);
 		case STATE_RECIPIENTS:
 			return smtpstate_recipients(log, client, database, path_pool);
 		case STATE_DATA:
@@ -127,6 +129,13 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			.data_offset = 0,
 			.data_allocated = 0,
 			.data = NULL
+		},
+		.auth = {
+			.method = AUTH_PLAIN,
+			.user = NULL,
+			.parameter = NULL,
+			.challenge = NULL,
+			.response = NULL
 		}
 	};
 	CLIENT* actual_data;
@@ -206,7 +215,10 @@ int client_close(CONNECTION* client){
 	close(client->fd);
 
 	//reset mail buffer contents
-	mail_reset(&(client_data)->current_mail);
+	mail_reset(&(client_data->current_mail));
+
+	//reset authentication
+	auth_reset(&(client_data->auth));
 	
 	//return the conpool slot
 	client->fd=-1;
