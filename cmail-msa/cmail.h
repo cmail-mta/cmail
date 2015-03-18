@@ -140,6 +140,7 @@ typedef struct /*_USER_MAILBOX_DB*/{
 
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
+	sqlite3_stmt* query_authdata;
 	sqlite3_stmt* query_addresses;
 	sqlite3_stmt* query_inrouter;
 	sqlite3_stmt* query_outrouter;

@@ -122,7 +122,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			strncpy(client_data->auth.parameter, parameter, strlen(parameter));
 			
 			//evaluate
-			switch(auth_validate(log, database, &(client_data->auth))){
+			switch(auth_status(log, database, &(client_data->auth))){
 				case 1:
 					//more info required
 					//TODO more info required
