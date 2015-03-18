@@ -64,7 +64,7 @@ function main() {
 
 	//TODO: implement auth
 	if (!auth($obj["auth"])) {
-		header("WWW-Authenticate: Basic realm=\"Garfield API Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
+		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
 	        header("HTTP/1.0 401 Unauthorized");
 		die();
 	}
