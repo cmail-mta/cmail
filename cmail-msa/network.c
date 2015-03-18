@@ -22,8 +22,13 @@ int network_listener(LOGGER log, char* bindhost, char* port){
 			continue;
 		}
 
-		if(setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&yes, sizeof(yes))<0){
+		if(setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&yes, sizeof(yes))<0){
 			logprintf(log, LOG_WARNING, "Failed to set IPV6_V6ONLY on socket for %s port %s: %s\n", bindhost, port, strerror(errno));
+		}
+
+		yes=1;
+		if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&yes, sizeof(yes))<0){
+			logprintf(log, LOG_WARNING, "Failed to set SO_REUSEADDR on socket\n");
 		}
 
 		status=bind(fd, addr_it->ai_addr, addr_it->ai_addrlen);
