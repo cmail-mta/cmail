@@ -115,6 +115,51 @@
 
 			return $id;
 		}
+
+		public function update($address) {
+
+			if (!isset($address["expression"])) {
+				$this->output->addDebugMessage("addresses", "We need an address expression.");
+				return false;
+			}
+
+			if (!isset($address["username"])) {
+				$this->output->addDebugMessage("addresses", "We want also an username.");
+				return false;
+			}
+
+			if (!isset($address["order"])) {
+				$this->output->addDebugMessage("addresses", "We want also an order.");
+			}
+			
+			$sql = "UPDATE addresses SET address_order = :order, address_user = :username WHERE address_expression = :address_exp";
+
+			$params = array(
+				":address_exp" => $address["expression"],
+				":username" => $address["username"],
+				":order" => $address["order"]
+			);
+
+			$status = $this->db->insert($sql, array($params));
+
+			if (isset($status) && !empty($status)) {
+				$this->output->add("update", "ok");
+				return true;
+			} else {
+				$this->output->add("update", "not ok");
+				return false;
+			}
+
+		}
+
+		public function delete($address) {
+
+		}
+
+
+		public function switchOrder($address1, $address2) {
+
+		}
 	}
 
 ?>
