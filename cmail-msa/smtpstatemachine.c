@@ -315,11 +315,20 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			return -1;
 		}
 
-		if(path_resolve(log, current_path, database)<0){
-			client_send(log, client, "451 Path rejected\r\n");
-			pathpool_return(current_path);
-			//FIXME should state transition back to idle here?
-			return -1;
+		switch(path_resolve(log, current_path, database, true)){
+			case 0:
+				//path accepted
+				break;
+			case 1:
+				//reject by router decision
+				client_send(log, client, "551 User does not accept mail\r\n");
+				pathpool_return(current_path);
+				return 0;	
+			default:
+				client_send(log, client, "451 Path rejected\r\n");
+				pathpool_return(current_path);
+				//FIXME should state transition back to idle here?
+				return -1;
 		}
 
 		if(!current_path->resolved_user){

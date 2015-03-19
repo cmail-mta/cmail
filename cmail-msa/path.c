@@ -72,48 +72,49 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	return 0;
 }
 
-int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database){
-	int status;
+int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, bool forward_path){
+	int status, rv=-1;
 
 	if(path->resolved_user){
 		return 0;
 	}
 
 	status=sqlite3_bind_text(database->query_addresses, 1, path->path, -1, SQLITE_STATIC);
-	if(status!=SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
-		sqlite3_reset(database->query_addresses);
-		sqlite3_clear_bindings(database->query_addresses);
-		return -1;
-	}
-
-	do{
-		status=sqlite3_step(database->query_addresses);
-		switch(status){
+	if(status==SQLITE_OK){
+		switch(sqlite3_step(database->query_addresses)){
 			case SQLITE_ROW:
-				//match found
+				//match found, test if router says we should reject it
+				if(!strcmp((char*)sqlite3_column_text(database->query_addresses, forward_path?1:2),"reject")){
+					rv=1;
+					break;
+				}
+
+				//ok, path resolved
 				path->resolved_user=calloc(sqlite3_column_bytes(database->query_addresses, 0)+1, sizeof(char));
 				if(!path->resolved_user){
 					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
-					sqlite3_reset(database->query_addresses);
-					sqlite3_clear_bindings(database->query_addresses);
-					return -1;
+					break;
 				}
+
 				strncpy(path->resolved_user, (char*)sqlite3_column_text(database->query_addresses, 0), sqlite3_column_bytes(database->query_addresses, 0));
+				rv=0;
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "No address match found\n");
+				rv=0;
 				break;
 			default:
 				logprintf(log, LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database->conn));
 				break;
 		}
 	}
-	while(status==SQLITE_ROW&&!path->resolved_user);
-
+	else{
+		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
+	}
+	
 	sqlite3_reset(database->query_addresses);
 	sqlite3_clear_bindings(database->query_addresses);
-	return 0;
+	return rv;
 }
 
 void path_reset(MAILPATH* path){
