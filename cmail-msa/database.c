@@ -258,12 +258,19 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_USER_ROUTER_OUTBOUND="SELECT user_outrouter, user_outroute FROM main.users WHERE user_name = ?;";
 	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
+	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata FROM main.users WHERE user_name = ?;";
 	
+	database->query_authdata=database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
 	database->query_addresses=database_prepare(log, database->conn, QUERY_ADDRESS_USER);
 	database->query_inrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_INBOUND);
 	database->query_outrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_OUTBOUND);
 	database->mail_storage.mailbox_master=database_prepare(log, database->conn, INSERT_MASTER_MAILBOX);
 	database->mail_storage.outbox_master=database_prepare(log, database->conn, INSERT_MASTER_OUTBOX);
+
+	if(!database->query_authdata){
+		logprintf(log, LOG_ERROR, "Failed to prepare authentication data query\n");
+		return -1;
+	}
 
 	if(!database->query_addresses){
 		logprintf(log, LOG_ERROR, "Failed to prepare address query statement\n");
@@ -288,6 +295,7 @@ void database_free(LOGGER log, DATABASE* database){
 
 	//FIXME check for SQLITE_BUSY here
 	if(database->conn){
+		sqlite3_finalize(database->query_authdata);
 		sqlite3_finalize(database->query_addresses);
 		sqlite3_finalize(database->query_inrouter);
 		sqlite3_finalize(database->query_outrouter);

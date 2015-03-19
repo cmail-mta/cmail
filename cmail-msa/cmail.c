@@ -46,6 +46,7 @@ int main(int argc, char** argv){
 	CONFIGURATION config = {
 		.database = {
 			.conn = NULL,
+			.query_authdata = NULL,
 			.query_addresses = NULL,
 			.query_inrouter = NULL,
 			.query_outrouter = NULL,
