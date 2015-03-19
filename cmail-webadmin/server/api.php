@@ -100,6 +100,7 @@ function main() {
 		$user->update($obj["user"]);
 		break;
 	case "update_address":
+		$address->update($obj["address"]);
 		break;
 	default:
 		$output->add("status", "nothing to do.");
