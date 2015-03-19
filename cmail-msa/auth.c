@@ -74,10 +74,17 @@ int auth_base64decode(LOGGER log, char* in){
 
 int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	int status, rv=-1;
+	char* user_salt;
+	char* stored_hash;
+	uint8_t digest[SHA256_DIGEST_SIZE];
+	char digest_b16[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE)+1];
+	struct sha256_ctx hash_context;
+	
 	if(!user || !password){
 		return -1;
 	}
 
+	memset(digest_b16, 0, sizeof(digest_b16));
 	logprintf(log, LOG_DEBUG, "Trying to authenticate %s with password %s\n", user, password);
 
 	if(sqlite3_bind_text(database->query_authdata, 1, user, -1, SQLITE_STATIC)!=SQLITE_OK){
@@ -91,7 +98,30 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	switch(status){
 		case SQLITE_ROW:
 			//TODO check credentials
-			rv=0;
+			user_salt=(char*)sqlite3_column_text(database->query_authdata, 0);
+			if(user_salt){
+				stored_hash=index(user_salt, ':');
+				if(!stored_hash){
+					logprintf(log, LOG_INFO, "Rejecting authentication for user %s, database entry invalid\n", user);
+					break;
+				}
+				logprintf(log, LOG_DEBUG, "Salt %s, Stored hash %s, Salt length %d\n", user_salt, stored_hash+1, stored_hash-user_salt);
+
+				sha256_init(&hash_context);
+				sha256_update(&hash_context, stored_hash-user_salt, (uint8_t*)user_salt);
+				sha256_update(&hash_context, strlen(password), (uint8_t*)password);
+				sha256_digest(&hash_context, SHA256_DIGEST_SIZE, digest);
+				base16_encode_update((uint8_t*)digest_b16, SHA256_DIGEST_SIZE, digest);
+				logprintf(log, LOG_INFO, "Calculated hash %s\n", digest_b16);
+
+				if(!strcmp(stored_hash+1, digest_b16)){
+					logprintf(log, LOG_INFO, "Credentials for user %s ok\n", user);
+					rv=0;
+				}
+			}
+			else{
+				logprintf(log, LOG_INFO, "Rejecting authentication for user %s, not enabled in database\n", user);
+			}
 			break;
 		case SQLITE_DONE:
 			logprintf(log, LOG_INFO, "Unknown user %s\n", user);
@@ -108,7 +138,7 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 }
 
 int auth_method_plain(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
-	int length, i;
+	int length, i, rv;
 	char* user=NULL;
 	char* pass=NULL;
 	
@@ -130,16 +160,31 @@ int auth_method_plain(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
 	for(i=0;i<length;i++){
 		if(auth_data->parameter[i]==0){
 			if(!user){
-				user=auth_data->parameter+i+1;
+				user=calloc(strlen(auth_data->parameter+i+1)+1, sizeof(char));
+				if(!user){
+					logprintf(log, LOG_ERROR, "Failed to allocate memory for user name copy\n");
+					return -1;
+				}
+				strncpy(user, auth_data->parameter+i+1, strlen(auth_data->parameter+i+1));
+				logprintf(log, LOG_DEBUG, "Copied user name is %s\n", user);
 			}
 			else if(!pass){
 				pass=auth_data->parameter+i+1;
 			}
 		}
 	}
-	//TODO update auth_data with user name
 
-	return auth_validate(log, database, user, pass);
+	rv=auth_validate(log, database, user, pass);
+	if(rv==0){
+		//clean auth data
+		auth_reset(auth_data);
+		auth_data->user=user;
+	}
+	else{
+		free(user);
+	}
+
+	return rv;
 }
 
 int auth_status(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){

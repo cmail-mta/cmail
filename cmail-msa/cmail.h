@@ -13,6 +13,8 @@
 #include <pwd.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <nettle/base16.h>
+#include <nettle/sha2.h>
 
 //#define CMAIL_NO_TLS
 #ifndef CMAIL_NO_TLS

@@ -219,6 +219,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_INFO, "Client performs incantation\n");
 		//Using this command for some debug output...
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
+		logprintf(log, LOG_DEBUG, "Authentication: %s\n", client_data->auth.user?client_data->auth.user:"none");
 		#ifndef CMAIL_NO_TLS
 		logprintf(log, LOG_DEBUG, "TLS State: %s\n", (client_data->tls_mode==TLS_NONE)?"none":"ok");
 		#endif
