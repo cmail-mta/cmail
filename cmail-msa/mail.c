@@ -13,8 +13,8 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 			}
 		}
 		else{
-			//outbound mail, apply outrouter
-			if(route_outbound(log, database, mail, NULL)<0){ //TODO pass authenticated sending user
+			//outbound mail, should have been authenticated so accept it automatically
+			if(mail_store_outbox(log, database->mail_storage.outbox_master, NULL, mail->forward_paths[i]->path, mail)<0){
 				logprintf(log, LOG_WARNING, "Failed to route path %s outbound\n", mail->forward_paths[i]->path);
 			}
 		}

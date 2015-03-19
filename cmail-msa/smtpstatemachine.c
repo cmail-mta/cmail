@@ -253,6 +253,12 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			return -1;
 		}
 
+		//TODO filter for sending from local adresses
+
+		if(client_data->auth.user){
+			//TODO apply outrouter
+		}
+
 		//TODO call plugins for spf, etc
 
 		client_send(log, client, "250 OK\r\n");
@@ -317,11 +323,12 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		}
 
 		if(!current_path->resolved_user){
-			//path not local
-			client_send(log, client, "551 Unknown user\r\n");
-			pathpool_return(current_path);
-			//TODO if authed, accept anyway
-			return 0;
+			//path not local, accept only if authenticated
+			if(!client_data->auth.user){
+				client_send(log, client, "551 Unknown user\r\n");
+				pathpool_return(current_path);
+				return 0;
+			}
 		}
 
 		//FIXME address deduplication?

@@ -97,7 +97,6 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	status=sqlite3_step(database->query_authdata);
 	switch(status){
 		case SQLITE_ROW:
-			//TODO check credentials
 			user_salt=(char*)sqlite3_column_text(database->query_authdata, 0);
 			if(user_salt){
 				stored_hash=index(user_salt, ':');
