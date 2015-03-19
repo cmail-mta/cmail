@@ -76,3 +76,12 @@ tbody tr:nth-child(odd){
 	width: 80%;
 	margin: 0 auto;
 }
+
+label {
+	display: block;
+	float: left;
+}
+
+.separator {
+	clear: both;
+}

@@ -27,6 +27,7 @@ function getApiEndPoint() {
 		"add_user",
 		"delete_user",
 		"add_address",
+		"set_password",
 		"delete_address",
 		"update_user",
 		"update_address"
@@ -95,6 +96,9 @@ function main() {
 		break;
 	case "add_address":
 		$address->add($obj["address"]);
+		break;
+	case "set_password":
+		$user->set_password($obj["user"]);
 		break;
 	case "delete_address":
 		$address->delete($obj["expression"]);

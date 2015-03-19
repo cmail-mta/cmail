@@ -148,6 +148,7 @@ var cmail = {
 
 			gui.elem("user_inrouter").value = user.user_inrouter;
 			gui.elem("user_outrouter").value = user.user_outrouter;
+
 		} else {
 
 			gui.elem("form_type").value = "new";
@@ -157,6 +158,9 @@ var cmail = {
 			gui.elem("user_outroute").value = "";
 
 		}
+
+		gui.elem("user_password").value = "";
+		gui.elem("user_password2").value = "";
 
 		gui.elem("useradd").style.display = "block";
 	},
@@ -210,6 +214,18 @@ var cmail = {
 	},
 	save_user: function() {
 		var authdata = null;
+		var self = this;
+
+		if (gui.elem("user_password").value !== gui.elem("user_password2").value) {
+			this.set_status("Password is not the same");
+			return;
+		}
+
+		var authdata = gui.elem("user_password").value;
+
+		if (authdata == "") {
+			authdata = null;
+		}
 
 		var user = {
 			user_name: gui.elem("user_name").value,
@@ -222,16 +238,24 @@ var cmail = {
 
 		if (gui.elem("form_type").value === "new") {
 			ajax.asyncPost(this.api_url + "add_user", JSON.stringify({ user: user}), function(xhr) {
-				console.log(JSON.parse(xhr.response));
+				self.set_status(JSON.parse(xhr.response).status);
 			});
 		} else {
 			ajax.asyncPost(this.api_url + "update_user", JSON.stringify({ user: user}), function(xhr) {
-				console.log(JSON.parse(xhr.response));
+				self.set_status(JSON.parse(xhr.response).status);
 			});
+			if (authdata != null) {
+				ajax.asyncPost(this.api_url + "set_password", JSON.stringify({ user: user}), function(xhr) {
+					self.set_status(JSON.parse(xhr.response).status);
+				});
+			}
 
 		}
 		this.reload();
 		this.hide_user_form();
+	},
+	set_status: function(message) {
+		gui.elem("status").textContent = message;
 	},
 	save_address: function() {
 		var address = {
