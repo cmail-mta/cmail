@@ -12,7 +12,9 @@
 	<body onload="cmail.init();">
 		<div id="headmenu">
 			<a class="item" href="#users">User</a>
-			<a class="item" href="#addresses">Adresses</a>	
+			<a class="item" href="#addresses">Adresses</a>
+			<span>Status: </span>
+			<span id="status"></span>
 		</div>
 
 		<div id="useradd">
@@ -30,6 +32,12 @@
 
 				<label>Password confirm <br />
 					<input type="password" id="user_password2" />
+				</label>
+
+				<div class="separator"></div>
+
+				<label>
+					Revoke Access <input type="checkbox" id="user_password_revoke" />
 				</label>
 
 				<div class="separator"></div>
@@ -133,10 +141,6 @@
 
 		<datalist id="usernamelist">
 		</datalist>
-
-		<div>
-			Status: <span id="status"></span>
-		</div>
 
 		<script src="static/cmail.js"></script>
 		<script src="static/common.js"></script>

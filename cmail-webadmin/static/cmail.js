@@ -244,7 +244,14 @@ var cmail = {
 			ajax.asyncPost(this.api_url + "update_user", JSON.stringify({ user: user}), function(xhr) {
 				self.set_status(JSON.parse(xhr.response).status);
 			});
-			if (authdata != null) {
+
+
+			if (gui.elem("user_password_revoke").checked) {
+				authdata = true;
+				user["user_authdata"] = null;
+
+			}
+			if (authdata) {
 				ajax.asyncPost(this.api_url + "set_password", JSON.stringify({ user: user}), function(xhr) {
 					self.set_status(JSON.parse(xhr.response).status);
 				});
