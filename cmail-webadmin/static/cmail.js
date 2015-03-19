@@ -131,6 +131,7 @@ var cmail = {
 			}
 
 			gui.elem("user_name").value = user.user_name;
+			gui.elem("user_name").disabled = true;
 			gui.elem("user_inroute").value = user.user_inroute;
 			gui.elem("user_outroute").value = user.user_outroute;
 
@@ -140,6 +141,7 @@ var cmail = {
 
 			gui.elem("form_type").value = "new";
 			gui.elem("user_name").value = "";
+			gui.elem("user_name").disabled = false;
 			gui.elem("user_inroute").value = "";
 			gui.elem("user_outroute").value = "";
 
@@ -159,11 +161,13 @@ var cmail = {
 			}
 
 			gui.elem("address_expression").value = address.address_expression;
+			gui.elem("address_expression").disabled = true;
 			gui.elem("address_order").value = address.address_order;
 			gui.elem("address_user").value = address.address_user;
 		} else {
 			gui.elem("form_address_type").value = "new";
 			gui.elem("address_expression").value = "";
+			gui.elem("address_expression").disabled = false;
 			gui.elem("address_order").value = "";
 			gui.elem("address_user").value = "";
 		}
