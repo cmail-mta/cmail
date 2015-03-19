@@ -56,6 +56,33 @@
 			</form>
 		</div>
 
+		<div id="addressadd">
+			<form>
+				<input type="hidden" id="form_address_type" value="type" />
+
+				<label>Address <br />
+					<input id="address_expression" type="text" />
+				</label>
+
+				<br />
+
+				<label>Order <br />
+					<input id="address_order" type="number" />
+				</label>
+
+				<br />
+
+				<label>User <br />
+					<input id="address_user" type="text" />
+				</label>
+
+				<br />
+
+				<span class="button" onclick="cmail.save_address()">Save</span>
+				<span class="button" onclick="cmail.hide_address_form()">Cancel</span>
+			</form>
+		</div>
+
 		<div id="users" class="tab">
 			<h2>Users</h2>
 			<table id="users">
@@ -79,6 +106,20 @@
 
 		<div id="addresses" class="tab">
 			<h2>Addresses</h2>
+
+			<table>
+				<thead>
+					<th>Address Expression</th><th>Order</th><th>User</th><th>Options</th>
+				</thead>
+
+				<tbody id="addresslist">
+				</tbody>
+			</table>
+
+			<br />
+			<div id="address_action_bar">
+				<span class="button" onclick="cmail.show_address_form()">Add</span>
+			</div>
 
 		</div>
 

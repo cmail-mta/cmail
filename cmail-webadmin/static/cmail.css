@@ -53,7 +53,7 @@ tbody tr:nth-child(odd){
 	background-color:#aaa;
 }
 
-#useradd {
+#useradd, #addressadd {
 
 	display: none;
 	position: fixed;
@@ -62,7 +62,7 @@ tbody tr:nth-child(odd){
 	background-color: rgba(34,34,34,0.5);
 }
 
-#useradd form {
+#useradd form, #addressadd form {
 
 	top: 10%;
 	width: 50%;
