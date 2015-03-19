@@ -101,7 +101,7 @@ master database structure
 
 		Router: drop
 		Parameter: None
-		Accept, but do quietly drop originated messages for this user.
+		Accept, but quietly drop originated messages for this user.
 
 	'addresses' table
 	-----------------

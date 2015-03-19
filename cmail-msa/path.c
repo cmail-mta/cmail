@@ -73,7 +73,6 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 }
 
 int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database){
-	//TODO reject path if inbound router is reject
 	int status;
 
 	if(path->resolved_user){
