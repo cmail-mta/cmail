@@ -97,7 +97,6 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	status=sqlite3_step(database->query_authdata);
 	switch(status){
 		case SQLITE_ROW:
-			//TODO check credentials
 			user_salt=(char*)sqlite3_column_text(database->query_authdata, 0);
 			if(user_salt){
 				stored_hash=index(user_salt, ':');
@@ -105,18 +104,20 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 					logprintf(log, LOG_INFO, "Rejecting authentication for user %s, database entry invalid\n", user);
 					break;
 				}
-				logprintf(log, LOG_DEBUG, "Salt %s, Stored hash %s, Salt length %d\n", user_salt, stored_hash+1, stored_hash-user_salt);
 
+				//calculate credentials hash
 				sha256_init(&hash_context);
 				sha256_update(&hash_context, stored_hash-user_salt, (uint8_t*)user_salt);
 				sha256_update(&hash_context, strlen(password), (uint8_t*)password);
 				sha256_digest(&hash_context, SHA256_DIGEST_SIZE, digest);
 				base16_encode_update((uint8_t*)digest_b16, SHA256_DIGEST_SIZE, digest);
-				logprintf(log, LOG_INFO, "Calculated hash %s\n", digest_b16);
 
 				if(!strcmp(stored_hash+1, digest_b16)){
 					logprintf(log, LOG_INFO, "Credentials for user %s ok\n", user);
 					rv=0;
+				}
+				else{
+					logprintf(log, LOG_INFO, "Credentials check failed for user %s: %s\n", user, digest_b16);
 				}
 			}
 			else{
@@ -160,13 +161,13 @@ int auth_method_plain(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
 	for(i=0;i<length;i++){
 		if(auth_data->parameter[i]==0){
 			if(!user){
+				//Heap-copy the user to be able to properly interact with auth_free
 				user=calloc(strlen(auth_data->parameter+i+1)+1, sizeof(char));
 				if(!user){
 					logprintf(log, LOG_ERROR, "Failed to allocate memory for user name copy\n");
 					return -1;
 				}
 				strncpy(user, auth_data->parameter+i+1, strlen(auth_data->parameter+i+1));
-				logprintf(log, LOG_DEBUG, "Copied user name is %s\n", user);
 			}
 			else if(!pass){
 				pass=auth_data->parameter+i+1;
@@ -178,6 +179,7 @@ int auth_method_plain(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
 	if(rv==0){
 		//clean auth data
 		auth_reset(auth_data);
+		//authenticate the user
 		auth_data->user=user;
 	}
 	else{
