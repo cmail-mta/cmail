@@ -81,28 +81,30 @@
 			return 1;
 		}
 
-		public function add($address_exp, $username, $order) {
+		public function add($address) {
 
-			if (!isset($address_exp)) {
+			if (!isset($address["address_expression"])) {
 				$this->output->addDebugMessage("addresses", "We cannot insert an address without an address expression");
 				return -3;
 			}
-			if (!isset($username)) {
+			if (!isset($address["address_user"])) {
 				$this->output->addDebugMessage("addresses", "We cannot insert an address without an username");
 				return -2;
 			}
 
-			if (!isset($order)) {
+			if (!isset($address["address_order"]) || $address["address_order"] == "") {
 				$order = $this->getNextOrder();
 				$this->output->addDebugMessage("address_order", "order set to " . $order);
+			} else {
+				$order = $address["address_order"];
 			}
 
 			$sql = "INSERT INTO addresses(address_expression, address_order, address_user) VALUES (:address_exp, :order, :username)";
 
 			$params = array(
-				":address_exp" => $address_exp,
+				":address_exp" => $address["address_expression"],
 				":order" => $order,
-				":username" => $username
+				":username" => $address["address_user"]
 			);
 
 			$id = $this->db->insert($sql, array($params));

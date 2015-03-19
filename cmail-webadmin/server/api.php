@@ -92,7 +92,7 @@ function main() {
 		$user->delete($obj["username"]);
 		break;
 	case "add_address":
-		$address->add($obj["address"]["address_exp"], $obj["address"]["username"], $obj["address"]["order"]);
+		$address->add($obj["address"]);
 		break;
 	case "delete_address":
 		break;
