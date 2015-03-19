@@ -62,10 +62,12 @@ function main() {
 
 	$output->addDebugMessage("payload", $obj);
 
-	//TODO: implement auth
-	if (!auth($obj["auth"])) {
+
+	if (!auth($db, $output, $obj["auth"])) {
 		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
-	        header("HTTP/1.0 401 Unauthorized");
+		header("HTTP/1.0 401 Unauthorized");
+
+		$output->write();
 		die();
 	}
 
