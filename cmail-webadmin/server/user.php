@@ -56,6 +56,19 @@
 
 		}
 
+		public function create_password_hash($salt, $password) {
+
+
+			if (is_null($salt)) {
+				$salt = uniqid(mt_rand(), true);
+				
+				$hash = $salt . ":" . hash("sha256", $salt . $password);
+				return $hash;
+			} else {
+				return hash("sha265", $salt . $password);
+			}
+		}
+
 		/**
 		 * Adds a user to database.
 		 * @param $user the user object. Every user needs at least a name.
@@ -72,6 +85,30 @@
 		 */
 		public function add($user) {
 			//TODO: check input
+
+			if (!isset($user["user_name"]) || empty($user["user_name"])) {
+				$this->output->add("status", "Username is not set.");
+				return -2;
+			}
+
+			if (!isset($user["user_inrouter"]) || empty($user["user_inrouter"])) {
+				$this->output->add("status", "User inrouter is not set.");
+				return -3;
+			}
+
+			if (!isset($user["user_outrouter"]) || empty($user["user_outrouter"])) {
+				$this->output->add("status", "User outrouter is not set.");
+				return -4;
+			}
+
+			if (isset($user["user_authdata"]) && !empty($user["user_authdata"]) && $user["user_authdata"] !== "") {
+
+				$user["user_authdata"] = $this->create_password_hash(null, $user["user_authdata"]);	
+				
+			} else {
+				$user["user_authdata"] = null;
+			}
+
 
 			$sql = "INSERT INTO users(user_name, user_authdata, user_inrouter, user_inroute, user_outrouter, user_outroute)" 
 				. "VALUES (:user_name, :user_authdata, :user_inrouter, :user_inroute, :user_outrouter, :user_outroute)";
@@ -94,6 +131,39 @@
 				return -1;
 			}
 
+		}
+
+		public function set_password($user) {
+
+
+			if (!isset($user["user_name"]) || empty($user["user_name"])) {
+				$this->output->add("status", "Username is not set.");
+				return false;
+			}
+
+			if (is_null($user["user_authdata"]) || $user["user_authdata"] === "") {
+				$auth = null;
+			} else {
+
+				$auth = $this->create_password_hash(null, $user["user_authdata"]);
+			}
+
+			$sql = "UPDATE users SET user_authdata = :user_authdata WHERE user_name = :user_name";
+
+			$params = array(
+				":user_name" => $user["user_name"],
+				":user_authdata" => $auth
+			);
+
+			$status = $this->db->insert($sql, array($params));
+
+			if (isset($status)) {
+				$this->output->add("status", "ok");
+				return true;
+			} else {
+				$this->output->add("status", "not ok");
+				return false;
+			}
 		}
 
 		/**
@@ -146,10 +216,10 @@
 			$status = $this->db->insert($sql, array($params));
 
 			if (isset($status)) {
-				$this->output->add("update", "ok");
+				$this->output->add("status", "ok");
 				return true;
 			} else {
-				$this->output->add("update", "not ok");
+				$this->output->add("status", "not ok");
 				return false;
 			}
 		}

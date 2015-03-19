@@ -22,34 +22,42 @@
 					<input id="user_name" type="text" />
 				</label>
 
-				<br />
+				<div class="separator"></div>
+
+				<label>Password <br />
+					<input type="password" id="user_password" />
+				</label>
+
+				<label>Password confirm <br />
+					<input type="password" id="user_password2" />
+				</label>
+
+				<div class="separator"></div>
 
 				<label>Inrouter <br />
 					<select id="user_inrouter">
 					</select>
 				</label>
 
-				<br />
+				<div class="separator"></div>
 
 				<label>Inroute <br />
 					<input id="user_inroute" type="text" />
 				</label>
 
-				<br />
+				<div class="separator"></div>
 
 				<label>Outrouter <br />
 					<select id="user_outrouter">
 					</select>
 				</label>
 				
-				<br />
+				<div class="separator"></div>
 
 				<label>Outroute <br />
 					<input id="user_outroute" type="text" />
 				</label>
-
-				<br />
-				<br />
+				<div class="separator"></div>
 
 				<span class="button" onclick="cmail.save_user()">Save</span>
 				<span class="button" onclick="cmail.hide_user_form()">Cancel</span>
@@ -64,19 +72,19 @@
 					<input id="address_expression" type="text" />
 				</label>
 
-				<br />
+				<div class="separator"></div>
 
 				<label>Order <br />
 					<input id="address_order" type="number" />
 				</label>
 
-				<br />
+				<div class="separator"></div>
 
 				<label>User <br />
 					<input id="address_user" list="usernamelist" type="text" />
 				</label>
 
-				<br />
+				<div class="separator"></div>
 
 				<span class="button" onclick="cmail.save_address()">Save</span>
 				<span class="button" onclick="cmail.hide_address_form()">Cancel</span>
@@ -125,6 +133,10 @@
 
 		<datalist id="usernamelist">
 		</datalist>
+
+		<div>
+			Status: <span id="status"></span>
+		</div>
 
 		<script src="static/cmail.js"></script>
 		<script src="static/common.js"></script>
