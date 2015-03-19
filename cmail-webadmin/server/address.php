@@ -120,26 +120,27 @@
 
 		public function update($address) {
 
-			if (!isset($address["expression"])) {
+			if (!isset($address["address_expression"])) {
 				$this->output->addDebugMessage("addresses", "We need an address expression.");
 				return false;
 			}
 
-			if (!isset($address["username"])) {
+			if (!isset($address["address_user"])) {
 				$this->output->addDebugMessage("addresses", "We want also an username.");
 				return false;
 			}
 
-			if (!isset($address["order"])) {
+			if (!isset($address["address_order"])) {
 				$this->output->addDebugMessage("addresses", "We want also an order.");
+				return false;
 			}
 			
 			$sql = "UPDATE addresses SET address_order = :order, address_user = :username WHERE address_expression = :address_exp";
 
 			$params = array(
-				":address_exp" => $address["expression"],
-				":username" => $address["username"],
-				":order" => $address["order"]
+				":address_exp" => $address["address_expression"],
+				":username" => $address["address_user"],
+				":order" => $address["address_order"]
 			);
 
 			$status = $this->db->insert($sql, array($params));
