@@ -1,6 +1,5 @@
 Implement support for dynamically loaded modules
 	Specify API for modules
-Implement SMTP authentication
 Implement client timeouts
 Periodically release unused memory
 Implement database schema upgrade paths (including user databases)
@@ -8,5 +7,4 @@ Implement sendmail interface
 Bind parameter autoauth=username
 Bind parameter filter-local-reverse
 Implement client command rate limiting
-Implement SO_SOCKREUSE
 Write some tests
