@@ -18,7 +18,7 @@
 		public function getAll() {
 
 
-			$sql = "SELECT * FROM addresses";
+			$sql = "SELECT * FROM addresses ORDER BY address_order DESC";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
 
@@ -35,7 +35,7 @@
 				return array();
 			}
 
-			$sql = "SELECT * FROM addresses WHERE address_expression = :address";
+			$sql = "SELECT * FROM addresses WHERE address_expression = :address ORDER BY address_order DESC";
 
 			$params = array(
 				":address" => $address
@@ -56,7 +56,7 @@
 				return array();
 			}
 
-			$sql = "SELECT * FROM addresses WHERE address_user = :username";
+			$sql = "SELECT * FROM addresses WHERE address_user = :username ORDER BY address_order DESC";
 
 			$params = array(
 				":username" => $username
