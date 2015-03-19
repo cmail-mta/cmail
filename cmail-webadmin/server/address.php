@@ -144,18 +144,38 @@
 
 			$status = $this->db->insert($sql, array($params));
 
-			if (isset($status) && !empty($status)) {
-				$this->output->add("update", "ok");
+			if (isset($status)) {
+				$this->output->add("status", "ok");
 				return true;
 			} else {
-				$this->output->add("update", "not ok");
+				$this->output->add("status", "not ok");
 				return false;
 			}
 
 		}
 
-		public function delete($address) {
+		public function delete($expression) {
+			
+			if (!isset($expression)) {
+				$this->output->add("status", "We need an address expression.");
+				return false;
+			}
 
+			$sql = "DELETE FROM addresses WHERE address_expression = :expression";
+
+			$params = array(
+				":expression" => $expression
+			);
+
+			$status = $this->db->insert($sql, array($params));
+
+			if (isset($status)) {
+				$this->output->add("status", "ok");
+				return true;
+			} else {
+				$this->output->add("status", "not ok");
+				return false;
+			}
 		}
 
 

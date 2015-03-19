@@ -95,6 +95,7 @@ function main() {
 		$address->add($obj["address"]);
 		break;
 	case "delete_address":
+		$address->delete($obj["expression"]);
 		break;
 	case "update_user":
 		$user->update($obj["user"]);

@@ -103,7 +103,7 @@ var cmail = {
 
 				var options = gui.create("td");
 				options.appendChild(gui.createButton("edit", self.show_address_form, [address.address_expression], self));
-				options.appendChild(gui.createButton("delete", self.delete_address, [address.address_user], self));
+				options.appendChild(gui.createButton("delete", self.delete_address, [address.address_expression], self));
 				tr.appendChild(options);
 				addresslist.appendChild(tr);
 			});
@@ -180,6 +180,14 @@ var cmail = {
 		
 		if (confirm("Do you really delete this user?") == true) {
 			var xhr = ajax.asyncPost(this.api_url + "delete_user", JSON.stringify({ username: name }), function(xhr){
+				console.log(JSON.parse(xhr.response));
+			});
+		}
+		this.reload();
+	},
+	delete_address: function(expression) {
+		if (confirm("Do you really delete the address " + expression + "?") == true) {
+			var xhr = ajax.asyncPost(this.api_url + "delete_address", JSON.stringify({ expression: expression }), function(xhr) {
 				console.log(JSON.parse(xhr.response));
 			});
 		}
