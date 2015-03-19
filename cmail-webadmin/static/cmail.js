@@ -1,7 +1,6 @@
 var cmail = {
 	api_url: "server/api.php?",
 	users: [],
-	addresses: [],
 	router: [
 		"any",
 		"none",
@@ -65,6 +64,7 @@ var cmail = {
 			var userlist = gui.elem("userlist");
 			userlist.innerHTML = "";
 
+			var list = {};
 			users.forEach(function(user) {
 				var tr = gui.create("tr");
 				tr.appendChild(gui.createColumn(user.user_name));
@@ -78,9 +78,20 @@ var cmail = {
 				options.appendChild(gui.createButton("delete", self.delete_user, [user.user_name], self));
 				tr.appendChild(options);	
 				userlist.appendChild(tr);
+
+				list[user.user_name] = user.user_name;
 			});
+
+			self.fill_username_list(list);
 		});
 
+	},
+	fill_username_list: function(list) {
+		var userlist = gui.elem("usernamelist");
+		userlist.innerHTML = "";
+		Object.keys(list).forEach(function(username) {
+			userlist.appendChild(gui.createOption("", username));
+		});
 	},
 	get_addresses: function() {
 		var self = this;
