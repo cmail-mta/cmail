@@ -19,8 +19,9 @@ master database structure
 
 		user_authdata	TEXT
 		Representation of the shared secret used in
-		authentication scenarios. Should be a GNU crypt
-		string.		
+		authentication scenarios. Current format
+		"salt:sha256(salt+password)" where + represents
+		the concatenation operator.
 
 		user_inrouter	TEXT NOT NULL DEFAULT 'store'
 		user_inroute	TEXT
@@ -29,8 +30,8 @@ master database structure
 
 		user_outrouter	TEXT NOT NULL DEFAULT 'drop'
 		user_outroute
-		Mail routing function and parameter used for outgoing
-		mail from this user.
+		Mail routing function and parameter used for mail 
+		submitted by a connection authenticated as this user.
 
 	Valid inbound mail routing functions are as follows:
 
@@ -71,23 +72,22 @@ master database structure
 		Reject incoming mail for this user (default behaviour for
 		unknown adresses). Might be useful for send-only setups.
 
-	Valid outbound mail routing functions are as follows 
-		(Any outbound use require authentication):
+	Valid outbound mail routing functions are as follows:
 
 		Router: any
 		Parameter: None
-		Outgoing mail is accepted with any sender address in the
+		Mail submission is accepted with any sender address in the
 		envelope section (relay operation).
 
 		Router: defined
 		Parameter: None
-		Outgoing mail must have an adress mapped to the sending 
+		Originating mail must have an adress mapped to the sending 
 		user as envelope sender.
 
 		Router: handoff
 		Parameter: Mail server address (NULL behaves the same 
 			way as the drop router)
-		Hand off all outbound mail for this user to another server 
+		Hand off all originated mail for this user to another server 
 		(smarthost) for relaying.
 
 		Router: alias
@@ -95,13 +95,13 @@ master database structure
 			way as the drop router)
 		Route as the aliased user.
 
-		Router: none
+		Router: reject
 		Parameter: None
-		Reject outbound messages for this user.
+		Reject originated messages for this user.
 
 		Router: drop
 		Parameter: None
-		Accept, but do not send outbound messages for this user.
+		Accept, but do quietly drop originated messages for this user.
 
 	'addresses' table
 	-----------------
@@ -119,6 +119,6 @@ master database structure
 		address_user		TEXT NOT NULL
 		Foreign key into the 'users' table.
 
-	'mails' table
+	'mailbox' table
 	-------------
 		TBD
