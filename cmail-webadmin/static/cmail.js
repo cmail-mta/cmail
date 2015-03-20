@@ -3,15 +3,21 @@ var cmail = {
 	/**
 	 * all routers 
 	 */
-	router: [
-		"any",
-		"none",
-		"defined",
-		"alias",
-		"drop",
+	inrouter: [
 		"store",
 		"forward",
-		"handoff"
+		"handoff",
+		"alias",
+		"drop",
+		"reject"
+	],
+	outrouter: [
+		"drop",
+		"any",
+		"defined",
+		"handoff",
+		"alias",
+		"reject"
 	],
 	user: {
 		/**
@@ -346,8 +352,13 @@ var cmail = {
 		var inrouter = gui.elem("user_inrouter");
 		var outrouter = gui.elem("user_outrouter");
 
-		this.router.forEach(function(val) {
+		// fill inrouter
+		this.inrouter.forEach(function(val) {
 			inrouter.appendChild(gui.createOption(val, val));
+		});
+
+		// fill outrouter 
+		this.outrouter.forEach(function(val) {
 			outrouter.appendChild(gui.createOption(val, val));
 		});
 	},
