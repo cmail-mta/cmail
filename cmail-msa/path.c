@@ -84,6 +84,7 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, bool forward_pa
 		switch(sqlite3_step(database->query_addresses)){
 			case SQLITE_ROW:
 				//match found, test if router says we should reject it
+				//FIXME this should take the alias router in consideration
 				if(!strcmp((char*)sqlite3_column_text(database->query_addresses, forward_path?1:2),"reject")){
 					rv=1;
 					break;

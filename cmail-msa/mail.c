@@ -76,6 +76,7 @@ int mail_reset(MAIL* mail){
 	empty_mail.data_allocated=mail->data_allocated;
 	empty_mail.data=mail->data;
 	empty_mail.submitter=mail->submitter;
+	path_reset(&(mail->reverse_path));
 
 	if(mail->data){
 		mail->data[0]=0;

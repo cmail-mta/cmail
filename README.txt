@@ -97,7 +97,8 @@ master database structure
 
 		Router: reject
 		Parameter: None
-		Reject originated messages for this user.
+		Reject originated messages for this user and any addresses routed 
+		to him.
 
 		Router: drop
 		Parameter: None

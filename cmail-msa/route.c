@@ -142,6 +142,9 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 			//rejecting recipient
 			rv=-1;
 		}
+		else if(!strcmp(route.router, "drop")){
+			//this one is easy.
+		}
 		else{
 			//TODO call plugins for other routers
 		}
@@ -155,14 +158,26 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 	return rv;
 }
 
-int route_outbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
-	MAILROUTE route=route_query(log, database, false, NULL); //TODO implement this properly
+int route_outbound(LOGGER log, DATABASE* database, char* user, MAILPATH* reverse_path){
+	int rv=0;
+	MAILROUTE route=route_query(log, database, false, user);
 
 	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument?route.argument:"none");
-	//TODO implement outbound routers
 	
-	logprintf(log, LOG_WARNING, "NOT YET IMPLEMENTED: OUTBOUND ROUTING\n");
+	if(!strcmp(route.router, "reject")){
+		rv=-1;
+	}
+	else if(!strcmp(route.router, "defined")){
+		if(!reverse_path->resolved_user || strcmp(user, reverse_path->resolved_user)){
+			logprintf(log, LOG_INFO, "Reverse path %s does not belong to user %s\n", reverse_path->path, user);
+			rv=-1;
+		}
+		//else, ok
+	}
+	else if(!strcmp(route.router, "any")){
+		//ok.
+	}
 
 	route_free(&route);
-	return -1;
+	return rv;
 }
