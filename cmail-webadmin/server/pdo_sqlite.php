@@ -141,6 +141,8 @@ class DB {
 			}
 		}
 
+		$stm->closeCursor();
+
 		return $this->lastInsertID();
 	}
 
@@ -151,7 +153,9 @@ class DB {
 	function beginTransaction() {
 		if (!$this->db->beginTransaction()) {
 			$this->output->addDebugMessage("transaction", $this->db->errorInfo());
+			return false;
 		}
+		return true;
 	}
 
 
@@ -161,7 +165,9 @@ class DB {
 	function commit() {
 		if (!$this->db->commit()) {
 			$this->output->addDebugMessage("commit", $this->db->errorInfo());
+			return false;
 		}
+		return true;
 	}
 
 	/**

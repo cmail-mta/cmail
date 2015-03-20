@@ -104,12 +104,23 @@ var cmail = {
 
 			addresslist.innerHTML = "";
 
+			var last_address = null;
 			addresses.forEach(function(address) {
 
 				var tr = gui.create("tr");
 
 				tr.appendChild(gui.createColumn(address.address_expression));
+
+				var order = gui.create('td');
+				order.appendChild(gui.createText(address.address_order));
+				if (last_address) {
+					order.appendChild(gui.createButton("^", self.switch_address_order, [last_address, address], self));
+				}
+				tr.appendChild(order);
+				last_address = address;
 				tr.appendChild(gui.createColumn(address.address_order));
+
+
 				tr.appendChild(gui.createColumn(address.address_user));
 
 				var options = gui.create("td");
@@ -265,6 +276,7 @@ var cmail = {
 		gui.elem("status").textContent = message;
 	},
 	save_address: function() {
+		var self = this;
 		var address = {
 			address_expression: gui.elem("address_expression").value,
 			address_order: gui.elem("address_order").value,
@@ -274,14 +286,31 @@ var cmail = {
 		if (gui.elem("form_address_type").value === "new") {
 			ajax.asyncPost(this.api_url + "add_address", JSON.stringify({address: address}), function(xhr) {
 				console.log(JSON.parse(xhr.response));
+				self.set_status(JSON.parse(xhr.response)).status;
+				self.reload();
 			});
 		} else {
 			ajax.asyncPost(this.api_url + "update_address", JSON.stringify({address: address}), function(xhr) {
 				console.log(JSON.parse(xhr.response));
+				self.set_status(JSON.parse(xhr.response)).status;
+				self.reload();
 			});
 		}
-		this.reload();
 		this.hide_address_form();
+	},
+	switch_address_order: function(address1, address2) {
+		
+		var obj = {
+			address1: address1,
+			address2: address2
+		};
+		console.log(obj);
+		var self = this;
+
+		ajax.asyncPost(this.api_url + "switch_addresses", JSON.stringify(obj), function(xhr) {
+			self.set_status(JSON.parse(xhr.response).status);
+			self.reload();
+		});
 	},
 	reload: function() {
 		this.get_users();

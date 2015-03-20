@@ -30,7 +30,8 @@ function getApiEndPoint() {
 		"set_password",
 		"delete_address",
 		"update_user",
-		"update_address"
+		"update_address",
+		"switch_addresses"
 	);
 
 	foreach ($api_points as $point) {
@@ -108,6 +109,9 @@ function main() {
 		break;
 	case "update_address":
 		$address->update($obj["address"]);
+		break;
+	case "switch_addresses":
+		$address->switchOrder($obj["address1"], $obj["address2"]);
 		break;
 	default:
 		$output->add("status", "nothing to do.");

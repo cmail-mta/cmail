@@ -149,7 +149,6 @@
 				$this->output->add("status", "ok");
 				return true;
 			} else {
-				$this->output->add("status", "not ok");
 				return false;
 			}
 
@@ -174,7 +173,6 @@
 				$this->output->add("status", "ok");
 				return true;
 			} else {
-				$this->output->add("status", "not ok");
 				return false;
 			}
 		}
@@ -182,6 +180,48 @@
 
 		public function switchOrder($address1, $address2) {
 
+			$this->db->beginTransaction();
+
+			if (!isset($address1["address_expression"]) || empty($address1["address_expression"])) {
+				$this->output->add("status", "Adress 1 has no address expression");
+				return false;
+			}
+
+			if (!isset($address2["address_expression"]) || empty($address2["address_expression"])) {
+				$this->output->add("status", "Adress 2 has no address expression");
+				return false;
+			}
+
+			if (!isset($address1["address_order"]) && !isset($address2["address_order"])) {
+				$this->output->add("status", "Both addresses needs an order number");
+				return false;
+			}
+
+			// swap orders
+			$swap = $address1["address_order"];
+			$address1["address_order"] = $address2["address_order"];
+			$address2["address_order"] = $swap;
+
+			if (!$this->delete($address1["address_expression"])) {
+				$this->db->rollback();
+				return false;
+			}
+
+			if(!$this->update($address2)) {
+				$this->db->rollback();
+				return false;
+			}
+
+			if (!$this->add($address1)) {
+				$this->db->rollback();
+				return false;
+			}
+
+			$this->db->commit();
+
+
+			$this->output->add("status", "ok");
+			return true;	
 		}
 	}
 
