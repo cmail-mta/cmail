@@ -31,7 +31,7 @@
 				return array();
 			}
 
-			$sql = "SELECT user_name, user_inrouter, user_inroute, user_outrouter, user_outroute FROM users WHERE user_name = :user_name";
+			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_inrouter, user_inroute, user_outrouter, user_outroute FROM users WHERE user_name = :user_name";
 			$params = array(":user_name" => $username);
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
@@ -47,7 +47,7 @@
 		 */
 		public function getAll() {
 
-			$sql = "SELECT user_name, user_inrouter, user_inroute, user_outrouter, user_outroute FROM users";
+			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_inrouter, user_inroute, user_outrouter, user_outroute FROM users";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
 			$this->output->add("users", $out);
