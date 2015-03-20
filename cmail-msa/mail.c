@@ -28,6 +28,10 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
 	int rv=250, i;
 
 	route=route_query(log, database, false, user);
+	if(!route.router){
+		return 500;
+	}
+
 	logprintf(log, LOG_INFO, "Outbound router for connected user %s is %s (%s)\n", user, route.router, route.argument?route.argument:"none");
 
 	if(!strcmp(route.router, "drop")){

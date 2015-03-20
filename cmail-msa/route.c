@@ -44,7 +44,7 @@ MAILROUTE route_query(LOGGER log, DATABASE* database, bool route_inbound, char* 
 			}
 			break;
 		case SQLITE_DONE:
-			logprintf(log, LOG_ERROR, "User to be routed to (%s) does not exist\n", user);
+			logprintf(log, LOG_ERROR, "Database contains no router definition for %s \n", user);
 			break;
 		default:
 			logprintf(log, LOG_WARNING, "Unhandled query return value: %s\n", sqlite3_errmsg(database->conn));
@@ -84,6 +84,10 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 	int rv=0;
 	USER_DATABASE* user_db;
 	MAILROUTE route=route_query(log, database, true, current_path->resolved_user);
+
+	if(!route.router){
+		return -1;
+	}
 
 	logprintf(log, LOG_DEBUG, "Inbound router %s (%s) for %s\n", route.router, route.argument?route.argument:"none", current_path->path);
 
@@ -161,6 +165,10 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 int route_outbound(LOGGER log, DATABASE* database, char* user, MAILPATH* reverse_path){
 	int rv=0;
 	MAILROUTE route=route_query(log, database, false, user);
+	
+	if(!route.router){
+		return -1;
+	}
 
 	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument?route.argument:"none");
 	

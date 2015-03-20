@@ -8,3 +8,5 @@ Bind parameter autoauth=username
 Bind parameter filter-local-reverse
 Implement client command rate limiting
 Write some tests
+Write proper Received: headers
+

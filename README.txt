@@ -23,13 +23,24 @@ master database structure
 		"salt:sha256(salt+password)" where + represents
 		the concatenation operator.
 
-		user_inrouter	TEXT NOT NULL DEFAULT 'store'
-		user_inroute	TEXT
+	'msa' table
+	-----------
+	Contains parameters relevant to the mail submission agent,
+	responsible for accepting incoming mail and allowing users
+	to originate new messages. Users that do not have a router
+	definition will be handled with the 'reject' routers and
+	addresses mapped to them will be ignored at address resolution.
+
+		msa_user	TEXT NOT NULL PRIMARY KEY
+		Foreign key into the 'users' table
+
+		msa_inrouter	TEXT NOT NULL DEFAULT 'store'
+		msa_inroute	TEXT
 		Mail routing function and parameter used for incoming 
 		mail to any address belonging to this user.
 
-		user_outrouter	TEXT NOT NULL DEFAULT 'drop'
-		user_outroute
+		msa_outrouter	TEXT NOT NULL DEFAULT 'drop'
+		msa_outroute
 		Mail routing function and parameter used for mail 
 		submitted by a connection authenticated as this user.
 

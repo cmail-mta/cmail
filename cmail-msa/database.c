@@ -185,7 +185,7 @@ int database_refresh(LOGGER log, DATABASE* database){
 	
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
 	char* QUERY_DETACH_DB="DETACH DATABASE ?;";
-	char* QUERY_USER_DATABASES="SELECT MIN(user_name), user_inroute FROM main.users WHERE user_inrouter='store' AND user_inroute NOT NULL GROUP BY user_inroute;";
+	char* QUERY_USER_DATABASES="SELECT MIN(msa_user), msa_inroute FROM main.msa WHERE msa_inrouter='store' AND msa_inroute NOT NULL GROUP BY msa_inroute;";
 	
 	sqlite3_stmt* attach_db=database_prepare(log, database->conn, QUERY_ATTACH_DB);
 	sqlite3_stmt* detach_db=database_prepare(log, database->conn, QUERY_DETACH_DB);
@@ -253,9 +253,9 @@ int database_refresh(LOGGER log, DATABASE* database){
 }
 
 int database_initialize(LOGGER log, DATABASE* database){
-	char* QUERY_ADDRESS_USER="SELECT address_user, user_inrouter, user_outrouter FROM main.addresses JOIN main.users ON address_user = user_name WHERE ? LIKE address_expression ORDER BY address_order DESC;";
-	char* QUERY_USER_ROUTER_INBOUND="SELECT user_inrouter, user_inroute FROM main.users WHERE user_name = ?;";
-	char* QUERY_USER_ROUTER_OUTBOUND="SELECT user_outrouter, user_outroute FROM main.users WHERE user_name = ?;";
+	char* QUERY_ADDRESS_USER="SELECT address_user, msa_inrouter, msa_outrouter FROM main.addresses JOIN main.msa ON address_user = msa_user WHERE ? LIKE address_expression ORDER BY address_order DESC;";
+	char* QUERY_USER_ROUTER_INBOUND="SELECT msa_inrouter, msa_inroute FROM main.msa WHERE msa_user = ?;";
+	char* QUERY_USER_ROUTER_OUTBOUND="SELECT msa_outrouter, msa_outroute FROM main.msa WHERE msa_user = ?;";
 	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata FROM main.users WHERE user_name = ?;";
