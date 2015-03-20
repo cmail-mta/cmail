@@ -218,28 +218,42 @@ var cmail = {
 				var addresslist = gui.elem("addresslist");
 				addresslist.innerHTML = "";
 				var last_address = null;
+				var next_address = null;
+				var address = null;
+				var button = null;
 
-				addresses.forEach(function(address) {
+				for (var i = 0; i < addresses.length; i++) {
+
+					address = addresses[i];
+					last_address = addresses[i - 1];
+					next_address = addresses[i + 1];
 
 					var tr = gui.create("tr");
 					tr.appendChild(gui.createColumn(address.address_expression));
-
-					var order = gui.create('td');
-					order.appendChild(gui.createText(address.address_order));
-					if (last_address) {
-						order.appendChild(gui.createButton("^", self.switch_order, [last_address, address], self));
-					}
-					tr.appendChild(order);
-					last_address = address;
 					tr.appendChild(gui.createColumn(address.address_order));
 					tr.appendChild(gui.createColumn(address.address_user));
 
 					var options = gui.create("td");
+										if (last_address) {
+						options.appendChild(gui.createButton("/\\", self.switch_order, [last_address, address], self));
+					} else {
+						button = gui.createButton("/\\", function() {}, [], self);
+						button.style.visibility = "hidden";
+						options.appendChild(button);
+					}
+					if (next_address) {
+						options.appendChild(gui.createButton("\\/", self.switch_order, [next_address, address], self));
+					} else {
+						button = gui.createButton("\\/", function() {}, [], self);
+						button.style.visibility = "hidden";
+						options.appendChild(button);
+					}
 					options.appendChild(gui.createButton("edit", self.show_form, [address.address_expression], self));
 					options.appendChild(gui.createButton("delete", self.delete, [address.address_expression], self));
+
 					tr.appendChild(options);
 					addresslist.appendChild(tr);
-				});
+				};
 			});
 		},
 		show_form: function(expression) {
@@ -304,7 +318,6 @@ var cmail = {
 				address1: address1,
 				address2: address2
 			};
-			console.log(obj);
 			var self = this;
 
 			ajax.asyncPost(cmail.api_url + "switch_addresses", JSON.stringify(obj), function(xhr) {
