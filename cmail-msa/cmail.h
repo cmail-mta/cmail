@@ -31,7 +31,7 @@
 
 #include <sqlite3.h>
 
-#define VERSION 			"cmail 0.1"
+#define VERSION 			"cmail-msa 0.1"
 #define MAX_CFGLINE 			2048
 #define LISTEN_QUEUE_LENGTH 		128
 #define STATIC_SEND_BUFFER_LENGTH	1024

@@ -1,8 +1,12 @@
 #include "cmail.h"
 
 int usage(char* filename){
-	printf("%s usage information\n", VERSION);
-	//TODO usage info
+	printf("%s - Part of the cmail internet mail processing suite\n", VERSION);
+	printf("Accept incoming mail\n");
+	printf("Usage: %s <conffile> [options]\n", filename);
+	printf("Recognized options:\n");
+	printf("\tnodrop\t\tDo not drop privileges\n");
+	printf("\tnodetach\tDo not detach from console\n");
 	return EXIT_FAILURE;
 }
 
