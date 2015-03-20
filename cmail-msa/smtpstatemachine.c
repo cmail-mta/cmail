@@ -439,7 +439,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 						break;
 					default:
 						logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
-						client_send(log, client, "500 Rejected\r\n"); //FIXME correct response code
+						client_send(log, client, "554 Rejected\r\n");
 						break;
 				}
 			}
@@ -451,7 +451,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 						break;
 					default:
 						logprintf(log, LOG_WARNING, "Originated mail could not be routed, rejecting\n");
-						client_send(log, client, "500 Rejected\r\n"); //FIXME correct response
+						client_send(log, client, "554 Rejected\r\n");
 						break;
 				}
 			}

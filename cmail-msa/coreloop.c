@@ -68,8 +68,14 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 	}
 
+	//close connected clients
+	for(i=0;i<clients.count;i++){
+		if(clients.conns[i].fd>=0){
+			client_close(&(clients.conns[i]));
+		}
+	}
+
 	//TODO free connpool aux_data structures
-	//TODO close connected clients
 	connpool_free(&clients);
 	pathpool_free(&path_pool);
 
