@@ -28,6 +28,8 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
 	int rv=250, i;
 
 	route=route_query(log, database, false, user);
+
+	//user has no routing entry, reject the mail
 	if(!route.router){
 		return 500;
 	}

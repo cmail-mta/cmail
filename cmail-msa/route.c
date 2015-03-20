@@ -85,6 +85,7 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 	USER_DATABASE* user_db;
 	MAILROUTE route=route_query(log, database, true, current_path->resolved_user);
 
+	//reject the path if the user does not have a router table entry
 	if(!route.router){
 		return -1;
 	}
@@ -166,6 +167,7 @@ int route_outbound(LOGGER log, DATABASE* database, char* user, MAILPATH* reverse
 	int rv=0;
 	MAILROUTE route=route_query(log, database, false, user);
 	
+	//fail any path if the authenticated user has no router table entry
 	if(!route.router){
 		return -1;
 	}
