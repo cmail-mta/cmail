@@ -286,13 +286,13 @@ var cmail = {
 		if (gui.elem("form_address_type").value === "new") {
 			ajax.asyncPost(this.api_url + "add_address", JSON.stringify({address: address}), function(xhr) {
 				console.log(JSON.parse(xhr.response));
-				self.set_status(JSON.parse(xhr.response)).status;
+				self.set_status(JSON.parse(xhr.response).status);
 				self.reload();
 			});
 		} else {
 			ajax.asyncPost(this.api_url + "update_address", JSON.stringify({address: address}), function(xhr) {
 				console.log(JSON.parse(xhr.response));
-				self.set_status(JSON.parse(xhr.response)).status;
+				self.set_status(JSON.parse(xhr.response).status);
 				self.reload();
 			});
 		}

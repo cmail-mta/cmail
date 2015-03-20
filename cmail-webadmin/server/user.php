@@ -161,7 +161,6 @@
 				$this->output->add("status", "ok");
 				return true;
 			} else {
-				$this->output->add("status", "not ok");
 				return false;
 			}
 		}
@@ -185,7 +184,6 @@
 				$this->output->add("delete", "ok");
 				return true;
 			} else {
-				$this->output->add("delete", "not ok");
 				return false;
 			}
 		}
@@ -219,7 +217,6 @@
 				$this->output->add("status", "ok");
 				return true;
 			} else {
-				$this->output->add("status", "not ok");
 				return false;
 			}
 		}
