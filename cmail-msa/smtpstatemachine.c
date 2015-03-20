@@ -328,8 +328,6 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			logprintf(log, LOG_ERROR, "Failed to get path, failing recipient\n");
 			client_send(log, client, "452 Recipients pool maxed out\r\n");
 			//FIXME should state transition back to idle here?
-			//client_data->state=STATE_IDLE;
-			//mail_reset(&(client_data->current_mail));
 			return 0;
 		}
 
@@ -352,7 +350,9 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 				client_send(log, client, "451 Path rejected\r\n");
 				pathpool_return(current_path);
 				//FIXME should state transition back to idle here?
-				return -1;
+				//client_data->state=STATE_IDLE;
+				//mail_reset(&(client_data->current_mail));
+				return 0;
 		}
 
 		if(!current_path->resolved_user){
@@ -399,7 +399,12 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "data", 4)){
-		//FIXME reject command if no recipients
+		//reject command if no recipients
+		if(!client_data->current_mail.forward_paths[0]){
+			logprintf(log, LOG_INFO, "Data without recipients\n");
+			client_send(log, client, "503 No valid recipients\r\n");
+			return -1;
+		}
 		client_data->state=STATE_DATA;
 		logprintf(log, LOG_INFO, "Client wants to begin data transmission\n");
 		client_send(log, client, "354 Go ahead\r\n");
