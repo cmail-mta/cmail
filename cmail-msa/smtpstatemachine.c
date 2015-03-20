@@ -268,7 +268,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 					return 0;
 				}
 				break;
-			case -1:
+			default:
 				//resolution failed
 				logprintf(log, LOG_INFO, "Failed to resolve reverse path\n");
 				client_send(log, client, "451 Path rejected\r\n");
@@ -430,15 +430,30 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			//end of mail
 			logprintf(log, LOG_INFO, "End of mail data, routing\n");
 			//TODO call plugins here
-			switch(mail_route(log, &(client_data->current_mail), database)){
-				case 250:
-					logprintf(log, LOG_INFO, "Mail accepted from %s\n", client_data->peer_name);
-					client_send(log, client, "250 OK\r\n");
-					break;
-				default:
-					logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
-					client_send(log, client, "500 Rejected\r\n");//FIXME correct response code
-					break;
+
+			if(!client_data->auth.user){
+				switch(mail_route(log, &(client_data->current_mail), database)){
+					case 250:
+						logprintf(log, LOG_INFO, "Incoming mail accepted from %s\n", client_data->peer_name);
+						client_send(log, client, "250 OK\r\n");
+						break;
+					default:
+						logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
+						client_send(log, client, "500 Rejected\r\n"); //FIXME correct response code
+						break;
+				}
+			}
+			else{
+				switch(mail_originate(log, client_data->auth.user, &(client_data->current_mail), database)){
+					case 250:
+						logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->auth.user, client_data->peer_name);
+						client_send(log, client, "250 OK\r\n");
+						break;
+					default:
+						logprintf(log, LOG_WARNING, "Originated mail could not be routed, rejecting\n");
+						client_send(log, client, "500 Rejected\r\n"); //FIXME correct response
+						break;
+				}
 			}
 			mail_reset(&(client_data->current_mail));
 			client_data->state=STATE_IDLE;

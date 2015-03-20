@@ -23,6 +23,35 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	return rv;
 }
 
+int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
+	MAILROUTE route;
+	int rv=250, i;
+
+	route=route_query(log, database, false, user);
+	logprintf(log, LOG_INFO, "Outbound router for connected user %s is %s (%s)\n", user, route.router, route.argument?route.argument:"none");
+
+	if(!strcmp(route.router, "drop")){
+		//done.	
+	}
+	else if(!strcmp(route.router, "handoff")){
+		if(route.argument){
+			for(i=0;mail->forward_paths[i];i++){
+				//insert into outbound table
+				logprintf(log, LOG_DEBUG, "Handing off path %d: %s\n", i, mail->forward_paths[i]->path);
+				if(mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, mail->forward_paths[i]->path, mail)<0){
+					logprintf(log, LOG_WARNING, "Failed to route %s via handoff\n", mail->forward_paths[i]->path);
+				}
+			}
+		}
+	}
+	else{
+		rv=mail_route(log, mail, database);
+	}
+
+	route_free(&route);
+	return rv;
+}
+
 int mail_line(LOGGER log, MAIL* mail, char* line){
 	//logprintf(log, LOG_DEBUG, "Mail line is \"%s\"\n", line);
 	//FIXME check for max line length / max data section size

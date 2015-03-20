@@ -69,6 +69,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	}
 
 	//TODO free connpool aux_data structures
+	//TODO close connected clients
 	connpool_free(&clients);
 	pathpool_free(&path_pool);
 
