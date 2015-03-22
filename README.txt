@@ -3,6 +3,8 @@ cmail modules
 cmail-msa	Mail Submission Agent, accepts incoming mail
 cmail-mta	Mail Transfer Agent, delivers outgoing mail
 cmail-imapd	IMAP server, provides access to local mailboxes
+cmail-popd	POP3 server, provides access to local mailboxes
+cmail-webadmin	Web-based administration panel
 
 master database structure
 
