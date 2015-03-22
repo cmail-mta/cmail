@@ -45,6 +45,7 @@
 #include "../lib/logger.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
+#include "../lib/daemonize.c"
 
 typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
 	AUTH_NONE,			//Authentication not supported
