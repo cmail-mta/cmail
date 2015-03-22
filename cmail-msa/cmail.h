@@ -38,6 +38,14 @@
 
 #include "smtplimits.h"
 
+#include "../lib/logger.h"
+#include "../lib/network.h"
+#include "../lib/connpool.h"
+
+#include "../lib/logger.c"
+#include "../lib/network.c"
+#include "../lib/connpool.c"
+
 typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
 	AUTH_NONE,			//Authentication not supported
 	AUTH_ANY,			//Authentication supported
@@ -80,11 +88,6 @@ typedef enum /*_SMTP_STATE*/ {
 	STATE_DATA
 } SMTPSTATE;
 
-typedef struct /*_CONNECTION*/ {
-	int fd;
-	void* aux_data;
-} CONNECTION;
-
 typedef struct /*_LISTEN_DATA*/ {
 	char* announce_domain;
 	bool auth_require;
@@ -112,11 +115,6 @@ typedef struct /*_CLIENT_DATA*/ {
 	#endif
 } CLIENT;
 
-typedef struct /*_CONNECTION_AGGREGATE*/ {
-	unsigned count;
-	CONNECTION* conns;
-} CONNPOOL;
-
 typedef struct /*_PATH_POOL*/{
 	unsigned count;
 	MAILPATH** paths;
@@ -127,11 +125,6 @@ typedef struct /*_ARGS*/ {
 	bool drop_privileges;
 	bool detach;
 } ARGUMENTS;
-
-typedef struct /*_LOGGER*/ {
-	FILE* stream;
-	unsigned verbosity;
-} LOGGER;
 
 typedef struct /*_USER_MAILBOX_DB*/{
 	bool active;
@@ -168,27 +161,18 @@ typedef struct /*_MAIL_ROUTE*/ {
 //PROTOTYPES
 int client_close(CONNECTION* client);
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
-void logprintf(LOGGER log, unsigned level, char* fmt, ...);
 int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path);
 int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail);
 #ifndef CMAIL_NO_TLS
 int client_starttls(LOGGER log, CONNECTION* client);
 #endif
 
-#define LOG_ERROR 	0
-#define LOG_WARNING 	0
-#define LOG_INFO 	1
-#define LOG_DEBUG 	3
-#define LOG_ALL_IO	4
-
 volatile sig_atomic_t abort_signaled=0;
 
 #include "signal.c"
-#include "network.c"
 #include "database.c"
 #include "path.c"
 #include "route.c"
-#include "connpool.c"
 #include "pathpool.c"
 #include "mail.c"
 #include "auth.c"
