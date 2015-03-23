@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 int daemonize(LOGGER log){
 	int pid = fork();
 	if(pid < 0){

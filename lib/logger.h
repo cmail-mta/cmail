@@ -1,3 +1,5 @@
+#include <stdarg.h>
+
 typedef struct /*_LOGGER*/ {
 	FILE* stream;
 	unsigned verbosity;

@@ -11,10 +11,67 @@ int usage(char* filename){
 }
 
 int main(int argc, char** argv){
+	ARGUMENTS args = {
+		.drop_privileges = true,
+		.daemonize = true,
+		.config_file = NULL
+	};
+
+	CONFIGURATION config = {
+		.log = {
+			.stream = stderr,
+			.verbosity = 0
+		}	
+	};
+
 	if(argc<2){
 		return usage(argv[0]);
 	}
 
+	//parse arguments
+	if(args_parse(&args, argc-1, argv+1)<0){
+		return usage(argv[0]);
+	}
+
+	//read config file
+	if(config_parse(&config, args.config_file)<0){
+		config_free(&config);
+		return EXIT_FAILURE;
+	}
+
+	//set up signal masks
+	signal_init(config.log);
+
+	//TODO drop privileges
+
+	//detach from console 
+	if(args.daemonize && config.log.stream!=stderr){
+		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
+		
+		//flush the stream so we do not get everything twice
+		fflush(config.log.stream);
+		
+		switch(daemonize(config.log)){
+			case 0:
+				break;
+			case 1:
+				logprintf(config.log, LOG_INFO, "Parent process going down\n");
+				config_free(&config);
+				exit(EXIT_SUCCESS);
+				break;
+			case -1:
+				config_free(&config);
+				exit(EXIT_FAILURE);
+		}
+	}
+	else{
+		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Because the log output stream is stderr)":""));
+	}
+	
+	//TODO core loop
+	
+	//cleanup
+	config_free(&config);
 
 	return 0;
 }

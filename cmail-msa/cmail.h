@@ -11,7 +11,6 @@
 #include <netdb.h>
 #include <grp.h>
 #include <pwd.h>
-#include <signal.h>
 #include <fcntl.h>
 #include <nettle/base16.h>
 #include <nettle/sha2.h>
@@ -41,10 +40,12 @@
 #include "../lib/logger.h"
 #include "../lib/network.h"
 #include "../lib/connpool.h"
+#include "../lib/signal.h"
 
 #include "../lib/logger.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
+#include "../lib/signal.c"
 #include "../lib/daemonize.c"
 
 typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
@@ -168,9 +169,6 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 int client_starttls(LOGGER log, CONNECTION* client);
 #endif
 
-volatile sig_atomic_t abort_signaled=0;
-
-#include "signal.c"
 #include "database.c"
 #include "path.c"
 #include "route.c"
