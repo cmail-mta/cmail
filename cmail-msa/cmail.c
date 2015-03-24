@@ -59,7 +59,7 @@ int main(int argc, char** argv){
 	#endif
 	
 	//read config file
-	if(config_parse(&config, args.config_file)<0){
+	if(config_parse(config.log, &config, args.config_file)<0){
 		arguments_free(&args);
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());

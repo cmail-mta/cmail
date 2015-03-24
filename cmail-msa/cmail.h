@@ -30,8 +30,8 @@
 
 #include <sqlite3.h>
 
+#include "../lib/common.h"
 #define VERSION 			"cmail-msa 0.1"
-#define MAX_CFGLINE 			2048
 #define LISTEN_QUEUE_LENGTH 		128
 #define STATIC_SEND_BUFFER_LENGTH	1024
 
@@ -42,12 +42,14 @@
 #include "../lib/connpool.h"
 #include "../lib/signal.h"
 #include "../lib/privileges.h"
+#include "../lib/config.h"
 
 #include "../lib/logger.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
 #include "../lib/signal.c"
 #include "../lib/privileges.c"
+#include "../lib/config.c"
 #include "../lib/daemonize.c"
 
 typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {

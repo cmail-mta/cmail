@@ -215,84 +215,42 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 	return -1;
 }
 
-int config_line(CONFIGURATION* config, char* line){
+int config_line(void* config_data, char* line){
 	unsigned parameter;
-	int offset;
+	CONFIGURATION* config=(CONFIGURATION*) config_data;
 
-	//remove trailing characters
-	for(offset=strlen(line)-1;offset>=0&&!(isalnum(line[offset])||ispunct(line[offset]));offset--){
-		line[offset]=0;
+	//scan over directive
+	for(parameter=0;(!isspace(line[parameter]))&&line[parameter]!=0;parameter++){
 	}
 
-	//skip leading spaces
-	for(;isspace(line[0]);line++){
+	if(line[parameter]!=0){
+		line[parameter]=0;
+		parameter++;
 	}
 
-	//ignore empty lines & comments
-	if(line[0]!='#' && line[0]!=0){
-		//scan over directive
-		for(parameter=0;(!isspace(line[parameter]))&&line[parameter]!=0;parameter++){
-		}
-
-		if(line[parameter]!=0){
-			line[parameter]=0;
-			parameter++;
-		}
-
-		//scan for parameter begin
-		for(;isspace(line[parameter]);parameter++){
-		}
-
-		//route directives
-		if(!strncmp(line, "bind", 4)){
-			return config_bind(config, line, line+parameter);
-		}
-
-		else if(!strncmp(line, "user", 4)||!strncmp(line, "group", 5)){
-			return config_privileges(config, line, line+parameter);
-		}
-
-		else if(!strncmp(line, "database", 8)){
-			return config_database(config, line, line+parameter);
-		}
-
-		else if(!strncmp(line, "verbosity", 9)||!strncmp(line, "logfile", 7)){
-			return config_logger(config, line, line+parameter);
-		}
-
-		else{
-			logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
-			return -1;
-		}
+	//scan for parameter begin
+	for(;isspace(line[parameter]);parameter++){
 	}
 
-	return 0;
-}
-
-int config_parse(CONFIGURATION* config, char* conf_file){
-	char line_buffer[MAX_CFGLINE+1];
-	FILE* conf_stream = fopen(conf_file, "r");
-
-	if(!conf_stream){
-		logprintf(config->log, LOG_ERROR, "Failed to read configuration file: %s\n", strerror(errno));
-		return -1;
+	//route directives
+	if(!strncmp(line, "bind", 4)){
+		return config_bind(config, line, line+parameter);
 	}
 
-	while(fgets(line_buffer, MAX_CFGLINE, conf_stream)!=NULL){
-		if(config_line(config, line_buffer)<0){
-			fclose(conf_stream);
-			return -1;
-		}
-	}
-	
-	if(errno!=0){
-		logprintf(config->log, LOG_ERROR, "Error while reading configuration file: %s\n", strerror(errno));
-		fclose(conf_stream);
-		return -1;
+	else if(!strncmp(line, "user", 4)||!strncmp(line, "group", 5)){
+		return config_privileges(config, line, line+parameter);
 	}
 
-	fclose(conf_stream);
-	return 0;
+	else if(!strncmp(line, "database", 8)){
+		return config_database(config, line, line+parameter);
+	}
+
+	else if(!strncmp(line, "verbosity", 9)||!strncmp(line, "logfile", 7)){
+		return config_logger(config, line, line+parameter);
+	}
+
+	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
+	return -1;
 }
 
 void config_free(CONFIGURATION* config){
