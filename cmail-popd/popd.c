@@ -18,6 +18,13 @@ int main(int argc, char** argv){
 	};
 
 	CONFIGURATION config = {
+		.listeners = {
+			.count = 0,
+			.conns = NULL
+		},
+		.database = {
+			.conn = NULL
+		},
 		.log = {
 			.stream = stderr,
 			.verbosity = 0
@@ -38,7 +45,7 @@ int main(int argc, char** argv){
 	}
 
 	//read config file
-	if(config_parse(&config, args.config_file)<0){
+	if(config_parse(config.log, &config, args.config_file)<0){
 		config_free(&config);
 		return EXIT_FAILURE;
 	}
