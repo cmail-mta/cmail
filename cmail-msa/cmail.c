@@ -85,22 +85,11 @@ int main(int argc, char** argv){
 
 	//drop privileges
 	if(getuid() == 0 && args.drop_privileges){
-		logprintf(config.log, LOG_INFO, "Dropping privileges...\n");
-		//TODO initgroups
-		//TODO exit with cleanup here
-		if(chdir("/")<0){
-			logprintf(config.log, LOG_ERROR, "Failed to drop privileges (changing directories): %s\n", strerror(errno));
+		if(privileges_drop(config.log, config.privileges)<0){
+			arguments_free(&args);
+			config_free(&config);
 			exit(EXIT_FAILURE);
 		}
-		if(setgid(config.privileges.gid) != 0){
-			logprintf(config.log, LOG_ERROR, "Failed to drop privileges (changing gid): %s\n", strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-		if(setuid(config.privileges.uid) != 0){
-			logprintf(config.log, LOG_ERROR, "Failed to drop privileges (changing uid): %s\n", strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-		//TODO check for success
 	}
 	else{
 		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));

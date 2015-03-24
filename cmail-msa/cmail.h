@@ -41,11 +41,13 @@
 #include "../lib/network.h"
 #include "../lib/connpool.h"
 #include "../lib/signal.h"
+#include "../lib/privileges.h"
 
 #include "../lib/logger.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
 #include "../lib/signal.c"
+#include "../lib/privileges.c"
 #include "../lib/daemonize.c"
 
 typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
@@ -150,7 +152,7 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 
 typedef struct /*_CONF_META*/ {
 	CONNPOOL listeners;
-	struct {int uid; int gid;} privileges;
+	USER_PRIVS privileges;
 	LOGGER log;
 	DATABASE database;
 } CONFIGURATION;
