@@ -1,4 +1,7 @@
 #include <errno.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <string.h>
 
 typedef struct /*_PRIVILEGE_COMPOSITE*/ {
 	int uid; 

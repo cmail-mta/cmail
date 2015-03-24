@@ -4,9 +4,11 @@
 
 #include "../lib/logger.h"
 #include "../lib/signal.h"
+#include "../lib/privileges.h"
 
 #include "../lib/logger.c"
 #include "../lib/signal.c"
+#include "../lib/privileges.c"
 #include "../lib/daemonize.c"
 
 #define VERSION "cmail-popd 0.1"
@@ -19,6 +21,7 @@ typedef struct /*_ARGS_COMPOSITE*/ {
 
 typedef struct /*_CONFIGURATION_DATA*/ {
 	LOGGER log;
+	USER_PRIVS privileges;
 } CONFIGURATION;
 
 #include "args.c"

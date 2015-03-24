@@ -21,6 +21,10 @@ int main(int argc, char** argv){
 		.log = {
 			.stream = stderr,
 			.verbosity = 0
+		},
+		.privileges = {
+			.uid = 0,
+			.gid= 0
 		}	
 	};
 
@@ -42,7 +46,16 @@ int main(int argc, char** argv){
 	//set up signal masks
 	signal_init(config.log);
 
-	//TODO drop privileges
+	//drop privileges
+	if(getuid() == 0 && args.drop_privileges){
+		if(privileges_drop(config.log, config.privileges)<0){
+			config_free(&config);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else{
+		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));
+	}
 
 	//detach from console 
 	if(args.daemonize && config.log.stream!=stderr){
@@ -65,7 +78,7 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Because the log output stream is stderr)":""));
+		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize?" (Because the log output stream is stderr)":""));
 	}
 	
 	//TODO core loop
