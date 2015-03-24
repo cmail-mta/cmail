@@ -6,11 +6,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <ctype.h>
-#include <sys/socket.h>
-#include <sys/select.h>
-#include <netdb.h>
-#include <grp.h>
-#include <pwd.h>
 #include <fcntl.h>
 #include <nettle/base16.h>
 #include <nettle/sha2.h>
@@ -32,7 +27,6 @@
 
 #include "../lib/common.h"
 #define VERSION 			"cmail-msa 0.1"
-#define LISTEN_QUEUE_LENGTH 		128
 #define STATIC_SEND_BUFFER_LENGTH	1024
 
 #include "smtplimits.h"
