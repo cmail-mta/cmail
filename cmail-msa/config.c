@@ -17,7 +17,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		#ifndef CMAIL_NO_TLS
 		.tls_mode = TLS_NONE,
 		#endif
-		.announce_domain = "cmail",
+		.announce_domain = "cmail-msa",
 		.auth_offer = AUTH_NONE,
 		.auth_require = false
 	};
