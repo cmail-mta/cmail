@@ -49,7 +49,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 			if(clients.conns[i].fd>0 && FD_ISSET(clients.conns[i].fd, &readfds)){
 				//handle data
 				//FIXME handle return value
-				//TODO client_process(log, &(clients.conns[i]), database, &path_pool);
+				client_process(log, &(clients.conns[i]), database);
 			}
 		}
 		
@@ -58,7 +58,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 			if(listeners.conns[i].fd>0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
 				//handle new client
 				//FIXME handle return value
-				//TODO client_accept(log, &(listeners.conns[i]), &clients);
+				client_accept(log, &(listeners.conns[i]), &clients);
 			}
 		}
 	}
@@ -66,7 +66,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	//close connected clients
 	for(i=0;i<clients.count;i++){
 		if(clients.conns[i].fd>=0){
-			//TODO client_close(&(clients.conns[i]));
+			client_close(&(clients.conns[i]));
 		}
 	}
 
