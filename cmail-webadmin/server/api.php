@@ -15,12 +15,12 @@ require_once("auth.php");
 
 function main($module_name) {
 
+	global $modulelist;
 	// init
 	$output = Output::getInstance();
 	$db = new DB($output);
 
 
-	$module = new $module_name($db, $output);
 
 	// db connection
 	if (!$db->connect()) {
@@ -46,12 +46,27 @@ function main($module_name) {
 		$output->write();
 		die();
 	}
+	if (is_null($module)) {
 
+		$counter = 0;
 
-	foreach ($module->getEndPoints() as $ep => $func) {
-		if (isset($_GET[$ep])) {
-			$module->$func($obj);
-			break;
+		if (isset($_GET["get_modules"])) {
+
+			$modules = array();
+			foreach ($modulelist as $name => $value) {
+				$modules[$name] = $counter;
+				$counter++;
+			}
+
+			$output->add("modules", $modules); 
+		}
+	} else {
+		$module = new $module_name($db, $output);
+		foreach ($module->getEndPoints() as $ep => $func) {
+			if (isset($_GET[$ep])) {
+				$module->$func($obj);
+				break;
+			}
 		}
 	}
 

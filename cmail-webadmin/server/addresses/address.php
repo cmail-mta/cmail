@@ -15,7 +15,7 @@
 			"add" => "add",
 			"delete" => "delete",
 			"update" => "update",
-			"switch_order" => "switchOrder"
+			"switch" => "switchOrder"
 		);
 
 		public function __construct($db, $output) {
