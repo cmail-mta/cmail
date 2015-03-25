@@ -11,13 +11,14 @@
 	</head>
 	<body onload="cmail.init();">
 		<div id="headmenu">
-			<a class="item" href="#users">User</a>
-			<a class="item" href="#addresses">Adresses</a>
+			<a class="item" href="#user">User</a>
+			<a class="item" href="#msa">MSA</a>
+			<a class="item" href="#address">Adresses</a>
 			<span>Status: </span>
 			<span id="status">Ok</span>
 		</div>
 
-		<div id="useradd">
+		<div id="useradd" class="editPanel">
 			<form>
 				<input type="hidden" id="form_type" value="new"/>
 				<label>Username <br />
@@ -42,37 +43,52 @@
 
 				<div class="separator"></div>
 
+				<span class="button" onclick="cmail.user.save()">Save</span>
+				<span class="button" onclick="cmail.user.hide_form()">Cancel</span>
+			</form>
+		</div>
+
+
+		<div id="msaadd" class="editPanel">
+			<form>
+				<input type="hidden" id="form_msa_type" value="new"/>
+				<label>Username <br />
+					<input id="msa_user" list="usernamelist" type="text" />
+				</label>
+
+				<div class="separator"></div>
+
 				<label>Inrouter <br />
-					<select id="user_inrouter">
+					<select id="msa_inrouter">
 					</select>
 				</label>
 
 				<div class="separator"></div>
 
 				<label>Inroute <br />
-					<input id="user_inroute" type="text" />
+					<input id="msa_inroute" type="text" />
 				</label>
 
 				<div class="separator"></div>
 
 				<label>Outrouter <br />
-					<select id="user_outrouter">
+					<select id="msa_outrouter">
 					</select>
 				</label>
 				
 				<div class="separator"></div>
 
 				<label>Outroute <br />
-					<input id="user_outroute" type="text" />
+					<input id="msa_outroute" type="text" />
 				</label>
 				<div class="separator"></div>
 
-				<span class="button" onclick="cmail.user.save()">Save</span>
-				<span class="button" onclick="cmail.user.hide_form()">Cancel</span>
+				<span class="button" onclick="cmail.msa.save()">Save</span>
+				<span class="button" onclick="cmail.msa.hide_form()">Cancel</span>
 			</form>
 		</div>
 
-		<div id="addressadd">
+		<div id="addressadd" class="editPanel">
 			<form>
 				<input type="hidden" id="form_address_type" value="type" />
 
@@ -99,30 +115,30 @@
 			</form>
 		</div>
 
-		<div id="users" class="tab">
+		<div id="user" class="tab">
 			<h2>Users</h2>
+			<br />
+			<div id="user_action_bar">
+				<span class="button" onclick="cmail.user.show_form()">Add</span>
+			</div>
 			<table id="users">
-				<thead>
-					<tr>
-						<th>Name</th><th>Login?</th><th>Inrouter</th><th>Inroute</th><th>Outrouter</th><th>Outroute</th><th>Options</th>
-					</tr>
+				<thead id="userlist_head">
 				</thead>
 
 				<tbody id="userlist">
 				<tbody>
 			</table>
 
-			<br />
-			<div id="user_action_bar">
-				<span class="button" onclick="cmail.user.show_form()">Add</span>
-			</div>
 		</div>
 
 
 
-		<div id="addresses" class="tab">
+		<div id="address" class="tab">
 			<h2>Addresses</h2>
-
+			<br />
+			<div id="address_action_bar">
+				<span class="button" onclick="cmail.address.show_form()">Add</span>
+			</div>
 			<table>
 				<thead>
 					<th>Address Expression</th><th>Order</th><th>User</th><th>Options</th>
@@ -132,10 +148,25 @@
 				</tbody>
 			</table>
 
+			
+
+		</div>
+
+		<div id="msa" class="tab">
+			<h2>MSA Config</h2>
 			<br />
-			<div id="address_action_bar">
-				<span class="button" onclick="cmail.address.show_form()">Add</span>
+			<div id="msa_action_bar">
+				<span class="button" onclick="cmail.msa.show_form()">Add</span>
 			</div>
+
+			<table>
+				<thead>
+					<th>User</th><th>Inrouter</th><th>Inroute</th><th>Outrouter</th><th>Outroute</th><th>Options</th>
+				</thead>
+
+				<tbody id="msalist">
+				</tbody>
+			</table>
 
 		</div>
 

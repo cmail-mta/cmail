@@ -145,6 +145,7 @@ class DB {
 
 			if ($stm->errorInfo()[1] != 0) {
 				$this->output->add("status", $stm->errorInfo()[2]);
+				$stm->closeCursor();
 				return null;
 			}
 		}

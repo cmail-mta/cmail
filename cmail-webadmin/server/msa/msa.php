@@ -84,19 +84,19 @@
 		 * 	- msa_outroute (optional) parameter for outrouter
 		 * @return true or false (only one entry for one user)
 		 */
-		public function add($obj) {
+		public function add($msa) {
 
-                        if (!isset($user["msa_user"]) || empty($user["msa_user"])) {
+                        if (!isset($msa["msa_user"]) || empty($msa["msa_user"])) {
                                 $this->output->add("status", "Username is not set.");
                                 return false;
                         }
 
-                        if (!isset($user["msa_inrouter"]) || empty($user["msa_inrouter"])) {
+                        if (!isset($msa["msa_inrouter"]) || empty($msa["msa_inrouter"])) {
                                 $this->output->add("status", "User inrouter is not set.");
                                 return false;
                         }
 
-                        if (!isset($user["msa_outrouter"]) || empty($user["msa_outrouter"])) {
+                        if (!isset($msa["msa_outrouter"]) || empty($msa["msa_outrouter"])) {
                                 $this->output->add("status", "User outrouter is not set.");
                                 return false;
                         }
@@ -105,11 +105,11 @@
                                 . "VALUES (:msa_name, :msa_authdata, :msa_inrouter, :msa_inroute, :msa_outrouter, :msa_outroute)";
 
                         $params = array(
-                                ":msa_user" => $user["msa_user"],
-                                ":msa_inrouter" => $user["msa_inrouter"],
-                                ":msa_inroute" => $user["msa_inroute"],
-                                ":msa_outrouter" => $user["msa_outrouter"],
-                                ":msa_outroute" => $user["msa_outroute"]
+                                ":msa_user" => $msa["msa_user"],
+                                ":msa_inrouter" => $msa["msa_inrouter"],
+                                ":msa_inroute" => $msa["msa_inroute"],
+                                ":msa_outrouter" => $msa["msa_outrouter"],
+                                ":msa_outroute" => $msa["msa_outroute"]
                         );
 
                         $id = $this->db->insert($sql, array($params));

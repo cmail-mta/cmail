@@ -41,7 +41,7 @@
 
 			if (!isset($obj["address_expression"]) || empty($obj["address_expression"])) {
 
-				if (!isset($obj["address_user"]) || empty($obj["address_user"])) {
+				if (isset($obj["address_user"]) && !empty($obj["address_user"])) {
 					return $this->getByUser($obj);
 				} else {
 					return $this->getAll();
@@ -207,14 +207,30 @@
 		}
 
 
-		public function switchOrder($address1, $address2) {
+		public function switchOrder($obj) {
 
 			$this->db->beginTransaction();
+			error_log(json_encode($obj));
+
+
+			if (!isset($obj["address1"]) || empty($obj["address1"])) {
+				$this->output->add("status", "Adress 1 is not defined");
+				return false;
+			}
+
+			if (!isset($obj["address2"]) || empty($obj["address2"])) {
+				$this->output->add("status", "Address 2 is not defined");
+				return false;
+			}
+
+			$address1 = $obj["address1"];
+			$address2 = $obj["address2"];
 
 			if (!isset($address1["address_expression"]) || empty($address1["address_expression"])) {
 				$this->output->add("status", "Adress 1 has no address expression");
 				return false;
 			}
+
 
 			if (!isset($address2["address_expression"]) || empty($address2["address_expression"])) {
 				$this->output->add("status", "Adress 2 has no address expression");
@@ -231,7 +247,7 @@
 			$address1["address_order"] = $address2["address_order"];
 			$address2["address_order"] = $swap;
 
-			if (!$this->delete($address1["address_expression"])) {
+			if (!$this->delete($address1)) {
 				$this->db->rollback();
 				return false;
 			}

@@ -1,5 +1,5 @@
 var cmail = {
-	api_url: "server/api.php?",
+	api_url: "server/",
 	/**
 	 * all routers 
 	 */
@@ -26,7 +26,7 @@ var cmail = {
 		 * @return user object
 		 */
 		get: function(name) {
-			var xhr = ajax.syncPost(cmail.api_url + "get_user", JSON.stringify({ username: name}));
+			var xhr = ajax.syncPost(cmail.api_url + "users/?get", JSON.stringify({ username: name}));
 			var users = JSON.parse(xhr.response).users;
 
 			return users[0];
@@ -36,7 +36,7 @@ var cmail = {
 		 */
 		get_all: function() {
 			var self = this;
-			ajax.asyncGet(cmail.api_url + "get_users", function(xhr) {
+			ajax.asyncGet(cmail.api_url + "users/?get", function(xhr) {
 				var obj = JSON.parse(xhr.response)
 
 				// check status
@@ -61,20 +61,17 @@ var cmail = {
 				
 					//can login?
 					var checkbox_col = gui.create("td");
-					var checkbox = gui.createCheckbox("user_can_login");
-					if (user.user_login === 1) {
-						checkbox.checked = true;
-					}
-					checkbox.disabled = true;
-					checkbox_col.appendChild(checkbox);
-					tr.appendChild(checkbox_col);
 
-					// router rows
-					tr.appendChild(gui.createColumn(user.user_inrouter));
-					tr.appendChild(gui.createColumn(user.user_inroute));
-					tr.appendChild(gui.createColumn(user.user_outrouter));
-					tr.appendChild(gui.createColumn(user.user_outroute));
-
+					cmail.modules.forEach(function(module) {
+						var col = gui.create("td");
+						var cb = gui.createCheckbox(module + "_cb");
+						if (user.modules[module]) {
+							cb.checked = true;
+						}
+						cb.disabled = true;
+						col.appendChild(cb);
+						tr.appendChild(col);
+					});
 
 					// option buttons
 					var options = gui.create("td");
@@ -110,19 +107,12 @@ var cmail = {
 
 				gui.elem("user_name").value = user.user_name;
 				gui.elem("user_name").disabled = true;
-				gui.elem("user_inroute").value = user.user_inroute;
-				gui.elem("user_outroute").value = user.user_outroute;
-
-				gui.elem("user_inrouter").value = user.user_inrouter;
-				gui.elem("user_outrouter").value = user.user_outrouter;
 
 			} else {
 
 				gui.elem("form_type").value = "new";
 				gui.elem("user_name").value = "";
 				gui.elem("user_name").disabled = false;
-				gui.elem("user_inroute").value = "";
-				gui.elem("user_outroute").value = "";
 
 			}
 
@@ -136,10 +126,11 @@ var cmail = {
 		},
 		delete: function(name) {
 
+			var self = this;
 			if (confirm("Do you really delete this user?") == true) {
-				var xhr = ajax.asyncPost(cmail.api_url + "delete_user", JSON.stringify({ username: name }), function(xhr){
+				var xhr = ajax.asyncPost(cmail.api_url + "users/?delete", JSON.stringify({ username: name }), function(xhr){
 					cmail.set_status(JSON.parse(xhr.response).status);
-					cmail.reload();
+					self.get_all();
 				});
 			}
 		},
@@ -161,21 +152,16 @@ var cmail = {
 			var user = {
 				user_name: gui.elem("user_name").value,
 				user_authdata: authdata,
-				user_inrouter: gui.elem("user_inrouter").value,
-				user_outrouter: gui.elem("user_outrouter").value,
-				user_inroute: gui.elem("user_inroute").value,
-				user_outroute: gui.elem("user_outroute").value
 			};
 
 			if (gui.elem("form_type").value === "new") {
-				ajax.asyncPost(cmail.api_url + "add_user", JSON.stringify({ user: user}), function(xhr) {
+				ajax.asyncPost(cmail.api_url + "users/?add", JSON.stringify({ user: user}), function(xhr) {
 					cmail.set_status(JSON.parse(xhr.response).status);
 				});
 			} else {
-				ajax.asyncPost(cmail.api_url + "update_user", JSON.stringify({ user: user}), function(xhr) {
-					cmail.set_status(JSON.parse(xhr.response).status);
-				});
-
+				//ajax.asyncPost(cmail.api_url + "users/?update", JSON.stringify({ user: user}), function(xhr) {
+				//	cmail.set_status(JSON.parse(xhr.response).status);
+				//});
 
 				if (gui.elem("user_password_revoke").checked) {
 					authdata = true;
@@ -183,13 +169,13 @@ var cmail = {
 
 				}
 				if (authdata) {
-					ajax.asyncPost(cmail.api_url + "set_password", JSON.stringify({ user: user}), function(xhr) {
+					ajax.asyncPost(cmail.api_url + "users?set_password", JSON.stringify({ user: user}), function(xhr) {
 						cmail.set_status(JSON.parse(xhr.response).status);
 					});
 				}
 
 			}
-			cmail.reload();
+			this.get_all();
 			this.hide_form();
 		},
 
@@ -197,7 +183,7 @@ var cmail = {
 	},
 	address: {
 		get: function(expression) {
-			var xhr = ajax.syncPost(cmail.api_url + "get_address", JSON.stringify({ address: expression}));
+			var xhr = ajax.syncPost(cmail.api_url + "addresses/?get", JSON.stringify({ address: expression}));
 			var addresses = JSON.parse(xhr.response).addresses;
 
 			return addresses[0];
@@ -205,7 +191,7 @@ var cmail = {
 		get_all: function() {
 			var self = this;
 
-			ajax.asyncGet(cmail.api_url + "get_addresses", function(xhr) {
+			ajax.asyncGet(cmail.api_url + "addresses/?get", function(xhr) {
 
 				var obj  = JSON.parse(xhr.response);
 
@@ -285,14 +271,16 @@ var cmail = {
 			gui.elem("addressadd").style.display = "none";
 		},
 		delete: function(expression) {
+			var self = this;
 			if (confirm("Do you really delete the address " + expression + "?") == true) {
-				ajax.asyncPost(cmail.api_url + "delete_address", JSON.stringify({ expression: expression }), function(xhr) {
+				ajax.asyncPost(cmail.api_url + "msa/?delete", JSON.stringify({ expression: expression }), function(xhr) {
 					cmail.set_status(JSON.parse(xhr.response).status);
-					cmail.reload();
+					self.get_all();
 				});
 			}
 		},
 		save: function() {
+			var self = this;
 			var address = {
 				address_expression: gui.elem("address_expression").value,
 				address_order: gui.elem("address_order").value,
@@ -300,14 +288,14 @@ var cmail = {
 			};
 
 			if (gui.elem("form_address_type").value === "new") {
-				ajax.asyncPost(cmail.api_url + "add_address", JSON.stringify({address: address}), function(xhr) {
+				ajax.asyncPost(cmail.api_url + "addresses/?add", JSON.stringify({address: address}), function(xhr) {
 					cmail.set_status(JSON.parse(xhr.response).status);
-					cmail.reload();
+					self.get_all();
 				});
 			} else {
-				ajax.asyncPost(cmail.api_url + "update_address", JSON.stringify({address: address}), function(xhr) {
+				ajax.asyncPost(cmail.api_url + "addresses/?update", JSON.stringify({address: address}), function(xhr) {
 					cmail.set_status(JSON.parse(xhr.response).status);
-					cmail.reload();
+					self.get_all();
 				});
 			}
 			this.hide_address_form();
@@ -320,22 +308,163 @@ var cmail = {
 			};
 			var self = this;
 
-			ajax.asyncPost(cmail.api_url + "switch_addresses", JSON.stringify(obj), function(xhr) {
+			ajax.asyncPost(cmail.api_url + "addresses/?switch", JSON.stringify(obj), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
-				cmail.reload();
+				self.get_all();
 			});
 		},
 
 
 	},
+	modules: [],
+	module: {
+		get: function() {
+			ajax.asyncGet(cmail.api_url + "?get_modules", function(xhr) {
+				cmail.modules = JSON.parse(xhr.response).modules;
+				var head = gui.elem("userlist_head");
+				head.innerHTML = "";
+				var tr = gui.create('tr');
+				tr.appendChild(gui.createColumn("Name"));
+
+				cmail.modules.forEach(function(module) {
+					tr.appendChild(gui.createColumn(module));
+				});
+				tr.appendChild(gui.createColumn("Options"));
+				head.appendChild(tr);
+			});
+		}
+	},
+	msa: {
+		get_all: function() {
+			var self = this;
+
+			ajax.asyncGet(cmail.api_url + "msa/?get", function(xhr) {
+				var obj = JSON.parse(xhr.response);
+
+				if (obj.status != "ok") {
+					cmail.set_status(obj.status);
+				}
+
+				var msas = obj.msa;
+
+				var body = gui.elem("msalist");
+				body.innerHTML = "";
+				msas.forEach(function(msa) {
+
+					var tr = gui.create("tr");
+
+					tr.appendChild(gui.createColumn(msa["msa_user"]));
+					tr.appendChild(gui.createColumn(msa["msa_inrouter"]));
+					tr.appendChild(gui.createColumn(msa["msa_inroute"]));
+					tr.appendChild(gui.createColumn(msa["msa_outrouter"]));
+					tr.appendChild(gui.createColumn(msa["msa_outroute"]));
+
+					var options = gui.create("td");
+
+					options.appendChild(gui.createButton("edit", self.show_form, [msa["msa_user"]], self));
+					options.appendChild(gui.createButton("delete", self.delete, [msa["msa_user"]], self));
+
+					tr.appendChild(options);
+
+					body.appendChild(tr);
+				});
+			});
+		},
+		get: function(username) {
+			var xhr = ajax.syncPost(cmail.api_url + "msa/?get", JSON.stringify({ msa_user: username }));
+			
+			var obj = JSON.parse(xhr.response);
+			if (obj.status != "ok") {
+				cmail.set_status(obj.status);
+				return false;
+			}
+
+			if (obj.msa.length > 0) {
+				return obj.msa[0];
+			}
+
+			cmail.set_status("No user found.");
+			return false;
+		},
+		delete: function(username) {
+			var self = this;
+			if (confirm("Do you really delete the address " + username + "?") == true) {
+				ajax.asyncPost(cmail.api_url + "msa/?delete", JSON.stringify({ msa_user: username }), function(xhr) {
+					cmail.set_status(JSON.parse(xhr.response).status);
+					self.get();
+				});
+			}
+
+		},
+		show_form: function(username) {
+			if (username) {
+				gui.elem("form_msa_type").value = "edit";
+				var msa = this.get(username);
+
+				if (msa === false) {
+					return;
+				}
+
+				gui.elem("msa_user").value = msa.msa_user;
+				gui.elem("msa_user").disabled = true;
+				gui.elem("msa_inrouter").value = msa.msa_inrouter;
+				gui.elem("msa_inroute").value = msa.msa_inroute;
+				gui.elem("msa_outrouter").value = msa.msa_outrouter;
+				gui.elem("msa_outroute").value = msa.msa_outroute;
+
+			} else {
+				gui.elem("form_msa_type").value = "new";
+
+				gui.elem("msa_user").value = "";
+				gui.elem("msa_inrouter").value = "store";
+				gui.elem("msa_inroute").value = "";
+				gui.elem("msa_outrouter").value = "drop";
+				gui.elem("msa_outroute").value = "";
+			}
+
+			gui.elem("msaadd").style.display = "block";
+		},
+		hide_form: function() {
+			gui.elem("msaadd").style.display = "none";
+		},
+		save: function() {
+			var msa = {
+				msa_user: gui.elem("msa_user").value,
+				msa_inrouter: gui.elem("msa_inrouter").value,
+				msa_inroute: gui.elem("msa_inroute").value,
+				msa_outrouter: gui.elem("msa_outrouter").value,
+				msa_outroute: gui.elem("msa_outroute").value
+			};
+			var url = "";
+			if (gui.elem("form_msa_type").value == "new") {
+				url = "msa/?add";
+			} else {
+				url = "msa/?update";
+			}
+			ajax.asyncPost(cmail.api_url + url, JSON.stringify(msa), function(xhr) {
+				cmail.set_status(JSON.parse(xhr.response).status);
+			});
+			this.hide_form();
+			this.get_all();
+		}
+	},
 	tabs: [
-		"users",
-		"addresses"
+		"user",
+		"address",
+		"msa"
 		],
 	init: function() {
-		this.reload();
+		this.module.get();
+		
+		// fill router checkboxes
 		this.fill_router();
+
+		// we need the user list for auto completion
+		this.user.get_all();
+
 		var self = this;
+
+		// handle tab change
 		this.switch_hash();
 		window.addEventListener("hashchange", function() {
 			self.switch_hash();	
@@ -346,10 +475,12 @@ var cmail = {
 		var test = true;
 		this.user.hide_form();
 		this.address.hide_form();
+		var self = this;
 		this.tabs.forEach(function(tab) {
 			if ("#" + tab === hash) {
 				gui.elem(tab).style.display = "block";
-				test = false;	
+				test = false;
+				self[tab].get_all();
 			} else {
 				gui.elem(tab).style.display = "none";
 			}
@@ -358,12 +489,13 @@ var cmail = {
 		// check for no tab is displayed
 		if (test) {
 			gui.elem(this.tabs[0]).style.display = "block";
+			self.user.get_all();
 		}
 	},
 	fill_router: function() {
 
-		var inrouter = gui.elem("user_inrouter");
-		var outrouter = gui.elem("user_outrouter");
+		var inrouter = gui.elem("msa_inrouter");
+		var outrouter = gui.elem("msa_outrouter");
 
 		// fill inrouter
 		this.inrouter.forEach(function(val) {
@@ -378,8 +510,4 @@ var cmail = {
 	set_status: function(message) {
 		gui.elem("status").textContent = message;
 	},
-	reload: function() {
-		this.user.get_all();
-		this.address.get_all();
-	}
 };

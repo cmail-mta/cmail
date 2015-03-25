@@ -55,7 +55,7 @@
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 
-			$out["modules"] = $this->getActiveModules($username);
+			$out["modules"] = $this->getActiveModules($out[0]);
 
 			if ($write) {
 				$this->output->add("users", $out);
@@ -64,19 +64,20 @@
 			return $out;
 		}
 
-		public function getActiveModules($username) {
+		public function getActiveModules($user) {
 			global $modulelist;
-			
 			$modules = array();
 
 			foreach ($modulelist as $name => $address) {
 				if ($name != "User") {
+				
 					$module = getModuleInstance($name, $this->db, $this->output);
-					error_log("DEBUG:::" . $name . " = " . json_encode($module));
-
+			
 					if (isset($module)) {
-						$modules[$name] = $module->isActive($username);
+						$modules[$name] = $module->isActive($user["user_name"]);
 					}
+				} else {
+					$modules[$name] = $user["user_login"] == 1;
 				}
 			}
 
@@ -85,9 +86,14 @@
 
 		public function isActive($username) {
 
+			if (!isset($username) || empty($username)) {
+				return false;
+			}
+			error_log($username);
+
 			$obj = array("username" => $username);
 
-			return (count($this->get($obj, false)) > 0);
+			return ($this->get($obj, false)["user_can_login"]);
 		}
 
 		/**
@@ -100,6 +106,11 @@
 			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login FROM users";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
+
+			foreach($out as $key => $user) {
+				$out[$key]["modules"] = $this->getActiveModules($user);
+			}
+
 			$this->output->add("users", $out);
 
 			return $out;
