@@ -1,21 +1,3 @@
-
-sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
-	int status;
-	sqlite3_stmt* target=NULL;
-
-	status=sqlite3_prepare_v2(conn, query, strlen(query), &target, NULL);
-
-	switch(status){
-		case SQLITE_OK:
-			logprintf(log, LOG_DEBUG, "Statement (%s) compiled ok\n", query);
-			return target;
-		default:
-			logprintf(log, LOG_ERROR, "Failed to prepare statement (%s): %s\n", query, sqlite3_errmsg(conn));
-	}
-
-	return NULL;
-}
-
 int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* dbfile, char* name){
 	char* INSERT_USER_MAILBOX="INSERT INTO %s.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* user_stmt=NULL;
@@ -315,8 +297,5 @@ void database_free(LOGGER log, DATABASE* database){
 		
 		sqlite3_close(database->conn);
 		database->conn=NULL;
-	}
-	else{
-		return;
 	}
 }

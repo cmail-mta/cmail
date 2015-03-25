@@ -21,6 +21,7 @@
 #include "../lib/connpool.c"
 
 #include "../lib/daemonize.c"
+#include "../lib/database.c"
 
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
@@ -43,5 +44,7 @@ typedef struct /*_POP3_LISTENER*/ {
 	char* announce_domain;
 } LISTENER;
 
+#include "database.c"
 #include "args.c"
 #include "config.c"
+#include "coreloop.c"
