@@ -1,0 +1,1 @@
+#define POP_MAX_LINE_LENGTH 1024 //FIXME find this

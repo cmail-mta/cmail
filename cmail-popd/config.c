@@ -173,5 +173,19 @@ int config_line(void* config_data, char* line){
 }
 
 void config_free(CONFIGURATION* config){
-	//TODO
+	unsigned i;
+	LISTENER* listener_data;
+
+	for(i=0;i<config->listeners.count;i++){
+		listener_data=(LISTENER*)config->listeners.conns[i].aux_data;
+		free(listener_data->announce_domain);
+	}
+
+	connpool_free(&(config->listeners));
+	database_free(config->log, &(config->database));
+
+	if(config->log.stream!=stderr){
+		fclose(config->log.stream);
+		config->log.stream=stderr;
+	}
 }

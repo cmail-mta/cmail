@@ -45,6 +45,7 @@
 #include "../lib/privileges.c"
 #include "../lib/config.c"
 #include "../lib/daemonize.c"
+#include "../lib/database.c"
 
 typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
 	AUTH_NONE,			//Authentication not supported

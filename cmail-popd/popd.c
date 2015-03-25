@@ -88,7 +88,8 @@ int main(int argc, char** argv){
 		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize?" (Because the log output stream is stderr)":""));
 	}
 	
-	//TODO core loop
+	//run core loop
+	core_loop(config.log, config.listeners, &(config.database));
 	
 	//cleanup
 	config_free(&config);
