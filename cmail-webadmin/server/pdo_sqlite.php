@@ -35,6 +35,9 @@ class DB {
 			die();
 		}
 
+		$this->query("PRAGMA foreign_keys = ON", array(), null);
+		$this->query("PRAGMA busy_timeout = 1000", array(), null);	
+
 		return true;
 	}
 
@@ -95,6 +98,11 @@ class DB {
 		$stm->execute($params);
 
 		if (is_null($stm)) {
+			return null;
+		}
+
+		if (is_null($fetch)) {
+			$stm->closeCursor();
 			return null;
 		}
 
