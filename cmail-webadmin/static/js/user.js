@@ -109,7 +109,7 @@ cmail.user = {
 
 		var self = this;
 		if (confirm("Do you really delete this user?") == true) {
-			var xhr = ajax.asyncPost(cmail.api_url + "users/?delete", JSON.stringify({ username: name }), function(xhr){
+			var xhr = ajax.asyncPost(cmail.api_url + "users/?delete", JSON.stringify({ user_name: name }), function(xhr){
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
 			});
