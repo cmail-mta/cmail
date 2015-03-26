@@ -8,7 +8,8 @@
 	$modulelist = array(
 		"Address" => "addresses/address.php",
 		"User" => "users/user.php",
-		"MSA" => "msa/msa.php"
+		"MSA" => "msa/msa.php",
+		"POP" => "pop/pop.php"
 	);
 
 ?>
