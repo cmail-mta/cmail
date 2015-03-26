@@ -23,6 +23,7 @@ int pop_quit(LOGGER log, CONNECTION* client, DATABASE* database){
 	
 	if(client_data->state==STATE_TRANSACTION){
 		//TODO execute the update
+		client_send(log, client, "+OK %s POP3 done\r\n", listener_data->announce_domain);
 	}
 	else{
 		client_send(log, client, "+OK %s POP3 done\r\n", listener_data->announce_domain);
