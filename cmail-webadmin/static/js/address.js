@@ -2,7 +2,7 @@ var cmail = cmail || {};
 
 cmail.address = {
 	get: function(expression) {
-		var xhr = ajax.syncPost(cmail.api_url + "addresses/?get", JSON.stringify({ address: expression}));
+		var xhr = ajax.syncPost(cmail.api_url + "addresses/?get", JSON.stringify({ address_expression: expression}));
 		var addresses = JSON.parse(xhr.response).addresses;
 
 		return addresses[0];
@@ -92,7 +92,7 @@ cmail.address = {
 	delete: function(expression) {
 		var self = this;
 		if (confirm("Do you really delete the address " + expression + "?") == true) {
-			ajax.asyncPost(cmail.api_url + "msa/?delete", JSON.stringify({ expression: expression }), function(xhr) {
+			ajax.asyncPost(cmail.api_url + "msa/?delete", JSON.stringify(expression), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
 			});
@@ -107,12 +107,12 @@ cmail.address = {
 		};
 
 		if (gui.elem("form_address_type").value === "new") {
-			ajax.asyncPost(cmail.api_url + "addresses/?add", JSON.stringify({address: address}), function(xhr) {
+			ajax.asyncPost(cmail.api_url + "addresses/?add", JSON.stringify(address), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
 			});
 		} else {
-			ajax.asyncPost(cmail.api_url + "addresses/?update", JSON.stringify({address: address}), function(xhr) {
+			ajax.asyncPost(cmail.api_url + "addresses/?update", JSON.stringify(address), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
 			});
