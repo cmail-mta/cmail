@@ -8,4 +8,5 @@ Bind parameter filter-local-reverse
 Implement client command rate limiting
 Write some tests
 Write proper Received: headers
-
+Configurable reject message
+Alias routing README compliancy (route _as_ user)

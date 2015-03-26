@@ -1,7 +1,16 @@
 int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
-	logprintf(log, LOG_ALL_IO, ">> %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+
+	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
 	
-	//TODO process client line
+	switch(client_data->state){
+		case STATE_AUTH:
+			return state_authorization(log, client, database);
+		case STATE_TRANSACTION:
+			return state_transaction(log, client, database);
+		case STATE_UPDATE:
+			return state_update(log, client, database);
+	}
 	
 	return 0;
 }

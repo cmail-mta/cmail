@@ -31,7 +31,7 @@
 
 typedef enum /*_POP_STATE*/ {
 	STATE_AUTH,
-	STATE_TRANSACT,
+	STATE_TRANSACTION,
 	STATE_UPDATE
 } POPSTATE;
 
@@ -63,8 +63,13 @@ typedef struct /*_POP3_LISTENER*/ {
 	char* announce_domain;
 } LISTENER;
 
-#include "client.c"
+int client_close(CONNECTION* client);
+int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
+
 #include "database.c"
 #include "args.c"
 #include "config.c"
+#include "popfunctions.c"
+#include "popstatemachine.c"
+#include "client.c"
 #include "coreloop.c"
