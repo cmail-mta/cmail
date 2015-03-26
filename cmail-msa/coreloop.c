@@ -39,7 +39,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		//select over fds
-		status=pselect(maxfd+1, &readfds, NULL, NULL, NULL, NULL);
+		status=select(maxfd+1, &readfds, NULL, NULL, NULL);
 
 		if(status<=0){
 			logprintf(log, LOG_ERROR, "Error in select: %s\n", strerror(errno));

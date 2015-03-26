@@ -69,16 +69,14 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 				}
 
 				//fill entry
-				entry->file_name=calloc(strlen(dbfile)+1, sizeof(char));
-				entry->conn_handle=calloc(strlen(name)+1, sizeof(char));
+				entry->file_name=common_strdup(dbfile);
+				entry->conn_handle=common_strdup(name);
 
 				if(!entry->file_name || !entry->conn_handle){
 					logprintf(log, LOG_ERROR, "Failed to allocate user storage structure members\n");
 					rv=-1;
 					break;
 				}
-				strncpy(entry->file_name, dbfile, strlen(dbfile));
-				strncpy(entry->conn_handle, name, strlen(name));
 				break;
 			case SQLITE_ERROR:
 				rv=-1;

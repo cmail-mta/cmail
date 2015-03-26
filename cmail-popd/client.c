@@ -37,7 +37,9 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	CLIENT empty_data = {
 		.listener = listener,
 		.recv_offset = 0,
-		.state = STATE_AUTH
+		.state = STATE_AUTH,
+		.auth = AUTH_USER,
+		.user = NULL
 	};
 	CLIENT* actual_data;
 	LISTENER* listener_data=(LISTENER*)listener->aux_data;
@@ -83,12 +85,16 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 }
 
 int client_close(CONNECTION* client){
-	//CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	//close the socket
 	close(client->fd);
 
-	//TODO reset client data
+	//reset client data
+	if(client_data->user){
+		free(client_data->user);
+		client_data->user=NULL;
+	}
 	
 	//return the conpool slot
 	client->fd=-1;
