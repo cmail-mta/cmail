@@ -136,7 +136,7 @@ cmail.user = {
 		};
 
 		if (gui.elem("form_type").value === "new") {
-			ajax.asyncPost(cmail.api_url + "users/?add", JSON.stringify({ user: user}), function(xhr) {
+			ajax.asyncPost(cmail.api_url + "users/?add", JSON.stringify(user), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 			});
 		} else {
