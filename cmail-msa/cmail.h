@@ -7,8 +7,6 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <nettle/base16.h>
-#include <nettle/sha2.h>
 
 //#define CMAIL_NO_TLS
 #ifndef CMAIL_NO_TLS
@@ -37,6 +35,7 @@
 #include "../lib/signal.h"
 #include "../lib/privileges.h"
 #include "../lib/config.h"
+#include "../lib/auth.h"
 
 #include "../lib/logger.c"
 #include "../lib/network.c"
@@ -158,6 +157,9 @@ typedef struct /*_MAIL_ROUTE*/ {
 	char* router;
 	char* argument;
 } MAILROUTE;
+
+//This needs the database type
+#include "../lib/auth.c"
 
 //PROTOTYPES
 int client_close(CONNECTION* client);

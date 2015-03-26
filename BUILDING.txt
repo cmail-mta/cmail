@@ -1,0 +1,14 @@
+Build prerequisites
+
+cmail-msa
+	libgnutls28-dev		When compiling without CMAIL_NO_TLS
+	libnettle-dev		(Comes with libgnutls)
+	libsqlite3-dev
+
+cmail-popd
+	libgnutls28-dev		When compiling without CMAIL_NO_TLS
+	libnettle-dev		(Comes with libgnutls)
+	libsqlite3-dev
+
+Building is as simple as running make in the module directories on a
+system with a working C compiler (tcc is fine).
