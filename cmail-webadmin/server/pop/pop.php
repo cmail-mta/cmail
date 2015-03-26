@@ -1,4 +1,5 @@
 <?php
+	require_once("../module.php");
 
 	class POP implements Module {
 
@@ -36,7 +37,7 @@
 		}
 
 		public function getEndPoints() {
-			return $endPoints;
+			return $this->endPoints;
 		}
 
 		/**
@@ -98,7 +99,7 @@
 				":pop_user" => $obj["pop_user"]
 			);
 
-			$status = $sql->db->insert($sql, [$params]);
+			$status = $this->db->insert($sql, [$params]);
 
 			if (isset($status)) {
 				$this->output->add("status", "ok");
@@ -126,7 +127,7 @@
 				":pop_user" => $obj["pop_user"]
 			);
 
-			$status = $sql->db->insert($sql, [$params]);
+			$status = $this->db->insert($sql, [$params]);
 
 			if (isset($status)) {
 				$this->output->add("status", "ok");

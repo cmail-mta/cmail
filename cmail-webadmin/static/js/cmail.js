@@ -449,6 +449,7 @@ var cmail = {
 		},
 		test: function() {
 			var address = gui.elem("msa_test_input").value;
+			var router = gui.elem("msa_test_router").value;
 
 			if (address === "") {
 				cmail.set_status("Mail address is empty.");
@@ -457,7 +458,7 @@ var cmail = {
 
 			var obj = {
 				address_expression: address,
-				address_routing: "inrouter"
+				address_routing: router
 			}
 
 			ajax.asyncPost(cmail.api_url + "addresses/?test", JSON.stringify(obj), function(xhr) {
@@ -485,6 +486,7 @@ var cmail = {
 		"user",
 		"address",
 		"msa",
+		"pop",
 		"test"
 		],
 	init: function() {

@@ -14,7 +14,9 @@
 			<a class="item" href="#user">User</a>
 			<a class="item" href="#msa">MSA</a>
 			<a class="item" href="#address">Adresses</a>
+			<a class="item" href="#pop">POP</a>
 			<a class="item" href="#test">Test</a>
+
 			<span>Status: </span>
 			<span id="status">Ok</span>
 		</div>
@@ -171,6 +173,29 @@
 
 		</div>
 
+		<div id="pop" class="tab">
+			
+			<h2>POP Config</h2>
+
+			<br />
+
+			<div id="pop_action_bar">
+				<form action="javascript:cmail.pop.add()">
+					<input type="text" id="pop_user" list="usernamelist" value="" />
+					<span class="button" onclick="cmail.pop.add()">Add</span>
+				</form>
+			</div>
+
+			<table>
+				<thead>
+					<th>User</th><th>Options</th>
+				</thead>
+
+				<tbody id="pop_user_list">
+				</tbody>
+			</table>
+		</div>
+
 		<div id="test" class="tab">
 
 			<h2>Test Routing</h2>
@@ -180,6 +205,10 @@
 			<form action="javascript:cmail.msa.test()">
 				<label>Mail address: <br />
 					<input type="text" id="msa_test_input" value="" />
+					<select id="msa_test_router">
+						<option value="inrouter">Inrouter</option>
+						<option value="outrouter">Outrouter</option>
+					</select>
 					<span class="button" onclick="cmail.msa.test()">Test</span>
 				</label>
 
@@ -201,7 +230,8 @@
 		<datalist id="usernamelist">
 		</datalist>
 
-		<script src="static/cmail.js"></script>
-		<script src="static/common.js"></script>
+		<script src="static/js/common.js"></script>
+		<script src="static/js/cmail.js"></script>
+		<script src="static/js/pop.js"></script>
 	</body>
 </html>
