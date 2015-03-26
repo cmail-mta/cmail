@@ -36,8 +36,8 @@ function main($module_name) {
 	$output->addDebugMessage("payload", $obj);
 
 	if (!isset($obj["auth"])) {
-		$obj["auth"] = null;
-	}	
+		$obj["auth"] = [];
+	}
 
 	if (!auth($db, $output, $obj["auth"])) {
 		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");

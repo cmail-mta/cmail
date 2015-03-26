@@ -101,7 +101,7 @@
                         }
 
                         $sql = "INSERT INTO msa(msa_user, msa_inrouter, msa_inroute, msa_outrouter, msa_outroute)"
-                                . "VALUES (:msa_name, :msa_authdata, :msa_inrouter, :msa_inroute, :msa_outrouter, :msa_outroute)";
+                                . "VALUES (:msa_name, :msa_inrouter, :msa_inroute, :msa_outrouter, :msa_outroute)";
 
                         $params = array(
                                 ":msa_user" => $msa["msa_user"],

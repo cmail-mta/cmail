@@ -117,7 +117,7 @@ cmail.address = {
 				self.get_all();
 			});
 		}
-		this.hide_address_form();
+		this.hide_form();
 	},
 	switch_order: function(address1, address2) {
 
