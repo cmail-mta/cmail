@@ -111,7 +111,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		case AUTH_PLAIN:
 			//must be parameter.
 			//duplicate to storage
-			client_data->auth.parameter=calloc(strlen(parameter)+1, sizeof(char));
+			client_data->auth.parameter=common_strdup(parameter);
 			if(!client_data->auth.parameter){
 				logprintf(log, LOG_ERROR, "Failed to allocate auth parameter memory\n");
 				client_data->state=STATE_IDLE;
@@ -119,7 +119,6 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				auth_reset(&(client_data->auth));
 				return -1;
 			}
-			strncpy(client_data->auth.parameter, parameter, strlen(parameter));
 			
 			//evaluate
 			switch(auth_status(log, database, &(client_data->auth))){

@@ -133,14 +133,11 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		*listener_data=settings;
 
 		//copy data to heap
-		listener_data->announce_domain=calloc(strlen(settings.announce_domain)+1, sizeof(char));
+		listener_data->announce_domain=common_strdup(settings.announce_domain);
 		if(!listener_data->announce_domain){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
 			return -1;
 		}
-
-		strncpy(listener_data->announce_domain, settings.announce_domain, strlen(settings.announce_domain));
-
 		return 0;
 	}
 	

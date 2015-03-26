@@ -162,12 +162,11 @@ int auth_method_plain(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
 		if(auth_data->parameter[i]==0){
 			if(!user){
 				//Heap-copy the user to be able to properly interact with auth_free
-				user=calloc(strlen(auth_data->parameter+i+1)+1, sizeof(char));
+				user=common_strdup(auth_data->parameter+i+1);
 				if(!user){
 					logprintf(log, LOG_ERROR, "Failed to allocate memory for user name copy\n");
 					return -1;
 				}
-				strncpy(user, auth_data->parameter+i+1, strlen(auth_data->parameter+i+1));
 			}
 			else if(!pass){
 				pass=auth_data->parameter+i+1;
