@@ -92,7 +92,7 @@ cmail.address = {
 	delete: function(expression) {
 		var self = this;
 		if (confirm("Do you really delete the address " + expression + "?") == true) {
-			ajax.asyncPost(cmail.api_url + "msa/?delete", JSON.stringify(expression), function(xhr) {
+			ajax.asyncPost(cmail.api_url + "addresses/?delete", JSON.stringify({address_expression: expression}), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
 			});
