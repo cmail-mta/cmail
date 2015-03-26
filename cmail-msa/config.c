@@ -270,6 +270,7 @@ void config_free(CONFIGURATION* config){
 	database_free(config->log, &(config->database));
 
 	if(config->log.stream!=stderr){
+		fflush(config->log.stream);
 		fclose(config->log.stream);
 		config->log.stream=stderr;
 	}

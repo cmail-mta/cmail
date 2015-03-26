@@ -19,6 +19,12 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	//TODO disable this on tls-required auth
 	if(!strncasecmp(client_data->recv_buffer, "user ", 5)){
+		if(client_data->auth.user){
+			logprintf(log, LOG_INFO, "Client issued multiple USER commands\n");
+			client_send(log, client, "-ERR User already set\r\n");
+			return -1;
+		}
+
 		logprintf(log, LOG_INFO, "Client sends user %s\n", client_data->recv_buffer+5);
 		client_data->auth.method=AUTH_USER;
 		client_data->auth.user=common_strdup(client_data->recv_buffer+5);
@@ -33,7 +39,21 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "pass ", 5)){
-		//TODO
+		if(!client_data->auth.user || client_data->auth.method!=AUTH_USER){
+			logprintf(log, LOG_WARNING, "Client tried PASS without user or in another method\n");
+			client_send(log, client, "-ERR Not possible now\r\n");
+			return -1;
+		}
+
+		client_data->auth.authorized=(auth_validate(log, database, client_data->auth.user, client_data->recv_buffer+5)==0);
+		if(!client_data->auth.authorized){
+			auth_reset(&(client_data->auth));
+			client_send(log, client, "-ERR Login failed\r\n");
+		}
+		else{
+			client_data->state=STATE_TRANSACTION;
+			client_send(log, client, "+OK Commence transaction\r\n");
+		}
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
