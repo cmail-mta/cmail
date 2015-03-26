@@ -514,7 +514,9 @@ var cmail = {
 			if ("#" + tab === hash) {
 				gui.elem(tab).style.display = "block";
 				test = false;
-				self[tab].get_all();
+				if (tab != "test") {
+					self[tab].get_all();
+				}
 			} else {
 				gui.elem(tab).style.display = "none";
 			}
