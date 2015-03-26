@@ -13,7 +13,7 @@
 			return false;
 		}
 
-		if (!issert($_SERVER["PHP_AUTH_PW"]) || empty($_SERVER["PHP_AUTH_PW"])) {
+		if (!isset($_SERVER["PHP_AUTH_PW"]) || empty($_SERVER["PHP_AUTH_PW"])) {
 			return false;
 		}
 
