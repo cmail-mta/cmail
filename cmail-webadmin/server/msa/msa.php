@@ -36,7 +36,6 @@
 		public function get($obj, $write = true) {
 			if (!isset($obj["msa_user"]) || empty($obj["msa_user"])) {
 				// if no username is set, return all users
-				error_log("addall");
 				return $this->getAll();
 			}
 

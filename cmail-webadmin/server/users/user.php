@@ -89,7 +89,6 @@
 			if (!isset($username) || empty($username)) {
 				return false;
 			}
-			error_log($username);
 
 			$obj = array("username" => $username);
 

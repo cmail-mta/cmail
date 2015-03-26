@@ -211,8 +211,6 @@
 		public function switchOrder($obj) {
 
 			$this->db->beginTransaction();
-			error_log(json_encode($obj));
-
 
 			if (!isset($obj["address1"]) || empty($obj["address1"])) {
 				$this->output->add("status", "Adress 1 is not defined");
