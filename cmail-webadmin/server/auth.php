@@ -8,6 +8,14 @@
 	 * @return true if ok, else false
 	 */
 	function auth($db, $output, $auth) {
+		$auth = array();
+		if (!isset($_SERVER["PHP_AUTH_USER"]) || empty($_SERVER["PHP_AUTH_USER"])) {
+			return false;
+		}
+
+		if (!isset($_SERVER["PHP_AUTH_PW"]) || empty($_SERVER["PHP_AUTH_PW"])) {
+			return false;
+		}
 
 		$auth["user_name"] = $_SERVER["PHP_AUTH_USER"];
 		$auth["password"] = $_SERVER["PHP_AUTH_PW"];
