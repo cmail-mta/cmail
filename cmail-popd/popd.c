@@ -23,7 +23,8 @@ int main(int argc, char** argv){
 			.conns = NULL
 		},
 		.database = {
-			.conn = NULL
+			.conn = NULL,
+			.query_authdata = NULL
 		},
 		.log = {
 			.stream = stderr,

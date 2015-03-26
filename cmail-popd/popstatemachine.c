@@ -20,9 +20,9 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 	//TODO disable this on tls-required auth
 	if(!strncasecmp(client_data->recv_buffer, "user ", 5)){
 		logprintf(log, LOG_INFO, "Client sends user %s\n", client_data->recv_buffer+5);
-		client_data->auth=AUTH_USER;
-		client_data->user=common_strdup(client_data->recv_buffer+5);
-		if(!client_data->user){
+		client_data->auth.method=AUTH_USER;
+		client_data->auth.user=common_strdup(client_data->recv_buffer+5);
+		if(!client_data->auth.user){
 			logprintf(log, LOG_WARNING, "Failed to allocate memory for user name\n");
 			client_send(log, client, "-ERR Out of memory\r\n");
 			return -1;

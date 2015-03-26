@@ -16,6 +16,7 @@
 #include "../lib/config.h"
 #include "../lib/network.h"
 #include "../lib/connpool.h"
+#include "../lib/auth.h"
 
 #include "../lib/logger.c"
 #include "../lib/signal.c"
@@ -40,8 +41,15 @@ typedef enum /*_POP_STATE*/ {
 	STATE_UPDATE
 } POPSTATE;
 
+typedef struct /*_AUTHENTICATION_DATA*/ {
+	AUTH_METHOD method;
+	char* user;
+	bool authorized;
+} AUTH_DATA;
+
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
+	sqlite3_stmt* query_authdata;
 } DATABASE;
 
 typedef struct /*_ARGS_COMPOSITE*/ {
@@ -62,7 +70,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	char recv_buffer[POP_MAX_LINE_LENGTH];
 	unsigned recv_offset;
 	POPSTATE state;
-	AUTH_METHOD auth;
+	AUTH_DATA auth;
 	char* user;
 } CLIENT;
 
@@ -71,12 +79,16 @@ typedef struct /*_POP3_LISTENER*/ {
 	//bool auth_tlsonly;
 } LISTENER;
 
+//This needs the database type
+#include "../lib/auth.c"
+
 int client_close(CONNECTION* client);
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
 
 #include "database.c"
 #include "args.c"
 #include "config.c"
+#include "auth.c"
 #include "popfunctions.c"
 #include "popstatemachine.c"
 #include "client.c"

@@ -38,7 +38,11 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.listener = listener,
 		.recv_offset = 0,
 		.state = STATE_AUTH,
-		.auth = AUTH_USER,
+		.auth = {
+			.method = AUTH_USER,
+			.user = NULL,
+			.authorized = false
+		},
 		.user = NULL
 	};
 	CLIENT* actual_data;
@@ -91,10 +95,7 @@ int client_close(CONNECTION* client){
 	close(client->fd);
 
 	//reset client data
-	if(client_data->user){
-		free(client_data->user);
-		client_data->user=NULL;
-	}
+	auth_reset(&(client_data->auth));
 	
 	//return the conpool slot
 	client->fd=-1;
@@ -140,7 +141,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 			//FIXME if in data mode, process the line anyway
 			//else, skip until next newline (set flag to act accordingly in next read)
 			logprintf(log, LOG_WARNING, "Line too long, handling current contents\n");
-			//TODO client_send(log, client, "500 Line too long\r\n");
+			client_send(log, client, "-ERR Line too long\r\n");
 			client_data->recv_buffer[client_data->recv_offset+i]='\r';
 			client_data->recv_buffer[client_data->recv_offset+i+1]='\n';
 		}
