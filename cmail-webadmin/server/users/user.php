@@ -218,11 +218,17 @@
 		 * @output_flags delete is "ok" when everything is fine, else "not ok"
 		 * @return false on error, else true
 		 */
-		public function delete($username) {
+		public function delete($obj) {
 			//TODO: check input
+			
+			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
+				$this->output->add("status", "No username set.");
+				return false;
+			}	
+			
 			$sql = "DELETE FROM users WHERE user_name = :username";
 
-			$params = array(":username" => $username);
+			$params = array(":username" => $obj["user_name"]);
 
 			$status = $this->db->insert($sql, array($params));
 
