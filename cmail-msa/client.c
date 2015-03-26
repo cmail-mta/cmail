@@ -1,6 +1,8 @@
 int client_line(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	logprintf(log, LOG_ALL_IO, ">> %s\n", ((CLIENT*)client->aux_data)->recv_buffer);
-	switch(((CLIENT*)client->aux_data)->state){
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+
+	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
+	switch(client_data->state){
 		case STATE_NEW:
 			return smtpstate_new(log, client, database, path_pool);
 		case STATE_IDLE:
