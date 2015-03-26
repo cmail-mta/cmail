@@ -15,7 +15,8 @@
 			"add" => "add",
 			"delete" => "delete",
 			"update" => "update",
-			"switch" => "switchOrder"
+			"switch" => "switchOrder",
+			"test" => "testRouting"
 		);
 
 		public function __construct($db, $output) {
@@ -268,6 +269,158 @@
 			$this->output->add("status", "ok");
 			return true;	
 		}
+
+		public function match($obj) {
+
+
+			if (!isset($obj["address_expression"]) || empty($obj["address_expression"])) {
+				$this->output->add("status", "We need an address expression");
+				return [];
+			}
+
+			$sql = "SELECT address_expression, address_user, address_order FROM addresses "
+				. "WHERE :address_expression LIKE address_expression ORDER BY address_order DESC";
+
+			$params = array(
+				":address_expression" => $obj["address_expression"]
+			);
+
+			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+
+			return $out;
+
+
+		}
+
+		public function testRouting($obj) {
+
+			if (!isset($obj["address_expression"]) || empty($obj["address_expression"])) {
+				$this->output->add("status", "We need an address expression.");
+				return false;
+			}
+
+			if (!isset($obj["address_routing"]) || empty($obj["address_routing"])) {
+				$this->output->add("status", "We need a routing direction (inrouter or outrouter)");
+				return false;
+			}
+
+			$address = $this->match($obj);
+
+			if (count($address) < 1) {
+				$this->output->add("steps", ["Address not found."]);
+				return false;
+			}
+
+			$address = $address[0];
+
+			$router = "msa_" . $obj["address_routing"];
+
+			$msaModule = getModuleInstance("MSA", $this->db, $this->output);
+
+			$finished = false;
+			$steps = array();
+			$steps[] = "Address matched: " . $address["address_expression"];
+			$msa = $msaModule->get(array("msa_user" => $address["address_user"]), false);
+
+
+			if (count($msa) < 1) {
+				$this->output->add("steps", ["No routing informations found for user " . $address["address_user"]]);
+				return false;
+			}
+
+			$msa = $msa[0];
+
+			$steps[] = "Matched user: " . $msa["msa_user"];
+
+			while (!$finished) {
+				$finished = true;
+				switch ($msa[$router]) {
+					case "drop":
+						$steps[] = "address dropped";
+						break;
+					case "handoff":
+						$steps[] = "handoff to " . $msa[substr($router, 0, -1)];
+						break;
+					case "forward":
+						if ($router == "msa_outrouter") {
+							$steps[] = "invalid outrouter (forward)";
+						} else {
+							$steps[] = "forward to " . $msa[substr($router, 0, -1)];
+						}
+						break;
+					case "reject":
+						$steps[] = "address rejected";
+						break;
+					case "store":
+						if ($router == "msa_outrouter") {
+							$steps[] = "store is not a valid outrouter";
+							break;
+						}
+
+						if ($msa[substr($router, 0, -1)] != "") {
+							$steps[] = "stored in " . $msa[substr($router, 0, -1)];
+						} else {
+							$steps[] = "stored in master table";
+						}
+						break;
+					case "alias":
+						$user = $msa[substr($router, 0, -1)];
+						$finished = false;
+						foreach($steps as $step) {
+							if ($step == "alias to user " . $user) {
+								$finished = true;
+								$steps[] = "invalid routing, loop in aliases (user " . $user . ")";
+								break;
+							}	
+						}
+
+						if (!$finished) {
+							$msa = $msaModule->get(array("msa_user" => $user, false));
+
+							if (count($msa) < 1) {
+								$finished = true;
+								$steps[] = "Cannot alias, user " . $user . " not found";
+							} else {
+								$msa = $msa[0];
+								$steps[] = "alias to user " . $user;
+							}
+						}
+						break;
+					case "any":
+						if ($router == "msa_outrouter") {
+							$steps[] = "mail accepted (cause of any)";
+						} else {
+							$steps[] = "invalid routing (any is only valid for outrouting)";
+						}
+						break;
+					case "defined":
+						if ($router == "msa_outrouter") {
+							$addresses = $this->get(array("address_user" => $msa["msa_user"]));
+							$accepted = false;
+							foreach($addresses as $address2) {
+								if ($obj["address_expression"] == $address2["address_expression"]) {
+									$steps[] = "address accepted";
+									$accepted = true;
+									break;
+								}
+							}
+							if (!$accepted) {
+								$steps[] = "address not accpeted (caused by defined routing with user " . $msa["msa_user"];
+							}
+						} else {
+							$steps[] = "defined is only valid for outrouting";
+						}
+						break;
+					default:
+						$steps[] = "invalid routing (" . $msa[$router] . " not valid)";
+						break;
+				}
+			}
+			$this->output->add("steps", $steps);
+			return $steps;
+		}
+
+
 	}
 
 ?>

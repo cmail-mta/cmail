@@ -446,12 +446,46 @@ var cmail = {
 			});
 			this.hide_form();
 			this.get_all();
+		},
+		test: function() {
+			var address = gui.elem("msa_test_input").value;
+
+			if (address === "") {
+				cmail.set_status("Mail address is empty.");
+				return;
+			}
+
+			var obj = {
+				address_expression: address,
+				address_routing: "inrouter"
+			}
+
+			ajax.asyncPost(cmail.api_url + "addresses/?test", JSON.stringify(obj), function(xhr) {
+				var resp = JSON.parse(xhr.response);
+
+				if (resp.status !== "ok") {
+					cmail.set_status(resp.status);
+					return;
+				}
+
+				var body = gui.elem("msa_test_steps");
+				body.innerHTML = "";
+				resp.steps.forEach(function(step, i) {
+					var tr = gui.create("tr");
+
+					tr.appendChild(gui.createColumn(i));
+					tr.appendChild(gui.createColumn(step));
+
+					body.appendChild(tr);
+				});
+			});
 		}
 	},
 	tabs: [
 		"user",
 		"address",
-		"msa"
+		"msa",
+		"test"
 		],
 	init: function() {
 		this.module.get();
