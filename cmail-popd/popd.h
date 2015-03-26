@@ -29,6 +29,11 @@
 
 #include "poplimits.h"
 
+typedef enum /*_AUTH_METHOD*/ {
+	AUTH_USER,
+	AUTH_SASLPLAIN
+} AUTH_METHOD;
+
 typedef enum /*_POP_STATE*/ {
 	STATE_AUTH,
 	STATE_TRANSACTION,
@@ -57,10 +62,13 @@ typedef struct /*_CLIENT_DATA*/ {
 	char recv_buffer[POP_MAX_LINE_LENGTH];
 	unsigned recv_offset;
 	POPSTATE state;
+	AUTH_METHOD auth;
+	char* user;
 } CLIENT;
 
 typedef struct /*_POP3_LISTENER*/ {
 	char* announce_domain;
+	//bool auth_tlsonly;
 } LISTENER;
 
 int client_close(CONNECTION* client);
