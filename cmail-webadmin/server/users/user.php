@@ -13,7 +13,7 @@
 			"get" => "get",
 			"add" => "add",
 			"delete" => "delete",
-			"update" => "set_password"
+			"set_password" => "set_password"
 		);
 
 		/**

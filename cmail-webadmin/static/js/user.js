@@ -150,7 +150,7 @@ cmail.user = {
 
 			}
 			if (authdata) {
-				ajax.asyncPost(cmail.api_url + "users?set_password", JSON.stringify({ user: user}), function(xhr) {
+				ajax.asyncPost(cmail.api_url + "users/?set_password", JSON.stringify(user), function(xhr) {
 					cmail.set_status(JSON.parse(xhr.response).status);
 				});
 			}
