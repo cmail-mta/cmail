@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Cmail Admin</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<link rel="icon" href="static/logo.png" type="image/x-icon" />
+		<link rel="shortcut icon" href="static/logo.png" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="static/cmail.css" />
+		<meta name="description" content="Cmail Admin" />
+		<meta name="robots" content="noindex,nofollow" />
+	</head>
+	<body onload="cmail.init();">
+		<div id="headmenu">
+			<a class="item" href="#read">Read</a>
+			<a class="item" href="#write">Write</a>
+
+			<span>Status: </span>
+			<span id="status">Ok</span>
+		</div>
+		
+		<div id="list" class="tab">
+			<h2>Mails</h2>
+			<br />
+			<table>
+				<thead>
+					<tr>
+						<th>Date</th><th>From</th><th>To</th><th>Subject</th>
+					</tr>
+				</thead>
+
+				<tbody id="mail_list">
+				</tbody>
+			
+			</table>
+
+		</div>
+
+		<div id="write" class="tab">
+
+		</div>
+
+		<script src="static/js/common.js"></script>
+		<script src="static/js/cmail.js"></script>
+		<script src="static/js/read.js"></script>
+	</body>
+</html>

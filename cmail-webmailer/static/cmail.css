@@ -1,0 +1,87 @@
+html{
+	background-color:#efefef;
+}
+
+body{
+	padding:0;
+	margin:0;
+}
+
+a{
+	text-decoration:none;
+	color:#33f;
+	cursor:pointer;
+}
+
+h1, h2, h3{
+	margin:0;
+}
+
+.button{
+	padding:0.3em;
+	border-radius:0.2em;
+	background-color:#ccc;
+	cursor: pointer;
+	margin:0.4em;
+	display: inline-block;
+}
+
+.button:hover{
+	background-color:#bbb;
+}
+
+#headmenu{
+	text-align:center;
+	background-color:#d7d7d7;
+	padding:0.3em;
+}
+
+#headmenu .item{
+	padding:0.7em;
+}
+
+#headmenu .item:hover{
+	background-color:#ddd;
+}
+
+table {
+	width: 100%;
+	text-align: center;
+}
+
+tbody tr:nth-child(odd){
+	background-color:#aaa;
+}
+
+.editPanel {
+
+	display: none;
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(34,34,34,0.5);
+}
+
+.editPanel form {
+
+	top: 10%;
+	width: 50%;
+	margin: 0 auto;
+	background-color: rgba(170,170,170, 1);
+	padding: 1em;
+	border-radius: 0.5em;
+}
+
+.tab {
+	width: 80%;
+	margin: 0 auto;
+}
+
+label {
+	display: block;
+	float: left;
+}
+
+.separator {
+	clear: both;
+}
