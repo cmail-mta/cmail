@@ -85,7 +85,7 @@ cmail.mail = {
 			gui.elem("mail_subject").textContent = mail["mail_subject"];
 			gui.elem("mail_from").textContent = mail["mail_from"];
 			gui.elem("mail_to").textContent = mail["mail_to"];
-			gui.elem("mail_body").textContent = mail["mail_body"];
+			gui.elem("mail_body").innerText = mail["mail_body"];
 
 			cmail.switch_hash("#single");
 		});
