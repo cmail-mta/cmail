@@ -237,7 +237,8 @@
 			//$out["mail_body"] = $parser->getMessageBody("text");
 
 			$parser = new PlancakeEmailParser($out["mail_data"]);
-			$out["mail_from"] = $parser->getFrom();
+
+			$out["mail_from"] = $parser->getHeader("from");
 			$out["mail_to"] = $parser->getTo();
 			$out["mail_subject"] = $parser->getSubject();
 			$out["mail_body"] = $parser->getPlainBody();
