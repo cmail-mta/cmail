@@ -55,28 +55,6 @@ cmail.mail = {
 			});
 		}
 	},
-	handle_token: function(token) {
-		token[0] = token[0].toLowerCase();
-		switch(token[0]) {
-			case "from":
-				if (gui.elem("mail_from").textContent == "") {
-					gui.elem("mail_from").textContent = token[1];
-				}
-				break;
-			case "to":
-				if (gui.elem("mail_to").textContent == "") {
-					gui.elem("mail_to").textContent = token[1];
-				}
-				break;
-			case "subject":
-				if (gui.elem("mail_subject").textContent == "") {
-					gui.elem("mail_subject").textContent = token[1];
-				}
-				break;
-			default:
-				break;
-		}
-	},
 	toggleread: function(mail) {
 		var self = this;
 
@@ -103,32 +81,11 @@ cmail.mail = {
 
 			var splitted = mail["mail_data"].split("\r\n\r\n");
 
-			var headers = splitted[0].split("\r\n");
-
 			gui.elem("mail_id").textContent = mail["mail_id"];
-
-			gui.elem("mail_subject").textContent = "";
-			gui.elem("mail_from").textContent = "";
-			gui.elem("mail_to").textContent = "";
-
-			var lastline = "";
-			headers.forEach(function(header) {
-				if (header.charAt(0) == " ") {
-					lastline += header;
-				} else {
-
-					var token = lastline.split(":");
-
-					self.handle_token(token);
-
-					lastline = header;
-				}
-			});
-
-			var token = lastline.split(":");
-			self.handle_token(token);
-
-			gui.elem("mail_body").textContent = splitted[1];
+			gui.elem("mail_subject").textContent = mail["mail_subject"];
+			gui.elem("mail_from").textContent = mail["mail_from"];
+			gui.elem("mail_to").textContent = mail["mail_to"];
+			gui.elem("mail_body").textContent = mail["mail_body"];
 
 			cmail.switch_hash("#single");
 		});

@@ -227,6 +227,14 @@
 
 			$out = $out[0];
 			$out["mail_sourcedb"] = $source;
+
+			$parser = new MimeMailParser();
+			$parser->setText($out["mail_data"]);
+			$out["mail_from"] = $parser->getHeader("from");
+			$out["mail_to"] = $parser->getHeader("to");
+			$out["mail_subject"] = $parser->getHeader("subject");
+			$out["mail_body"] = $parser->getMessageBody("text");
+
 			$this->output->add("mail", $out);
 
 			return $out;
