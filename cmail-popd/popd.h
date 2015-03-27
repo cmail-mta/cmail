@@ -18,6 +18,10 @@
 #include "../lib/connpool.h"
 #include "../lib/auth.h"
 
+#ifndef CMAIL_NO_TLS
+#include "../lib/tls.h"
+#endif
+
 #include "../lib/logger.c"
 #include "../lib/signal.c"
 #include "../lib/privileges.c"
@@ -71,19 +75,34 @@ typedef struct /*_CLIENT_DATA*/ {
 	unsigned recv_offset;
 	POPSTATE state;
 	AUTH_DATA auth;
-	char* user;
+	#ifndef CMAIL_NO_TLS
+	gnutls_session_t tls_session;
+	TLSMODE tls_mode;
+	#endif
 } CLIENT;
 
 typedef struct /*_POP3_LISTENER*/ {
 	char* announce_domain;
-	//bool auth_tlsonly;
+	#ifndef CMAIL_NO_TLS
+	bool tls_require;
+	TLSMODE tls_mode;
+	gnutls_certificate_credentials_t tls_cert;
+	gnutls_priority_t tls_priorities;
+	gnutls_dh_params_t tls_dhparams;
+	#endif
 } LISTENER;
 
-//This needs the database type
+//These need some defined types
 #include "../lib/auth.c"
+#ifndef CMAIL_NO_TLS
+#include "../lib/tls.c"
+#endif
 
 int client_close(CONNECTION* client);
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
+#ifndef CMAIL_NO_TLS
+int client_starttls(LOGGER log, CONNECTION* client);
+#endif
 
 #include "database.c"
 #include "args.c"

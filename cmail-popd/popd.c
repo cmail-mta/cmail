@@ -45,15 +45,24 @@ int main(int argc, char** argv){
 		return usage(argv[0]);
 	}
 
+	#ifndef CMAIL_NO_TLS
+	if(gnutls_global_init()){
+		fprintf(stderr, "Failed to initialize GnuTLS\n");
+		exit(EXIT_FAILURE);
+	}
+	#endif
+
 	//read config file
 	if(config_parse(config.log, &config, args.config_file)<0){
 		config_free(&config);
+		TLSSUPPORT(gnutls_global_deinit());
 		return EXIT_FAILURE;
 	}
 
 	//initialize database
 	if(database_initialize(config.log, &(config.database))<0){
 		config_free(&config);
+		TLSSUPPORT(gnutls_global_deinit());
 		return EXIT_FAILURE;
 	}
 
@@ -64,6 +73,7 @@ int main(int argc, char** argv){
 	if(getuid() == 0 && args.drop_privileges){
 		if(privileges_drop(config.log, config.privileges)<0){
 			config_free(&config);
+			TLSSUPPORT(gnutls_global_deinit());
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -84,10 +94,12 @@ int main(int argc, char** argv){
 			case 1:
 				logprintf(config.log, LOG_INFO, "Parent process going down\n");
 				config_free(&config);
+				TLSSUPPORT(gnutls_global_deinit());
 				exit(EXIT_SUCCESS);
 				break;
 			case -1:
 				config_free(&config);
+				TLSSUPPORT(gnutls_global_deinit());
 				exit(EXIT_FAILURE);
 		}
 	}
@@ -100,6 +112,7 @@ int main(int argc, char** argv){
 	
 	//cleanup
 	config_free(&config);
+	TLSSUPPORT(gnutls_global_deinit());
 
 	return 0;
 }

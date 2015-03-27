@@ -1,5 +1,6 @@
 int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
+	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 	
 	if(!strncasecmp(client_data->recv_buffer, "capa", 4)){
 		return pop_capa(log, client, database);
@@ -9,61 +10,77 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 		return pop_quit(log, client, database);
 	}
 
+	#ifndef CMAIL_NO_TLS
 	if(!strncasecmp(client_data->recv_buffer, "stls", 4)){
-		//TODO
+		if(client_data->tls_mode != TLS_NONE || listener_data->tls_mode != TLS_NEGOTIATE){
+			logprintf(log, LOG_WARNING, "Client tried STARTTLS at wrong time\n");
+			client_send(log, client, "-ERR Not possible now\r\n");
+			return 0;
+		}
+
+		client_send(log, client, "+OK Start TLS negotiation\r\n");
+
+		client_data->tls_mode=TLS_NEGOTIATE;
+		return tls_initclient(log, client->fd, client_data);
 	}
+	#endif
 
 	if(!strncasecmp(client_data->recv_buffer, "xyzzy", 5)){
 		return pop_xyzzy(log, client, database);
 	}
 
-	//TODO disable this on tls-required auth
-	if(!strncasecmp(client_data->recv_buffer, "user ", 5)){
-		if(client_data->auth.user){
-			logprintf(log, LOG_INFO, "Client issued multiple USER commands\n");
-			client_send(log, client, "-ERR User already set\r\n");
-			return -1;
-		}
+	#ifndef CMAIL_NO_TLS
+	//disable login on tls-required auth
+	if(client_data->tls_mode==TLS_ONLY || !listener_data->tls_require){
+	#endif
+		if(!strncasecmp(client_data->recv_buffer, "user ", 5)){
+			if(client_data->auth.user){
+				logprintf(log, LOG_INFO, "Client issued multiple USER commands\n");
+				client_send(log, client, "-ERR User already set\r\n");
+				return -1;
+			}
 
-		logprintf(log, LOG_INFO, "Client sends user %s\n", client_data->recv_buffer+5);
-		client_data->auth.method=AUTH_USER;
-		client_data->auth.user=common_strdup(client_data->recv_buffer+5);
-		if(!client_data->auth.user){
-			logprintf(log, LOG_WARNING, "Failed to allocate memory for user name\n");
-			client_send(log, client, "-ERR Out of memory\r\n");
-			return -1;
-		}
+			logprintf(log, LOG_INFO, "Client sends user %s\n", client_data->recv_buffer+5);
+			client_data->auth.method=AUTH_USER;
+			client_data->auth.user=common_strdup(client_data->recv_buffer+5);
+			if(!client_data->auth.user){
+				logprintf(log, LOG_WARNING, "Failed to allocate memory for user name\n");
+				client_send(log, client, "-ERR Out of memory\r\n");
+				return -1;
+			}
 
-		client_send(log, client, "+OK Go ahead\r\n");
-		return 0;
-	}
-
-	if(!strncasecmp(client_data->recv_buffer, "pass ", 5)){
-		if(!client_data->auth.user || client_data->auth.method!=AUTH_USER){
-			logprintf(log, LOG_WARNING, "Client tried PASS without user or in another method\n");
-			client_send(log, client, "-ERR Not possible now\r\n");
-			return -1;
-		}
-
-		client_data->auth.authorized=(auth_validate(log, database, client_data->auth.user, client_data->recv_buffer+5)==0);
-		if(!client_data->auth.authorized){
-			auth_reset(&(client_data->auth));
-			client_send(log, client, "-ERR Login failed\r\n");
+			client_send(log, client, "+OK Go ahead\r\n");
 			return 0;
 		}
-		else{
-			client_data->state=STATE_TRANSACTION;
-			client_send(log, client, "+OK Commence transaction\r\n");
-			return 0;
+
+		if(!strncasecmp(client_data->recv_buffer, "pass ", 5)){
+			if(!client_data->auth.user || client_data->auth.method!=AUTH_USER){
+				logprintf(log, LOG_WARNING, "Client tried PASS without user or in another method\n");
+				client_send(log, client, "-ERR Not possible now\r\n");
+				return -1;
+			}
+
+			client_data->auth.authorized=(auth_validate(log, database, client_data->auth.user, client_data->recv_buffer+5)==0);
+			if(!client_data->auth.authorized){
+				auth_reset(&(client_data->auth));
+				client_send(log, client, "-ERR Login failed\r\n");
+				return 0;
+			}
+			else{
+				client_data->state=STATE_TRANSACTION;
+				client_send(log, client, "+OK Commence transaction\r\n");
+				return 0;
+			}
 		}
+
+		if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
+			//TODO
+		}
+
+		//TODO parse response if in auth_sasl mode
+	#ifndef CMAIL_NO_TLS
 	}
-
-	if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
-		//TODO
-	}
-
-	//TODO parse response if in auth_sasl mode
-
+	#endif
 	client_send(log, client, "-ERR Unkown command\r\n");
 	return -1;
 }

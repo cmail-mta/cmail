@@ -1,6 +1,6 @@
 .PHONY: clean
 CFLAGS=-Wall -g
-LDLIBS=-lsqlite3 -lnettle
+LDLIBS=-lsqlite3 -lnettle -lgnutls
 
 all: popd
 	mv popd cmail-popd

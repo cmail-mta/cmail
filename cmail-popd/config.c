@@ -5,9 +5,19 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	char* bindhost=NULL;
 	char* port=NULL;
 
+	#ifndef CMAIL_NO_TLS
+	char* tls_keyfile=NULL;
+	char* tls_certfile=NULL;
+	char* tls_priorities=NULL;
+	#endif
+
 	int listener_slot=-1;
 	LISTENER settings = {
-		.announce_domain = "cmail-popd",
+		#ifndef CMAIL_NO_TLS
+		.tls_mode = TLS_NONE,
+		.tls_require = false,
+		#endif
+		.announce_domain = "cmail-popd"
 	};
 	LISTENER* listener_data=NULL;
 
@@ -22,11 +32,44 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			else if(!strncmp(token, "announce=", 9)){
 				settings.announce_domain=token+9;
 			}
+			#ifndef CMAIL_NO_TLS
+			else if(!strncmp(token, "cert=", 5)){
+				tls_certfile=token+5;
+			}
+			else if(!strncmp(token, "key=", 4)){
+				tls_keyfile=token+4;
+			}
+			else if(!strncmp(token, "ciphers=", 8)){
+				tls_priorities=token+8;
+			}
+			else if(!strcmp(token, "tlsonly")){
+				settings.tls_mode=TLS_ONLY;
+			}
+			else if(!strcmp(token, "tlsrequire")){
+				settings.tls_require=true;
+			}
+			#endif
 			else{
 				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
 			}
 		}
 	}while(token);
+
+	#ifndef CMAIL_NO_TLS
+	if(tls_keyfile && tls_certfile){
+		if(settings.tls_mode==TLS_NONE){
+			settings.tls_mode=TLS_NEGOTIATE;
+		}
+
+		if(tls_initserver(config->log, &settings, tls_certfile, tls_keyfile, tls_priorities)<0){
+			return -1;
+		}
+	}
+	else if(tls_keyfile || tls_certfile){
+		logprintf(config->log, LOG_ERROR, "Need both certificate and key for TLS\n");
+		return -1;
+	}
+	#endif
 
 	//try to open a listening socket
 	int listen_fd=network_listener(config->log, bindhost, port);
@@ -175,8 +218,17 @@ void config_free(CONFIGURATION* config){
 
 	for(i=0;i<config->listeners.count;i++){
 		listener_data=(LISTENER*)config->listeners.conns[i].aux_data;
+		
+		#ifndef CMAIL_NO_TLS
+		if(listener_data->tls_mode!=TLS_NONE){
+			gnutls_certificate_free_credentials(listener_data->tls_cert);
+			gnutls_priority_deinit(listener_data->tls_priorities);
+			gnutls_dh_params_deinit(listener_data->tls_dhparams);
+		}
+		#endif
 		free(listener_data->announce_domain);
 	}
+
 
 	connpool_free(&(config->listeners));
 	database_free(config->log, &(config->database));
