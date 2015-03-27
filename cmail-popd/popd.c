@@ -24,7 +24,12 @@ int main(int argc, char** argv){
 		},
 		.database = {
 			.conn = NULL,
-			.query_authdata = NULL
+			.query_authdata = NULL,
+			.query_lock = NULL,
+			.update_lock = NULL,
+			.list_master = NULL,
+			.fetch_master = NULL,
+			.delete_master = NULL
 		},
 		.log = {
 			.stream = stderr,

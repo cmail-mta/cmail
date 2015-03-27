@@ -34,6 +34,21 @@
 
 #include "poplimits.h"
 
+typedef struct /*_MAIL_ENTRY*/ {
+	int database_id;
+	int mail_size;
+	bool flag_master;
+	bool flag_delete;
+} POP_MAIL;
+
+typedef struct /*_MAILDROP_DESC*/ {
+	unsigned count;
+	POP_MAIL* mails;
+	sqlite3_stmt* list_user;
+	sqlite3_stmt* fetch_user;
+	sqlite3_stmt* delete_user;
+} MAILDROP;
+
 typedef enum /*_AUTH_METHOD*/ {
 	AUTH_USER,
 	AUTH_SASLPLAIN
@@ -54,6 +69,11 @@ typedef struct /*_AUTHENTICATION_DATA*/ {
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_authdata;
+	sqlite3_stmt* query_lock;
+	sqlite3_stmt* update_lock;
+	sqlite3_stmt* list_master;
+	sqlite3_stmt* fetch_master;
+	sqlite3_stmt* delete_master;
 } DATABASE;
 
 typedef struct /*_ARGS_COMPOSITE*/ {
@@ -75,6 +95,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	unsigned recv_offset;
 	POPSTATE state;
 	AUTH_DATA auth;
+	MAILDROP maildrop;
 	#ifndef CMAIL_NO_TLS
 	gnutls_session_t tls_session;
 	TLSMODE tls_mode;
