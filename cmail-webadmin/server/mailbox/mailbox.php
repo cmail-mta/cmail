@@ -1,6 +1,7 @@
 <?php
 	require_once("../module.php");
 	require_once("MimeMailParser.class.php");
+	require_once("PlancakeEmailParser.php");
 
 	class Mailbox implements Module {
 
@@ -228,12 +229,18 @@
 			$out = $out[0];
 			$out["mail_sourcedb"] = $source;
 
-			$parser = new MimeMailParser();
-			$parser->setText($out["mail_data"]);
-			$out["mail_from"] = $parser->getHeader("from");
-			$out["mail_to"] = $parser->getHeader("to");
-			$out["mail_subject"] = $parser->getHeader("subject");
-			$out["mail_body"] = $parser->getMessageBody("text");
+			//$parser = new MimeMailParser();
+			//$parser->setText($out["mail_data"]);
+			//$out["mail_from"] = $parser->getHeader("from");
+			//$out["mail_to"] = $parser->getHeader("to");
+			//$out["mail_subject"] = $parser->getHeader("subject");
+			//$out["mail_body"] = $parser->getMessageBody("text");
+
+			$parser = new PlancakeEmailParser($out["mail_data"]);
+			$out["mail_from"] = $parser->getFrom();
+			$out["mail_to"] = $parser->getTo();
+			$out["mail_subject"] = $parser->getSubject();
+			$out["mail_body"] = $parser->getPlainBody();
 
 			$this->output->add("mail", $out);
 
