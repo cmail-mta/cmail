@@ -85,6 +85,8 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	if(!strncasecmp(client_data->recv_buffer, "stat", 4)){
 		//TODO stat
+		//client_send(log, client, "+OK 0 0\r\n");
+		return 0;
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "list", 4)){
