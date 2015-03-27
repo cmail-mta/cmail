@@ -24,6 +24,22 @@ master database structure
 		authentication scenarios. Current format
 		"salt:sha256(salt+password)" where + represents
 		the concatenation operator.
+		
+	'addresses' table
+	-----------------
+	Contains the mapping of addresses (or rather, mail paths)
+	to users.
+
+		address_expression	TEXT NOT NULL UNIQUE
+		SQLite regular expression defining the path to be mapped.
+		
+		address_order		INTEGER NOT NULL UNIQUE
+		Integer allowing total ordering of addresses for matching.
+		If multiple addresses match a given path, the one with the
+		highest index "wins".
+
+		address_user		TEXT NOT NULL
+		Foreign key into the 'users' table.
 
 	'msa' table
 	-----------
@@ -117,22 +133,48 @@ master database structure
 		Parameter: None
 		Accept, but quietly drop originated messages for this user.
 
-	'addresses' table
-	-----------------
-	Contains the mapping of addresses (or rather, mail paths)
-	to users.
-
-		address_expression	TEXT NOT NULL UNIQUE
-		SQLite regular expression defining the path to be mapped.
-		
-		address_order		INTEGER NOT NULL UNIQUE
-		Integer allowing total ordering of addresses for matching.
-		If multiple addresses match a given path, the one with the
-		highest index "wins".
-
-		address_user		TEXT NOT NULL
-		Foreign key into the 'users' table.
-
 	'mailbox' table
 	-------------
+	Contains mail for local users.
+
+		mail_id 		INTEGER PRIMARY KEY NOT NULL
+		Local mail identifier. No guarantee of temporal uniqueness
+		is given.
+
+		mail_user		TEXT NOT NULL
+		Foreign key into the 'users' table.
+
+		mail_read		BOOLEAN NOT NULL DEFAULT FALSE
+		Flag indicating if the mail was already read.
+		Only applicable in access protocols where continuous
+		storage is an option.
+
+		mail_envelopeto		TEXT NOT NULL
+		Envelope recipient address.
+	
+		mail_envelopefrom	TEXT NOT NULL
+		Envelope origin address.
+
+		mail_submission		TEXT NOT NULL
+		Unix timestamp of submission.
+
+		mail_submitter		TEXT
+		Name or address of submitting peer.
+
+		mail_proto		TEXT NOT NULL DEFAULT 'smtp'
+		Protocol the mail was submitted with.
+
+		mail_data		BLOB
+		Raw mail data.
+
+	'outbox' table
+	--------------
+		TBD
+
+	'popd' table
+	------------
+		TBD
+
+	'meta' table
+	------------
 		TBD
