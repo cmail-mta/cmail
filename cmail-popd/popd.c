@@ -51,6 +51,12 @@ int main(int argc, char** argv){
 		return EXIT_FAILURE;
 	}
 
+	//initialize database
+	if(database_initialize(config.log, &(config.database))<0){
+		config_free(&config);
+		return EXIT_FAILURE;
+	}
+
 	//set up signal masks
 	signal_init(config.log);
 

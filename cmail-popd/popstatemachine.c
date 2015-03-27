@@ -34,7 +34,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 			return -1;
 		}
 
-		client_send(log, client, "-OK Go ahead\r\n");
+		client_send(log, client, "+OK Go ahead\r\n");
 		return 0;
 	}
 
@@ -49,10 +49,12 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 		if(!client_data->auth.authorized){
 			auth_reset(&(client_data->auth));
 			client_send(log, client, "-ERR Login failed\r\n");
+			return 0;
 		}
 		else{
 			client_data->state=STATE_TRANSACTION;
 			client_send(log, client, "+OK Commence transaction\r\n");
+			return 0;
 		}
 	}
 
