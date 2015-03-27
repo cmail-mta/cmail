@@ -82,6 +82,54 @@ label {
 	float: left;
 }
 
+#mail_single_action_bar .button {
+	float:right;
+}
+
 .separator {
 	clear: both;
+}
+
+#mail_body_border {
+	width: 100%;
+	height: 20em;
+	border-radius: 1em;
+}
+
+#mail_body {
+	width: 80%;
+	margin: 1em;
+	display:inline-block;
+}
+
+#single div label {
+	width: 100%;
+	border-radius: 1em;
+}
+
+#mail_single_action_bar {
+	border-radius: 1em;
+}
+
+#single div {
+
+	background-color: #AAA;
+}
+
+.left {
+	float:left;
+}
+
+.space {
+	padding-left: 1em;
+}
+
+.spaceright {
+	float:right;
+	padding-right: 1em;
+	visibility: hidden;
+}
+
+.align_left {
+	text-align: left;
 }
