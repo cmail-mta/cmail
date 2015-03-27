@@ -9,7 +9,8 @@
 		"Address" => "addresses/address.php",
 		"User" => "users/user.php",
 		"MSA" => "msa/msa.php",
-		"POP" => "pop/pop.php"
+		"POP" => "pop/pop.php",
+		"Mailbox" => "mailbox/mailbox.php"
 	);
 
 ?>

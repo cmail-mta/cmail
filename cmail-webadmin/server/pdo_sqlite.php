@@ -30,9 +30,10 @@ class DB {
 			$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
 		} catch (PDOException $e) {
 
-			header("Status: 500 " . $e->getMessage());
-			echo $e->getMessage();
-			die();
+			//header("Status: 500 " . $e->getMessage());
+			//echo $e->getMessage();
+			$this->output->add("status", $e->getMessage());
+			return false;
 		}
 
 		$this->query("PRAGMA foreign_keys = ON", array(), null);

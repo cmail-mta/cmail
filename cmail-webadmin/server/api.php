@@ -24,9 +24,8 @@ function main($module_name) {
 
 	// db connection
 	if (!$db->connect()) {
-		header("WWW-Authenticate: Basic realm=\"cmail API Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
-		header("HTTP/1.0 401 Unauthorized");
-
+		header("HTTP/1.0 500 Database Error!");
+		$this->output->write();
 		die();
 	}
 
