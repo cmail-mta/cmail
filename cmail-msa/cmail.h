@@ -7,20 +7,6 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <fcntl.h>
-
-//#define CMAIL_NO_TLS
-#ifndef CMAIL_NO_TLS
-	#include <gnutls/gnutls.h>
-	#define TLSSUPPORT(x) (x)
-	typedef enum /*_TLS_MODE*/ {
-		TLS_ONLY,		//Listener: TLS-Only port, Client: TLS Session active
-		TLS_NEGOTIATE,		//Listener: STARTTLS enabled, Client: Handshake in progress
-		TLS_NONE		//Listener: No TLS, Client: No TLS session active
-	} TLSMODE;
-#else
-	#define TLSSUPPORT(x)
-#endif
-
 #include <sqlite3.h>
 
 #include "../lib/common.h"
@@ -36,6 +22,10 @@
 #include "../lib/privileges.h"
 #include "../lib/config.h"
 #include "../lib/auth.h"
+
+#ifndef CMAIL_NO_TLS
+#include "../lib/tls.h"
+#endif
 
 #include "../lib/logger.c"
 #include "../lib/network.c"
@@ -158,8 +148,11 @@ typedef struct /*_MAIL_ROUTE*/ {
 	char* argument;
 } MAILROUTE;
 
-//This needs the database type
+//These need some defined types
 #include "../lib/auth.c"
+#ifndef CMAIL_NO_TLS
+#include "../lib/tls.c"
+#endif
 
 //PROTOTYPES
 int client_close(CONNECTION* client);

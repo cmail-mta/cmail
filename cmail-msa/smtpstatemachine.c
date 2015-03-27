@@ -179,7 +179,9 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		client_data->state=STATE_NEW;
 		
 		client_send(log, client, "220 Go ahead\r\n");
-		return client_starttls(log, client);
+		
+		client_data->tls_mode=TLS_NEGOTIATE;
+		return tls_initclient(log, client->fd, client_data);
 	}
 	#endif
 

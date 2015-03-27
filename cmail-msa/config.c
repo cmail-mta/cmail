@@ -80,29 +80,9 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			settings.tls_mode=TLS_NEGOTIATE;
 		}
 
-		logprintf(config->log, LOG_DEBUG, "Initializing TLS priorities\n");
-		if(gnutls_priority_init(&(settings.tls_priorities), (tls_priorities)?tls_priorities:"PERFORMANCE:%SERVER_PRECEDENCE", NULL)){
-			logprintf(config->log, LOG_ERROR, "Failed to initialize TLS priorities\n");
+		if(tls_initserver(config->log, &settings, tls_certfile, tls_keyfile, tls_priorities)<0){
 			return -1;
 		}
-
-		logprintf(config->log, LOG_DEBUG, "Initializing TLS certificate structure\n");
-		if(gnutls_certificate_allocate_credentials(&(settings.tls_cert))){
-			logprintf(config->log, LOG_ERROR, "Failed to allocate storage for TLS cert structure\n");
-			return -1;
-		}
-		
-		logprintf(config->log, LOG_DEBUG, "Initializing TLS certificate\n");
-		if(gnutls_certificate_set_x509_key_file(settings.tls_cert, tls_certfile, tls_keyfile, GNUTLS_X509_FMT_PEM)){
-			logprintf(config->log, LOG_ERROR, "Failed to find key or certificate files\n");
-			return -1;
-		}
-
-		//FIXME error check this lot
-		logprintf(config->log, LOG_DEBUG, "Generating Diffie-Hellman parameters\n");
-        	gnutls_dh_params_init(&(settings.tls_dhparams));
-	        gnutls_dh_params_generate2(settings.tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LOW));
-		gnutls_certificate_set_dh_params(settings.tls_cert, settings.tls_dhparams);
 	}
 	else if(tls_keyfile || tls_certfile){
 		logprintf(config->log, LOG_ERROR, "Need both certificate and key for TLS\n");

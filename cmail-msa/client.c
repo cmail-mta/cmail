@@ -74,39 +74,6 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	return bytes;
 }
 
-#ifndef CMAIL_NO_TLS
-int client_starttls(LOGGER log, CONNECTION* client){
-	int status;
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
-
-	client_data->tls_mode=TLS_NEGOTIATE;
-
-	status=gnutls_init(&(client_data->tls_session), GNUTLS_SERVER);
-	if(status){
-		logprintf(log, LOG_WARNING, "Failed to initialize TLS session for client: %s\n", gnutls_strerror(status));
-		return -1;
-	}
-
-	status=gnutls_priority_set(client_data->tls_session, listener_data->tls_priorities);
-	if(status){
-		logprintf(log, LOG_WARNING, "Failed to update priority set for client: %s\n", gnutls_strerror(status));
-	}
-
-	status=gnutls_credentials_set(client_data->tls_session, GNUTLS_CRD_CERTIFICATE, listener_data->tls_cert);
-	if(status){
-		logprintf(log, LOG_WARNING, "Failed to set credentials for client: %s\n", gnutls_strerror(status));
-		return -1;
-	}
-
-	gnutls_certificate_server_set_request(client_data->tls_session, GNUTLS_CERT_IGNORE);
-	
-	gnutls_transport_set_int(client_data->tls_session, client->fd);
-
-	return 0;
-}
-#endif
-
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1, flags;
 	CLIENT empty_data = {
@@ -194,7 +161,8 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	//if on tlsonly port, immediately wait for negotiation
 	if(listener_data->tls_mode==TLS_ONLY){
 		logprintf(log, LOG_INFO, "Listen socket is TLSONLY, waiting for negotiation...\n");
-		return client_starttls(log, &(clients->conns[client_slot])); 
+		actual_data->tls_mode=TLS_NEGOTIATE;
+		return tls_initclient(log, clients->conns[client_slot].fd, actual_data);
 	}
 	#endif
 
@@ -307,6 +275,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		}
 		#endif
 	}
+	
 	//client disconnect
 	else if(bytes==0){
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
