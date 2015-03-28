@@ -4,7 +4,14 @@ cmail.mail = {
 
 	get_all: function() {
 		var self = this;
-		ajax.asyncGet(cmail.api_url + "mailbox/?get", function(xhr) {
+
+		var obj = {};
+
+		if (gui.elem("unread_checkbox").checked) {
+			obj["mail_only_unread"] = true;
+		}
+
+		ajax.asyncPost(cmail.api_url + "mailbox/?get", JSON.stringify(obj), function(xhr) {
 			var mailbox = JSON.parse(xhr.response);
 
 			if (mailbox.status != "ok") {

@@ -71,6 +71,10 @@
 				":mail_user" => $user
 			);
 
+			if (isset($obj["mail_only_unread"])) {
+				$sql .= " AND mail_read = 0";
+			}
+
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 			if (!is_null($this->userdb)) {
 				$out2 = $this->userdb->query($sql, params, DB::F_ARRAY);
