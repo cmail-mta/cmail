@@ -20,12 +20,27 @@ function main($module_name) {
 	$output = Output::getInstance();
 	$db = new DB($output);
 
+	$API_VERSION = 3;
 
 
 	// db connection
 	if (!$db->connect()) {
 		header("HTTP/1.0 500 Database Error!");
 		$this->output->write();
+		die();
+	}
+
+
+	$sql = "SELECT * FROM meta WHERE key = 'schema_version'";
+
+	$out = $db->query($sql, array(), DB::F_SINGLE_ASSOC);
+
+	$output->add("api_version", $API_VERSION);
+	$output->add("schema_version", $out["value"]);
+
+	if ($out["value"] != $API_VERSION) {
+		$output->add("status", "Api version and schema version is not the same.");
+		$output->write();
 		die();
 	}
 
