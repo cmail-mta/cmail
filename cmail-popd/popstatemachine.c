@@ -62,13 +62,20 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 			client_data->auth.authorized=(auth_validate(log, database, client_data->auth.user, client_data->recv_buffer+5)==0);
 			if(!client_data->auth.authorized){
+				//failed to authenticate
 				auth_reset(&(client_data->auth));
 				client_send(log, client, "-ERR Login failed\r\n");
 				return 0;
 			}
 			else{
+				//authentication ok, try to acquire the maildrop
+				if(maildrop_acquire(log, database, &(client_data->maildrop))<0){
+					auth_reset(&(client_data->auth));
+					client_send(log, client, "-ERR Failed to lock the maildrop\r\n");
+					return 0;
+				}
 				client_data->state=STATE_TRANSACTION;
-				client_send(log, client, "+OK Commence transaction\r\n");
+				client_send(log, client, "+OK Lock and load\r\n");
 				return 0;
 			}
 		}

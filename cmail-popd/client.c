@@ -53,6 +53,13 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.listener = listener,
 		.recv_offset = 0,
 		.state = STATE_AUTH,
+		.maildrop = {
+			.count = 0,
+			.mails = NULL,
+			.list_user = NULL,
+			.fetch_user = NULL,
+			.delete_user = NULL
+		},
 		#ifndef CMAIL_NO_TLS
 		.tls_mode=TLS_NONE,
 		#endif

@@ -24,6 +24,11 @@ master database structure
 		authentication scenarios. Current format
 		"salt:sha256(salt+password)" where + represents
 		the concatenation operator.
+
+		user_database	TEXT
+		Primary incoming mail storage database for the user.
+		If this database fails, an attempt will be made to
+		store to the master database instead.
 		
 	'addresses' table
 	-----------------
@@ -65,8 +70,7 @@ master database structure
 	Valid inbound mail routing functions are as follows:
 
 		Router: store
-		Parameter: target database path (NULL defaults to 
-			master database)
+		Parameter: None
 		Store the incoming messages in the 'mails' table of
 		a database. Local system users may want to have their
 		mail delivered to a database in their home directories.

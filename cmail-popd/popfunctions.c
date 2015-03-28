@@ -32,16 +32,21 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 
 int pop_quit(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 	
 	if(client_data->state==STATE_TRANSACTION){
-		//TODO execute the update
-		client_send(log, client, "+OK %s POP3 done\r\n", listener_data->announce_domain);
+		//update the maildrop
+		if(maildrop_update(log, database, &(client_data->maildrop))<0){
+			client_send(log, client, "-ERR Failed to update the maildrop\r\n");
+		}
+		else{
+			client_send(log, client, "+OK Maildrop updated\r\n");
+		}
 	}
 	else{
-		client_send(log, client, "+OK %s POP3 done\r\n", listener_data->announce_domain);
+		client_send(log, client, "+OK No change\r\n");
 	}
 
+	maildrop_release(log, database, &(client_data->maildrop));
 	return client_close(client);
 }
 
