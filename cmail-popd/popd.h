@@ -17,10 +17,7 @@
 #include "../lib/network.h"
 #include "../lib/connpool.h"
 #include "../lib/auth.h"
-
-#ifndef CMAIL_NO_TLS
 #include "../lib/tls.h"
-#endif
 
 #include "../lib/logger.c"
 #include "../lib/signal.c"

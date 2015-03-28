@@ -22,10 +22,7 @@
 #include "../lib/privileges.h"
 #include "../lib/config.h"
 #include "../lib/auth.h"
-
-#ifndef CMAIL_NO_TLS
 #include "../lib/tls.h"
-#endif
 
 #include "../lib/logger.c"
 #include "../lib/network.c"
