@@ -126,6 +126,7 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #endif
 
 #include "database.c"
+#include "maildrop.c"
 #include "args.c"
 #include "config.c"
 #include "auth.c"
