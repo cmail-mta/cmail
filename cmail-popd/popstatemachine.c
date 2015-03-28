@@ -69,7 +69,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 			}
 			else{
 				//authentication ok, try to acquire the maildrop
-				if(maildrop_acquire(log, database, &(client_data->maildrop))<0){
+				if(maildrop_acquire(log, database, &(client_data->maildrop), client_data->auth.user)<0){
 					auth_reset(&(client_data->auth));
 					client_send(log, client, "-ERR Failed to lock the maildrop\r\n");
 					return 0;

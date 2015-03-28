@@ -66,7 +66,6 @@ typedef struct /*_AUTHENTICATION_DATA*/ {
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_authdata;
-	sqlite3_stmt* query_lock;
 	sqlite3_stmt* update_lock;
 	sqlite3_stmt* list_master;
 	sqlite3_stmt* fetch_master;

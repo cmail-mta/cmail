@@ -136,8 +136,8 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	close(client->fd);
 
 	//reset client data
+	maildrop_release(log, database, &(client_data->maildrop), client_data->auth.user);
 	auth_reset(&(client_data->auth));
-	maildrop_release(log, database, &(client_data->maildrop));
 	
 	//return the conpool slot
 	client->fd=-1;
