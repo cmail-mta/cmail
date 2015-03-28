@@ -1,4 +1,5 @@
 .bail on
+.echo on
 
 BEGIN TRANSACTION;
 
