@@ -10,6 +10,7 @@ class DB {
 	const F_SINGLE_OBJECT = 2;
 	const F_OBJECT = 0;
 	const F_ARRAY = 1;
+	const F_SINGLE_ASSOC = 3;
 
 	private $db;
 	private $order = "";
@@ -110,6 +111,9 @@ class DB {
 		switch ($fetch) {
 			case DB::F_SINGLE_OBJECT:
 				$output = $stm->fetch(PDO::FETCH_OBJ);
+				break;
+			case DB::F_SINGLE_ASSOC:
+				$output = $stm->fetch(PDO::FETCH_ASSOC);
 				break;
 			case DB::F_OBJECT:
 		       		$output = $stm->fetchAll(PDO::FETCH_OBJ);
