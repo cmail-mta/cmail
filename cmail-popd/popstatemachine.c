@@ -108,13 +108,11 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "stat", 4)){
-		//TODO stat
-		//client_send(log, client, "+OK 0 0\r\n");
-		return 0;
+		return pop_stat(log, client, database);
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "list", 4)){
-		//TODO list
+		return pop_list(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
 	}
 	
 	if(!strncasecmp(client_data->recv_buffer, "retr", 4)){
@@ -122,11 +120,11 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "dele", 4)){
-		//TODO dele
+		return pop_dele(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
-		//TODO rset
+		return pop_rset(log, client, database);
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "noop", 4)){

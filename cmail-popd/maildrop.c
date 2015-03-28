@@ -1,5 +1,7 @@
 int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop){
-	//TODO
+	//atomically lock maildrop, bail out if it fails
+	//read mail data from master
+	//read mail data from user table if needed
 	return -1;
 }
 

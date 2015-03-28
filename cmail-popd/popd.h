@@ -116,7 +116,7 @@ typedef struct /*_POP3_LISTENER*/ {
 #include "../lib/tls.c"
 #endif
 
-int client_close(CONNECTION* client);
+int client_close(LOGGER log, CONNECTION* client, DATABASE* database);
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
 #ifndef CMAIL_NO_TLS
 int client_starttls(LOGGER log, CONNECTION* client);
