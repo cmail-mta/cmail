@@ -121,7 +121,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	return 0;
 }
 
-int client_close(CONNECTION* client){
+int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	
 	#ifndef CMAIL_NO_TLS
@@ -137,6 +137,7 @@ int client_close(CONNECTION* client){
 
 	//reset client data
 	auth_reset(&(client_data->auth));
+	maildrop_release(log, database, &(client_data->maildrop));
 	
 	//return the conpool slot
 	client->fd=-1;
@@ -166,7 +167,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 			if(status){
 				if(gnutls_error_is_fatal(status)){
 					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
-					client_close(client);
+					client_close(log, client, database);
 					return -1;
 				}
 				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
@@ -200,7 +201,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				return 0;
 			default:
 				logprintf(log, LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
-				client_close(client);
+				client_close(log, client, database);
 				return -1;
 		}
 		#endif
@@ -217,7 +218,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 						return 0;
 					default:
 						logprintf(log, LOG_ERROR, "GnuTLS reported an error while reading: %s\n", gnutls_strerror(bytes));
-						client_close(client);
+						client_close(log, client, database);
 						return -1;
 				}
 		}
@@ -227,7 +228,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	//client disconnect
 	else if(bytes==0){
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
-		client_close(client);
+		client_close(log, client, database);
 		return 0;
 	}
 

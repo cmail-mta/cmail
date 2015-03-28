@@ -66,7 +66,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	//close connected clients
 	for(i=0;i<clients.count;i++){
 		if(clients.conns[i].fd>=0){
-			client_close(&(clients.conns[i]));
+			client_close(log, &(clients.conns[i]), database);
 		}
 	}
 
