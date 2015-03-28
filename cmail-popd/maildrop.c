@@ -1,11 +1,44 @@
-int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user_name){
+int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user_name, bool is_master){
 	int status=0;
+	unsigned rows=maildrop->count;
+	unsigned index=maildrop->count;
+	unsigned i;
+	POP_MAIL empty_mail = {
+		.database_id = 0,
+		.mail_size = 0,
+		.flag_master = is_master,
+		.flag_delete = false
+	};
 
 	if(sqlite3_bind_text(stmt, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
 		do{
-		
+			status=sqlite3_step(stmt);
+			switch(status){
+				case SQLITE_ROW:
+					if(!index>=maildrop->count){
+						//expand the maildrop
+						rows+=CMAIL_MAILDROP_CHUNK;
+						maildrop->mails=realloc(maildrop->mails, rows*sizeof(POP_MAIL));
+						for(i=index;i<rows;i++){
+							maildrop->mails[i]=empty_mail;
+						}
+						maildrop->count=rows;
+					}
+
+					if(index>=maildrop->count){
+						logprintf(log, LOG_WARNING, "Maildrop reading went out of bounds, this should not have happened\n");
+						break;
+					}
+
+					maildrop->mails[index].database_id=sqlite3_column_int(stmt, 0);
+					maildrop->mails[index].mail_size=sqlite3_column_int(stmt, 1);
+
+					index++;
+					break;
+			}
 		}
 		while(status==SQLITE_ROW);
+		maildrop->count=index;
 	}
 	else{
 		logprintf(log, LOG_WARNING, "Failed to bind mail query parameter\n");
@@ -51,7 +84,7 @@ int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 }
 
 int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* user_name){
-	int status;
+	int status=0;
 
 	//lock maildrop
 	if(maildrop_lock(log, database, user_name, true)<0){
@@ -59,7 +92,7 @@ int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	}
 
 	//read mail data from master
-	if(maildrop_read(log, database->list_master, maildrop, user_name)<0){
+	if(maildrop_read(log, database->list_master, maildrop, user_name, true)<0){
 		logprintf(log, LOG_WARNING, "Failed to read master maildrop for user %s\n", user_name);
 		status=-1;
 	}
