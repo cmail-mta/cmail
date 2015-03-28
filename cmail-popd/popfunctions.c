@@ -74,6 +74,59 @@ int pop_list(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	return 0;
 }
 
+int pop_retr(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+	sqlite3_stmt* fetch_stmt;
+	char* mail_data=NULL;
+	char* mail_bytestuff=NULL;
+
+	if(mail == 0 || mail>client_data->maildrop.count){
+		client_send(log, client, "-ERR No such mail\r\n");
+		return -1;
+	}
+	else if(client_data->maildrop.mails[mail-1].flag_delete){
+		client_send(log, client, "-ERR Mail marked for deletion\r\n");
+		return -1;
+	}
+
+	if(client_data->maildrop.mails[mail-1].flag_master){
+		fetch_stmt=database->fetch_master;
+	}
+	else{
+		fetch_stmt=client_data->maildrop.fetch_user;
+	}
+
+	if(sqlite3_bind_int(fetch_stmt, 1, client_data->maildrop.mails[mail-1].database_id) == SQLITE_OK){
+		switch(sqlite3_step(fetch_stmt)){
+			case SQLITE_ROW:
+				client_send(log, client, "+OK Here it comes\r\n");
+				mail_data=(char*)sqlite3_column_text(fetch_stmt, 0);
+				do{
+					mail_bytestuff=strstr(mail_data, "\r\n.");
+					if(mail_bytestuff){
+						client_send(log, client, "%.*s\r\n..", mail_bytestuff-mail_data, mail_data);
+						mail_data=mail_bytestuff+3;
+					}
+					else{
+						client_send(log, client, "%s", mail_data);
+					}
+				}
+				while(mail_bytestuff);
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Failed to fetch mail: %s\n", sqlite3_errmsg(database->conn));
+				client_send(log, client, "-ERR Failed to fetch mail\r\n");
+				break;
+		}
+	}
+
+	sqlite3_reset(fetch_stmt);
+	sqlite3_clear_bindings(fetch_stmt);
+
+	client_send(log, client, "\r\n.\r\n");
+	return 0;
+}
+
 int pop_quit(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	

@@ -116,7 +116,7 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 	}
 	
 	if(!strncasecmp(client_data->recv_buffer, "retr", 4)){
-		//TODO retr
+		return pop_retr(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "dele", 4)){
