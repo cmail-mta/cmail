@@ -67,10 +67,14 @@ typedef struct /*_AUTHENTICATION_DATA*/ {
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_authdata;
+	sqlite3_stmt* query_userdatabase;
 	sqlite3_stmt* update_lock;
 	sqlite3_stmt* list_master;
 	sqlite3_stmt* fetch_master;
 	sqlite3_stmt* delete_master;
+
+	sqlite3_stmt* db_attach;
+	sqlite3_stmt* db_detach;
 } DATABASE;
 
 typedef struct /*_ARGS_COMPOSITE*/ {

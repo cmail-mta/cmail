@@ -41,6 +41,9 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 
 					index++;
 					break;
+				case SQLITE_ERROR:
+					//FIXME handle this
+					break;
 			}
 		}
 		while(status==SQLITE_ROW);
@@ -89,11 +92,103 @@ int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 	return status;
 }
 
+int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* user_name){
+	int status=1;
+	char* dbfile;
+
+	char* LIST_MAILS_USER="SELECT mail_id, length(mail_data) AS length, mail_ident FROM %s.mailbox WHERE mail_user=? ORDER BY mail_submission ASC;";
+	char* FETCH_MAIL_USER="SELECT mail_data FROM %s.mailbox WHERE mail_id=?;";
+	char* DELETE_MAIL_USER="DELETE FROM %s.mailbox WHERE mail_id=?;";
+
+	char* list_user=calloc(strlen(LIST_MAILS_USER)+strlen(user_name)+1, sizeof(char));
+	char* fetch_user=calloc(strlen(FETCH_MAIL_USER)+strlen(user_name)+1, sizeof(char));
+	char* delete_user=calloc(strlen(DELETE_MAIL_USER)+strlen(user_name)+1, sizeof(char));
+
+	if(!list_user || !fetch_user || !delete_user){
+		logprintf(log, LOG_ERROR, "Failed to allocate memory for statement text\n");
+		return -1;
+	}
+
+	snprintf(list_user, strlen(LIST_MAILS_USER)+strlen(user_name), LIST_MAILS_USER, user_name);
+	snprintf(fetch_user, strlen(FETCH_MAIL_USER)+strlen(user_name), FETCH_MAIL_USER, user_name);
+	snprintf(delete_user, strlen(DELETE_MAIL_USER)+strlen(user_name), DELETE_MAIL_USER, user_name);
+
+	//test for user databases
+	if(sqlite3_bind_text(database->query_userdatabase, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
+		switch(sqlite3_step(database->query_userdatabase)){
+			case SQLITE_ROW:
+				//attach user database
+				dbfile=(char*)sqlite3_column_text(database->query_userdatabase, 0);
+				logprintf(log, LOG_INFO, "User %s has user database %s\n", user_name, dbfile);
+
+				if(sqlite3_bind_text(database->db_attach, 1, dbfile, -1, SQLITE_STATIC) == SQLITE_OK
+					&& sqlite3_bind_text(database->db_attach, 2, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
+					switch(sqlite3_step(database->db_attach)){
+						case SQLITE_CANTOPEN:
+							logprintf(log, LOG_ERROR, "Cannot open database %s\n", dbfile);
+							status=-1;
+							break;
+						case SQLITE_DONE:
+							logprintf(log, LOG_INFO, "User database %s attached for user %s\n", dbfile, user_name);
+
+							//create user table statements
+							maildrop->list_user=database_prepare(log, database->conn, list_user);
+							maildrop->fetch_user=database_prepare(log, database->conn, fetch_user);
+							maildrop->delete_user=database_prepare(log, database->conn, delete_user);
+
+							if(!maildrop->list_user || !maildrop->fetch_user || !maildrop->delete_user){
+								logprintf(log, LOG_WARNING, "Failed to prepare mail management statement for user database\n");
+								status=-1;
+							}
+							else{
+								status=0;
+							}
+							break;
+						case SQLITE_ERROR:
+						default:
+							status=-1;
+							logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
+							break;
+					}
+				}
+				else{
+					logprintf(log, LOG_WARNING, "Failed to bind attach parameters\n");
+					status=-1;
+				}
+
+				sqlite3_reset(database->db_attach);
+				sqlite3_clear_bindings(database->db_attach);
+				break;
+			case SQLITE_DONE:
+				//no user database, done here
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Failed to query user database for %s: %s\n", user_name, sqlite3_errmsg(database->conn));
+				status=-1;
+				break;
+		}
+	}
+	else{
+		logprintf(log, LOG_WARNING, "Failed to bind user parameter to user database query\n");
+		status=-1;
+	}
+
+	sqlite3_reset(database->query_userdatabase);
+	sqlite3_clear_bindings(database->query_userdatabase);
+	
+	free(list_user);
+	free(fetch_user);
+	free(delete_user);
+
+	return status;
+}
+
 int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* user_name){
 	int status=0;
 
 	//lock maildrop
 	if(maildrop_lock(log, database, user_name, true)<0){
+		logprintf(log, LOG_WARNING, "Maildrop for user %s could not be locked\n", user_name);
 		return -1;
 	}
 
@@ -103,12 +198,22 @@ int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 		status=-1;
 	}
 	
-	//create user table statements if needed
-	//TODO
+	switch(maildrop_user_attach(log, database, maildrop, user_name)){
+		case 1:
+			logprintf(log, LOG_INFO, "User %s does not have a user database\n", user_name);
+			break;
+		case 0:
+			//read mail data from user database
+			if(maildrop_read(log, maildrop->list_user, maildrop, user_name, false)<0){
+				logprintf(log, LOG_WARNING, "Failed to read user maildrop for %s\n", user_name);
+				status=-1;
+			}
+			break;
+		default:
+			logprintf(log, LOG_WARNING, "Failed to attach database for user %s\n", user_name);
+			status=-1;
+	}
 
-	//read mail data from user table if needed
-	//TODO
-	
 	logprintf(log, LOG_INFO, "Maildrop for user %s is at %d mails\n", user_name, maildrop->count);
 	return status;
 }
@@ -189,6 +294,24 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	}
 	if(maildrop->delete_user){
 		sqlite3_finalize(maildrop->delete_user);
+
+		//detach user database
+		if(sqlite3_bind_text(database->db_detach, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
+			switch(sqlite3_step(database->db_detach)){
+				case SQLITE_DONE:
+					logprintf(log, LOG_INFO, "User database for %s detached\n", user_name);
+					break;
+				default:
+					logprintf(log, LOG_WARNING, "Failed to detach user database %s\n", user_name);
+					break;
+			}
+		}
+		else{
+			logprintf(log, LOG_WARNING, "Failed to bind detach statement parameter\n");
+		}
+
+		sqlite3_reset(database->db_detach);
+		sqlite3_clear_bindings(database->db_detach);
 	}
 
 	//free maildrop data
