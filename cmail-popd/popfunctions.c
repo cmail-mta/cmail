@@ -10,6 +10,7 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 	#ifndef CMAIL_NO_TLS
 	if(client_data->tls_mode == TLS_ONLY || !listener_data->tls_require){
 	#endif
+	client_send(log, client, "UIDL\r\n");
 	client_send(log, client, "USER\r\n");
 	client_send(log, client, "SASL LOGIN\r\n");
 	#ifndef CMAIL_NO_TLS
@@ -64,6 +65,37 @@ int pop_list(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 		}
 		else{
 			client_send(log, client, "+OK %d %d\r\n", mail, client_data->maildrop.mails[mail-1].mail_size);
+		}
+	}
+	else{
+		client_send(log, client, "-ERR No such mail\r\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int pop_uidl(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
+	unsigned i;
+	CLIENT* client_data=(CLIENT*)client->aux_data;
+
+	if(mail==0){
+		//list all mail, multiline
+		client_send(log, client, "+OK UID listing follows\r\n");
+		for(i=0;i<client_data->maildrop.count;i++){
+			if(!client_data->maildrop.mails[i].flag_delete){
+				client_send(log, client, "%d %s\r\n", i+1, client_data->maildrop.mails[i].message_id);
+			}
+		}
+		client_send(log, client, ".\r\n");
+	}
+	else if(mail<=client_data->maildrop.count){
+		if(client_data->maildrop.mails[mail-1].flag_delete){
+			client_send(log, client, "-ERR Mail marked for deletion\r\n");
+			return -1;
+		}
+		else{
+			client_send(log, client, "+OK %d %s\r\n", mail, client_data->maildrop.mails[mail-1].message_id);
 		}
 	}
 	else{

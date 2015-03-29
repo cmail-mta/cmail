@@ -1,5 +1,6 @@
 int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user_name, bool is_master){
 	int status=0;
+	char* message_id;
 	unsigned rows=maildrop->count;
 	unsigned index=maildrop->count;
 	unsigned i;
@@ -7,7 +8,8 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 		.database_id = 0,
 		.mail_size = 0,
 		.flag_master = is_master,
-		.flag_delete = false
+		.flag_delete = false,
+		.message_id = ""
 	};
 
 	if(sqlite3_bind_text(stmt, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
@@ -32,6 +34,10 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 
 					maildrop->mails[index].database_id=sqlite3_column_int(stmt, 0);
 					maildrop->mails[index].mail_size=sqlite3_column_int(stmt, 1);
+					message_id=(char*)sqlite3_column_text(stmt, 2);
+					if(message_id){
+						strncpy(maildrop->mails[index].message_id, message_id, POP_MESSAGEID_MAX);
+					}
 
 					index++;
 					break;

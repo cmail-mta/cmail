@@ -123,6 +123,10 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 		return pop_dele(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
 	}
 
+	if(!strncasecmp(client_data->recv_buffer, "uidl", 4)){
+		return pop_uidl(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
+	}
+
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
 		return pop_rset(log, client, database);
 	}

@@ -36,6 +36,7 @@ typedef struct /*_MAIL_ENTRY*/ {
 	int mail_size;
 	bool flag_master;
 	bool flag_delete;
+	char message_id[POP_MESSAGEID_MAX+1];
 } POP_MAIL;
 
 typedef struct /*_MAILDROP_DESC*/ {
