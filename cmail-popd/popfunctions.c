@@ -101,6 +101,9 @@ int pop_retr(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 			case SQLITE_ROW:
 				client_send(log, client, "+OK Here it comes\r\n");
 				mail_data=(char*)sqlite3_column_text(fetch_stmt, 0);
+				if(mail_data[0]=='.'){
+					client_send(log, client, ".");
+				}
 				do{
 					mail_bytestuff=strstr(mail_data, "\r\n.");
 					if(mail_bytestuff){
