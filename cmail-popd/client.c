@@ -16,7 +16,7 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 }
 
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
-	va_list args;
+	va_list args, copy;
 	ssize_t bytes;
 	char static_send_buffer[STATIC_SEND_BUFFER_LENGTH+1];
 	char* dynamic_send_buffer=NULL;
@@ -24,6 +24,7 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	va_start(args, fmt);
+	va_copy(copy, args);
 	//check if the buffer was long enough, if not, allocate a new one
 	bytes=vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
 	
@@ -34,7 +35,7 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 			return -1;
 		}
 		send_buffer=dynamic_send_buffer;
-		bytes=vsnprintf(send_buffer, bytes, fmt, args);
+		bytes=vsnprintf(send_buffer, bytes, fmt, copy);
 	}
 
 	#ifndef CMAIL_NO_TLS
@@ -59,6 +60,7 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	}
 
 	va_end(args);
+	va_end(copy);
 	return bytes;
 }
 
