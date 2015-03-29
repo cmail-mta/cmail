@@ -18,13 +18,25 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	va_list args;
 	ssize_t bytes;
-	char send_buffer[STATIC_SEND_BUFFER_LENGTH+1];
+	char static_send_buffer[STATIC_SEND_BUFFER_LENGTH+1];
+	char* dynamic_send_buffer=NULL;
+	char* send_buffer=static_send_buffer;
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	va_start(args, fmt);
-	//FIXME check if the buffer was long enough, if not, allocate a new one
-	vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
+	//check if the buffer was long enough, if not, allocate a new one
+	bytes=vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
 	
+	if(bytes>=STATIC_SEND_BUFFER_LENGTH){
+		dynamic_send_buffer=calloc(bytes+1, sizeof(char));
+		if(!dynamic_send_buffer){
+			logprintf(log, LOG_ERROR, "Failed to allocate dynamic send buffer\n");
+			return -1;
+		}
+		send_buffer=dynamic_send_buffer;
+		bytes=vsnprintf(send_buffer, bytes, fmt, args);
+	}
+
 	#ifndef CMAIL_NO_TLS
 	switch(client_data->tls_mode){
 		case TLS_NONE:
@@ -42,6 +54,9 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	#endif
 
 	logprintf(log, LOG_ALL_IO, "<< %s", send_buffer);
+	if(dynamic_send_buffer){
+		free(dynamic_send_buffer);
+	}
 
 	va_end(args);
 	return bytes;
