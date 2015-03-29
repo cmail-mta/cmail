@@ -3,4 +3,5 @@
 #define SMTP_MAX_PATH_LENGTH		300	//RFC 5321 4.5.3.1.3: Maximum 256 Bytes
 #define CMAIL_MAX_POOLED_PATHS		500	//Global maximum of path objects at any time, recommended per RFC: SMTP_MAX_RECIPIENTS*MAX_SIMULTANEOUS_CLIENTS
 #define CMAIL_MAX_CONCURRENT_CLIENTS 	64
+#define CMAIL_MESSAGEID_MAX		70	//For POP3 UIDL
 #define MAX_FQDN_LENGTH			300 	//actually, 255

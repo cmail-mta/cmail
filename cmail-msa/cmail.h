@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <time.h>
 #include <sqlite3.h>
 
 #include "../lib/common.h"
@@ -64,7 +65,8 @@ typedef struct /*_MAIL_STRUCT*/ {
 	unsigned data_allocated;			//STACK'd, persistent
 	unsigned data_offset;
 	char* data;					//HEAP'd
-	char* submitter;
+	char* submitter;				//Should always point to the submitter member of a CLIENT structure
+	char message_id[CMAIL_MESSAGEID_MAX+1];
 } MAIL;
 
 typedef enum /*_SMTP_STATE*/ {

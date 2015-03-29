@@ -1,6 +1,16 @@
 int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	unsigned i;
 	unsigned rv=250;
+	struct timespec time_spec;
+
+	//generate a message id
+	if(clock_gettime(CLOCK_REALTIME_COARSE, &time_spec)<0){
+		logprintf(log, LOG_ERROR, "Failed to get time for message id generation: %s\n", strerror(errno));
+		time_spec.tv_sec=time(NULL);
+	}
+
+	snprintf(mail->message_id, CMAIL_MESSAGEID_MAX, "%X%X.%X-%s", (unsigned)time_spec.tv_sec, (unsigned)time_spec.tv_nsec, rand(), mail->submitter);
+	logprintf(log, LOG_INFO, "Generated message ID %s\n", mail->message_id);
 
 	//iterate over recipients	
 	for(i=0;mail->forward_paths[i];i++){
@@ -100,7 +110,8 @@ int mail_reset(MAIL* mail){
 		.data_offset = 0,
 		.data_allocated = 0,
 		.data = NULL,
-		.submitter = NULL
+		.submitter = NULL,
+		.message_id = ""
 	};
 
 	if(!mail){
@@ -109,6 +120,7 @@ int mail_reset(MAIL* mail){
 
 	empty_mail.data_allocated=mail->data_allocated;
 	empty_mail.data=mail->data;
+	//Keep submitter pointing to the submitter of the CLIENT structure
 	empty_mail.submitter=mail->submitter;
 	path_reset(&(mail->reverse_path));
 
@@ -128,10 +140,11 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 	int status;
 	
 	if(sqlite3_bind_text(stmt, 1, current_path->resolved_user, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 2, current_path->path, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 3, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 4, mail->submitter, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 5, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
+		|| sqlite3_bind_text(stmt, 2, mail->message_id, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 3, current_path->path, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 4, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 5, mail->submitter, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 6, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);

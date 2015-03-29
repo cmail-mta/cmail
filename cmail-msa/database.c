@@ -1,5 +1,5 @@
 int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* dbfile, char* name){
-	char* INSERT_USER_MAILBOX="INSERT INTO %s.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
+	char* INSERT_USER_MAILBOX="INSERT INTO %s.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?, ?);";
 	char* user_stmt=NULL;
 	int status, rv=0;
 	unsigned slot;
@@ -236,7 +236,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_ADDRESS_USER="SELECT address_user, msa_inrouter, msa_outrouter FROM main.addresses JOIN main.msa ON address_user = msa_user WHERE ? LIKE address_expression ORDER BY address_order DESC;";
 	char* QUERY_USER_ROUTER_INBOUND="SELECT msa_inrouter, CASE msa_inrouter WHEN 'store' THEN user_database ELSE msa_inroute END AS msa_inroute FROM main.msa JOIN main.users ON user_name = msa_user WHERE user_name = ?;";
 	char* QUERY_USER_ROUTER_OUTBOUND="SELECT msa_outrouter, msa_outroute FROM main.msa WHERE msa_user = ?;";
-	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
+	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata FROM main.users WHERE user_name = ?;";
 	
