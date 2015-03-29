@@ -17,7 +17,7 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	va_list args, copy;
-	ssize_t bytes;
+	ssize_t bytes=0, bytes_sent=0, bytes_written;
 	char static_send_buffer[STATIC_SEND_BUFFER_LENGTH+1];
 	char* dynamic_send_buffer=NULL;
 	char* send_buffer=static_send_buffer;
@@ -38,23 +38,43 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 		bytes=vsnprintf(send_buffer, bytes+1, fmt, copy);
 	}
 
-	#ifndef CMAIL_NO_TLS
-	switch(client_data->tls_mode){
-		case TLS_NONE:
-			bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
-			break;
-		case TLS_NEGOTIATE:
-			logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
-			break;
-		case TLS_ONLY:
-			bytes=gnutls_record_send(client_data->tls_session, send_buffer, strlen(send_buffer));
-			break;
+	if(bytes<0){
+		logprintf(log, LOG_ERROR, "Failed to render string to send\n");
+		return -1;
 	}
-	#else
-	bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
-	#endif
+
+	do{
+		#ifndef CMAIL_NO_TLS
+		switch(client_data->tls_mode){
+			case TLS_NONE:
+				bytes_written=send(client->fd, send_buffer, bytes, 0);
+				break;
+			case TLS_NEGOTIATE:
+				logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
+				break;
+			case TLS_ONLY:
+				bytes_written=gnutls_record_send(client_data->tls_session, send_buffer, bytes);
+				break;
+		}
+		#else
+		bytes_written=send(client->fd, send_buffer, bytes, 0);
+		#endif
+
+		if(bytes_written<bytes){
+			logprintf(log, LOG_DEBUG, "Partial write (%d for %d/%d)\n", bytes_written, bytes_sent, bytes);
+		}
+
+		if(bytes_written<0){
+			logprintf(log, LOG_ERROR, "Write failed: %s\n", strerror(errno));
+			break;
+		}
+
+		bytes_sent+=bytes_written;
+	}
+	while(bytes_sent<bytes);
 
 	logprintf(log, LOG_ALL_IO, "<< %s", send_buffer);
+	logprintf(log, LOG_DEBUG, "Sent %d bytes of %d\n", bytes_sent, bytes);
 	if(dynamic_send_buffer){
 		free(dynamic_send_buffer);
 	}
