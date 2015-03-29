@@ -17,7 +17,7 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 			status=sqlite3_step(stmt);
 			switch(status){
 				case SQLITE_ROW:
-					if(!index>=maildrop->count){
+					if(index>=maildrop->count){
 						//expand the maildrop
 						rows+=CMAIL_MAILDROP_CHUNK;
 						maildrop->mails=realloc(maildrop->mails, rows*sizeof(POP_MAIL));

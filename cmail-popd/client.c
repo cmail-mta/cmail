@@ -29,13 +29,13 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	bytes=vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
 	
 	if(bytes>=STATIC_SEND_BUFFER_LENGTH){
-		dynamic_send_buffer=calloc(bytes+1, sizeof(char));
+		dynamic_send_buffer=calloc(bytes+2, sizeof(char));
 		if(!dynamic_send_buffer){
 			logprintf(log, LOG_ERROR, "Failed to allocate dynamic send buffer\n");
 			return -1;
 		}
 		send_buffer=dynamic_send_buffer;
-		bytes=vsnprintf(send_buffer, bytes, fmt, copy);
+		bytes=vsnprintf(send_buffer, bytes+1, fmt, copy);
 	}
 
 	#ifndef CMAIL_NO_TLS
