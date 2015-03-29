@@ -47,17 +47,17 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->tls_mode){
 			case TLS_NONE:
-				bytes_written=send(client->fd, send_buffer, bytes, 0);
+				bytes_written=send(client->fd, send_buffer+bytes_sent, bytes-bytes_sent, 0);
 				break;
 			case TLS_NEGOTIATE:
 				logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
 				break;
 			case TLS_ONLY:
-				bytes_written=gnutls_record_send(client_data->tls_session, send_buffer, bytes);
+				bytes_written=gnutls_record_send(client_data->tls_session, send_buffer+bytes_sent, bytes-bytes_sent);
 				break;
 		}
 		#else
-		bytes_written=send(client->fd, send_buffer, bytes, 0);
+		bytes_written=send(client->fd, send_buffer+bytes_sent, bytes-bytes_sent, 0);
 		#endif
 
 		if(bytes_written<bytes){
