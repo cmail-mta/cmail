@@ -1,7 +1,16 @@
 ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t bytes){
 	ssize_t bytes_sent=0, bytes_written;
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	
+
+	//early bail saves some syscalls
+	if(bytes==0){
+		return 0;
+	}
+
+	if(bytes<0){
+		bytes=strlen(data);
+	}
+
 	logprintf(log, LOG_DEBUG, "Sending %d raw bytes\n", bytes);
 	
 	do{
