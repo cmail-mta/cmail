@@ -139,11 +139,14 @@ int pop_retr(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 				do{
 					mail_bytestuff=strstr(mail_data, "\r\n.");
 					if(mail_bytestuff){
-						client_send(log, client, "%.*s\r\n..", mail_bytestuff-mail_data, mail_data);
+						//logprintf(log, LOG_DEBUG, "Sending %d intermediate bytes\n", mail_bytestuff-mail_data);
+						client_send_raw(log, client, mail_data, mail_bytestuff-mail_data);
+						client_send(log, client, "\r\n..");
 						mail_data=mail_bytestuff+3;
 					}
 					else{
-						client_send(log, client, "%s", mail_data);
+						//logprintf(log, LOG_DEBUG, "Sending %d bytes message data\n", strlen(mail_data));
+						client_send_raw(log, client, mail_data, strlen(mail_data));
 					}
 				}
 				while(mail_bytestuff);

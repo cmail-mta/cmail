@@ -149,6 +149,7 @@ typedef struct /*_MAIL_ROUTE*/ {
 
 //These need some defined types
 #include "../lib/auth.c"
+#include "../lib/client.c"
 #ifndef CMAIL_NO_TLS
 #include "../lib/tls.c"
 #endif

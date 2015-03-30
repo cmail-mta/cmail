@@ -116,6 +116,7 @@ typedef struct /*_POP3_LISTENER*/ {
 
 //These need some defined types
 #include "../lib/auth.c"
+#include "../lib/client.c"
 #ifndef CMAIL_NO_TLS
 #include "../lib/tls.c"
 #endif

@@ -42,38 +42,6 @@ int client_resolve(LOGGER log, CONNECTION* client){
 	return 0;
 }
 
-int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
-	va_list args;
-	ssize_t bytes;
-	char send_buffer[STATIC_SEND_BUFFER_LENGTH+1];
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-
-	va_start(args, fmt);
-	//FIXME check if the buffer was long enough, if not, allocate a new one
-	vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
-	
-	#ifndef CMAIL_NO_TLS
-	switch(client_data->tls_mode){
-		case TLS_NONE:
-			bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
-			break;
-		case TLS_NEGOTIATE:
-			logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
-			break;
-		case TLS_ONLY:
-			bytes=gnutls_record_send(client_data->tls_session, send_buffer, strlen(send_buffer));
-			break;
-	}
-	#else
-	bytes=send(client->fd, send_buffer, strlen(send_buffer), 0);
-	#endif
-
-	logprintf(log, LOG_ALL_IO, "<< %s", send_buffer);
-
-	va_end(args);
-	return bytes;
-}
-
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1, flags;
 	CLIENT empty_data = {
