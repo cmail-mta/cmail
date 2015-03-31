@@ -1,2 +1,4 @@
 *.swp
 tls_test.*
+bin/*
+.tags
