@@ -97,6 +97,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	if(client_data->tls_mode!=TLS_NONE){
 		gnutls_bye(client_data->tls_session, GNUTLS_SHUT_RDWR);
 		gnutls_deinit(client_data->tls_session);
+		client_data->tls_mode=TLS_NONE;
 	}
 	#endif
 
@@ -124,6 +125,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	//TODO handle client timeout
 	
 	#ifndef CMAIL_NO_TLS
+	do{
 	switch(client_data->tls_mode){
 		case TLS_NONE:
 			//non-tls client
@@ -162,7 +164,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->tls_mode){
 			case TLS_NONE:
-		#else
+		#endif
 		switch(errno){
 			case EAGAIN:
 				logprintf(log, LOG_WARNING, "Read signaled, but blocked\n");
@@ -172,7 +174,6 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				client_close(log, client, database);
 				return -1;
 		}
-		#endif
 		#ifndef CMAIL_NO_TLS
 			break;
 			case TLS_NEGOTIATE:
@@ -240,6 +241,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	//update recv_offset with unprocessed bytes
 	client_data->recv_offset+=bytes;
+	#ifndef CMAIL_NO_TLS
+	}
+	while(client_data->tls_mode == TLS_ONLY && gnutls_record_check_pending(client_data->tls_session));
+	#endif
 	
 	return 0;
 }
