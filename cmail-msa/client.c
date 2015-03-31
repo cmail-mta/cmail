@@ -148,6 +148,7 @@ int client_close(CONNECTION* client){
 	if(client_data->tls_mode!=TLS_NONE){
 		gnutls_bye(client_data->tls_session, GNUTLS_SHUT_RDWR);
 		gnutls_deinit(client_data->tls_session);
+		client_data->tls_mode=TLS_NONE;
 	}
 	#endif
 
@@ -216,7 +217,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->tls_mode){
 			case TLS_NONE:
-		#else
+		#endif
 		switch(errno){
 			case EAGAIN:
 				logprintf(log, LOG_WARNING, "Read signaled, but blocked\n");
@@ -226,11 +227,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				client_close(client);
 				return -1;
 		}
-		#endif
 		#ifndef CMAIL_NO_TLS
 			break;
 			case TLS_NEGOTIATE:
-				logprintf(log, LOG_WARNING, "This should not never have been reached\n");
+				logprintf(log, LOG_WARNING, "This should never have been reached\n");
 				return 0;
 			case TLS_ONLY:
 				switch(bytes){
@@ -288,7 +288,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			//recv_offset points to the end of the last read, so 0 now
 			client_data->recv_offset=0;
 			
-			logprintf(log, LOG_DEBUG, "recv_offset is now %d, first byte %02X\n", client_data->recv_offset, client_data->recv_buffer[0]);
+			logprintf(log, LOG_DEBUG, "recv_offset is now %d, first byte %02X, %d bytes\n", client_data->recv_offset, client_data->recv_buffer[0], bytes);
 		}
 	}
 
