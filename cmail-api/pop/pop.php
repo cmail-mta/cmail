@@ -28,7 +28,7 @@
 				return false;
 			}
 
-			$users = $this->get(array("pop_user" => $username));
+			$users = $this->get(array("pop_user" => $username), false);
 
 			if (count($users) == 1) {
 				return true;
@@ -62,7 +62,7 @@
 		 * 	pop_user (optional) = the username
 		 * @return list of user(s)
 		 */
-		public function get($obj) {
+		public function get($obj, $write = true) {
 			if (!isset($obj["pop_user"]) || empty($obj["pop_user"])) {
 				
 				//getall
@@ -76,7 +76,9 @@
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 
-			$this->output->add("pop", $out);
+			if ($write) {
+				$this->output->add("pop", $out);
+			}
 			return $out;
 		}
 
