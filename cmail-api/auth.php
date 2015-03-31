@@ -31,12 +31,15 @@
 			":user_name" => $auth["user_name"]
 		);
 
-		$user = $db->query($sql, $params, DB::F_ARRAY)[0];
+		$user = $db->query($sql, $params, DB::F_ARRAY);
 
-		if (!isset($user)) {
+
+		if (count($user) < 1) {
 			$output->add("status", "Username not found.");
 			return false;	
 		}
+
+		$user = $user[0];
 
 		if (!isset($user["user_authdata"])) {
 			$output->add("status", "User is not allowed to login.");

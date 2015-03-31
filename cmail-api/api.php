@@ -54,7 +54,7 @@ function main($module_name) {
 	}
 
 	if (!auth($db, $output, $obj["auth"])) {
-		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
+		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials)\"");
 		header("HTTP/1.0 401 Unauthorized");
 
 		$output->write();
