@@ -7,8 +7,12 @@ cmail.msa = {
 		ajax.asyncGet(cmail.api_url + "msa/?get", function(xhr) {
 			var obj = JSON.parse(xhr.response);
 
-			if (obj.status != "ok") {
+			if (obj.status != "ok" && obj.status != "warning") {
 				cmail.set_status(obj.status);
+			}
+
+			if (obj.status == "warning") {
+				cmail.set_status("WARNING: " + obj.warning);
 			}
 
 			var msas = obj.msa;
@@ -40,9 +44,13 @@ cmail.msa = {
 		var xhr = ajax.syncPost(cmail.api_url + "msa/?get", JSON.stringify({ msa_user: username }));
 
 		var obj = JSON.parse(xhr.response);
-		if (obj.status != "ok") {
+		if (obj.status != "ok" && obj.status != "warning") {
 			cmail.set_status(obj.status);
 			return false;
+		}
+
+		if (obj.status == "warning") {
+			cmail.set_status(obj.warning);
 		}
 
 		if (obj.msa.length > 0) {
@@ -130,9 +138,13 @@ cmail.msa = {
 		ajax.asyncPost(cmail.api_url + "addresses/?test", JSON.stringify(obj), function(xhr) {
 			var resp = JSON.parse(xhr.response);
 
-			if (resp.status !== "ok") {
+			if (resp.status !== "ok" && resp.status !== "warning") {
 				cmail.set_status(resp.status);
 				return;
+			}
+
+			if (resp.status === "warning") {
+				cmail.set_status(resp.warning);
 			}
 
 			var body = gui.elem("msa_test_steps");

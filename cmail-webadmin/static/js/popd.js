@@ -6,9 +6,13 @@ cmail.pop = {
 		ajax.asyncGet(cmail.api_url + "pop/?get", function(xhr) {
 			var pop = JSON.parse(xhr.response);
 
-			if (pop.status != "ok") {
+			if (pop.status != "ok" && pop.status != "warning") {
 				cmail.set_status(pop.status);
 				return;
+			}
+
+			if (pop.status == "warning") {
+				cmail.set_status("WARNING: " + pop.warning);
 			}
 
 			var list = gui.elem("pop_user_list");

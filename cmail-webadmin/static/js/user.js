@@ -21,9 +21,13 @@ cmail.user = {
 			var obj = JSON.parse(xhr.response)
 
 			// check status
-			if (obj.status != "ok") {
+			if (obj.status != "ok" && obj.status != "warning") {
 				cmail.set_status(obj.status);
 				return;
+			}
+
+			if (obj.status == "warning") {
+				cmail.set_status("WARNING: " + obj.warning);
 			}
 
 		// set users

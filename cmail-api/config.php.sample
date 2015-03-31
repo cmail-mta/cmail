@@ -1,5 +1,6 @@
 <?php
 	$dbpath = "/var/db/cmail.db3";
+	$debugFlag = false;
 
 	// list of modules
 	// key => value

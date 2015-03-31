@@ -14,9 +14,13 @@ cmail.mail = {
 		ajax.asyncPost(cmail.api_url + "mailbox/?get", JSON.stringify(obj), function(xhr) {
 			var mailbox = JSON.parse(xhr.response);
 
-			if (mailbox.status != "ok") {
+			if (mailbox.status != "ok" && mailbox != "warning") {
 				cmail.set_status(mailbox.status);
 				return;
+			}
+
+			if (mailbox.status == "warning") {
+				cmail.set_status(mailbox.warning);
 			}
 
 			var body = gui.elem("mail_list");

@@ -12,6 +12,13 @@ class Output {
 	 * constructor
 	 */
 	private function __construct() {
+		global $debugFlag;
+
+		if (isset($debugFlag)) {
+			$this->debug = $debugFlag;
+		} else {
+			$this->debug = false;
+		}
 		$this->retVal['status'] = "ok";
 	}
 
@@ -55,13 +62,17 @@ class Output {
 			$this->retVal['debug'] = [];
 		}
 
-		$this->retVal['debug'][$function] = $message;
+		$this->retVal['debug'][$function][] = $message;
 	}
 
 	/**
 	 * Generates the output for the browser. General you call this only once.
 	 */
 	public function write() {
+
+		if (!$this->debug) {
+			$this->retVal['debug'] = [];
+		}
 
 		header("Access-Control-Allow-Origin: *");
 		# generate output
