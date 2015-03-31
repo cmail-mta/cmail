@@ -15,10 +15,10 @@ require_once("auth.php");
 
 function main($module_name) {
 
-	global $modulelist;
+	global $modulelist, $dbpath;
 	// init
 	$output = Output::getInstance();
-	$db = new DB($output);
+	$db = new DB($dbpath, $output);
 
 	$API_VERSION = 4;
 

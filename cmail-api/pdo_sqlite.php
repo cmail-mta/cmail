@@ -15,19 +15,20 @@ class DB {
 	private $db;
 	private $order = "";
 	private $output;
+	private $dbpath = null;
 
-	public function __construct($output) {
+	public function __construct($dbpath, $output) {
 		$this->output = $output;
+		$this->dbpath = $dbpath;
 	}
 
 	/**
 	 * connect to database
 	 */
 	function connect() {
-		global $dbpath;
 
 		try {
-			$this->db = new PDO('sqlite:' . $dbpath);
+			$this->db = new PDO('sqlite:' . $this->dbpath);
 			$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
 		} catch (PDOException $e) {
 

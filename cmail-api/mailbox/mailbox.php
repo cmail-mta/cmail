@@ -28,9 +28,14 @@
 
 		public function getUserDB() {
 
-			$msaModule = getModuleInstance("MSA", $this->db, $this->output);
 
-			$msa = $msaModule->get(array("msa_user" => $this->user), false);
+			$sql = "SELECT user_database FROM users WHERE user_name = :user_name";
+
+			$params = array(
+				":user_name" => $this->user
+			);
+
+			$msa = $this->db->query($sql, $params, DB::F_ARRAY);
 
 			if (count($msa) < 1) {
 				return;
@@ -38,8 +43,8 @@
 
 			$msa = $msa[0];
 
-			if ($msa["msa_inrouter"] == "store" && isset($msa["msa_inroute"]) && !empty($msa["msa_inroute"])) {
-				$this->userdb = new DB($this->output);
+			if (isset($msa["user_database"]) && !empty($msa["user_database"]) && $msa["user_database"] != "") {
+				$this->userdb = new DB($msa["user_database"], $this->output);
 				if (!$this->userdb->connect()) {
 					
 					$this->userdb = null;
