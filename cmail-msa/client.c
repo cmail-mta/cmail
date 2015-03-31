@@ -217,7 +217,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->tls_mode){
 			case TLS_NONE:
-		#else
+		#endif
 		switch(errno){
 			case EAGAIN:
 				logprintf(log, LOG_WARNING, "Read signaled, but blocked\n");
@@ -227,7 +227,6 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				client_close(client);
 				return -1;
 		}
-		#endif
 		#ifndef CMAIL_NO_TLS
 			break;
 			case TLS_NEGOTIATE:
