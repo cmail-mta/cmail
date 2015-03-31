@@ -2,7 +2,6 @@ Implement support for dynamically loaded modules
 	Specify API for modules
 Implement client timeouts
 Periodically release unused memory
-Implement database schema upgrade paths (including user databases)
 Bind parameter autoauth=username
 Bind parameter filter-local-reverse
 Implement client command rate limiting
@@ -11,4 +10,3 @@ Write proper Received: headers
 Configurable reject message
 Alias routing README compliancy (route _as_ user)
 Do not accept mail when all recipients fail
-Generate Message-IDs
