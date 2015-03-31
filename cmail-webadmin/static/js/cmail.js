@@ -50,7 +50,9 @@ var cmail = {
 		this.fill_router();
 
 		// we need the user list for auto completion
-		this.user.get_all();
+		if (window.location.hash !== "#user") {
+			this.user.get_all();
+		}
 
 		var self = this;
 
@@ -81,7 +83,6 @@ var cmail = {
 		// check for no tab is displayed
 		if (test) {
 			gui.elem(this.tabs[0]).style.display = "block";
-			self.user.get_all();
 		}
 	},
 	fill_router: function() {
