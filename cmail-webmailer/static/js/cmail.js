@@ -1,5 +1,4 @@
 var cmail = {
-	api_url: "../admin/server/",
 	/**
 	 * all routers 
 	 */

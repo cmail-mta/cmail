@@ -73,6 +73,44 @@
 			return $out;
 		}
 
+
+		public function transfer($in, $out) {
+
+			//TODO: transfer	
+		}
+
+		public function updateUserDatabase($msa, $transfer = false) {
+
+			if (!isset($msa["msa_user"]) || empty($msa["msa_user"])) {
+				return false;
+			}
+
+			if ($transfer) {
+				$msa_old = $this->get($msa, false);
+
+				if ($msa_old["msa_inrouter"] == "store") {
+					$this->transfer($msa_old["msa_inroute"], $msa["msa_inroute"]);
+				}
+			}
+
+			$sql = "UPDATE users SET user_database = :user_database WHERE user_name = :user_name";
+
+			$path = $msa["msa_inroute"];
+			if ($msa["msa_inroute"] == "") {
+				$path = null;
+			}
+
+			$params = array(
+				":user_database" => $msa["msa_inroute"],
+				":user_name" => $path
+			);
+			
+			$status = $this->db->insert($sql, [$params]);
+
+			return isset($status);
+
+		}
+
 		/**
 		 * Adds an entry to the msa table
 		 * @param object with
@@ -100,6 +138,13 @@
                                 return false;
                         }
 
+			if (isset($msa["msa_inroute"]) && !empty($msa["msa_inroute"]) && $msa["msa_inrouter"] == "store") {
+
+				if(!$this->updateUserDatabase($msa)) {
+					return false;
+				}
+			}
+
                         $sql = "INSERT INTO msa(msa_user, msa_inrouter, msa_inroute, msa_outrouter, msa_outroute)"
                                 . "VALUES (:msa_user, :msa_inrouter, :msa_inroute, :msa_outrouter, :msa_outroute)";
 
@@ -109,9 +154,10 @@
                                 ":msa_inroute" => $msa["msa_inroute"],
                                 ":msa_outrouter" => $msa["msa_outrouter"],
                                 ":msa_outroute" => $msa["msa_outroute"]
-                        );
+			);
 
                         $id = $this->db->insert($sql, array($params));
+			
                         if (isset($id) && !empty($id)) {
                                 $this->output->add("msa", $id);
                                 return true;
@@ -148,6 +194,12 @@
 				return false;
 			}
 
+			if ($obj["msa_inrouter"] == "store") {
+				if (!$this->updateUserDatabase($obj, isset($obj["msa_transfer"]))) {
+					return false;
+				}
+			}
+
 			$sql = "UPDATE msa SET msa_inrouter = :msa_inrouter,"
 					. "msa_inroute = :msa_inroute,"
 					. "msa_outrouter = :msa_outrouter,"
@@ -163,10 +215,7 @@
 
 			$status = $this->db->insert($sql, array($params));
 
-			if (isset($status)) {
-				return true;
-			}
-			return false;
+			return isset($status);
 		}
 
 
