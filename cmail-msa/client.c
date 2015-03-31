@@ -296,7 +296,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	client_data->recv_offset+=bytes;
 	#ifndef CMAIL_NO_TLS
 	}
-	while(gnutls_record_check_pending(client_data->tls_session));
+	while(client_data->tls_mode == TLS_ONLY && gnutls_record_check_pending(client_data->tls_session));
 	#endif
 	
 	return 0;
