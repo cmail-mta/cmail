@@ -170,7 +170,7 @@ int client_close(CONNECTION* client){
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
-	size_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
+	ssize_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
 	unsigned c, status;
 	int i;
@@ -179,6 +179,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	
 	#ifndef CMAIL_NO_TLS
 	do{
+	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	switch(client_data->tls_mode){
 		case TLS_NONE:
 			//non-tls client

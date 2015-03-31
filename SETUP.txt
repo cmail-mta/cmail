@@ -11,5 +11,5 @@ Example setup
 # Set up TLS keys & certificates if needed
 # Set up config files
 # Set up your firewall to allow connections to the configured ports
-(root) /home/cmail/cmail/$MODULE/$MODULE $CONFFILE	#Run the modules
+(root) /home/cmail/cmail/bin/$MODULE $CONFFILE	#Run the modules
 # Send a test email to each configured address and watch the log for any warnings
