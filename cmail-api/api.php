@@ -26,7 +26,7 @@ function main($module_name) {
 	// db connection
 	if (!$db->connect()) {
 		header("HTTP/1.0 500 Database Error!");
-		$this->output->write();
+		$output->write();
 		die();
 	}
 
