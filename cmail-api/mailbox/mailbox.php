@@ -90,6 +90,10 @@
 				}
 			}
 
+			if (!$write) {
+				return $out;
+			}
+
 			$parser = new MimeMailParser();
 			$mails = array();
 			foreach($out as $mail) {
