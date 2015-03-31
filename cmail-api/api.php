@@ -20,7 +20,7 @@ function main($module_name) {
 	$output = Output::getInstance();
 	$db = new DB($output);
 
-	$API_VERSION = 3;
+	$API_VERSION = 4;
 
 
 	// db connection
