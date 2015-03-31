@@ -46,7 +46,8 @@
 			if (isset($msa["user_database"]) && !empty($msa["user_database"]) && $msa["user_database"] != "") {
 				$this->userdb = new DB($msa["user_database"], $this->output);
 				if (!$this->userdb->connect()) {
-					
+					$this->output->add("warning", "Cannot open userdb from user: " . $this->user);
+					$this->output->add("status", "warning");
 					$this->userdb = null;
 				}
 			}

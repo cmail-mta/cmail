@@ -14,9 +14,13 @@ cmail.address = {
 
 			var obj  = JSON.parse(xhr.response);
 
-			if (obj.status != "ok") {
+			if (obj.status != "ok" && obj.status != "warning") {
 				cmail.set_status(obj.status);
 				return;
+			}
+
+			if (obj.status == "warning") {
+				cmail.set_status(obj.warning);
 			}
 
 			var addresses = obj.addresses;
