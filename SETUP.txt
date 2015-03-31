@@ -1,0 +1,15 @@
+Example setup
+
+# Prerequisite: Install the required libraries
+(root)	adduser cmail		#create new user
+(root)	passwd -l cmail		#no login for this user
+(root)	su cmail
+(cmail)	git clone <URL>		#clone the repo
+(cmail) cd cmail
+(cmail)	make			#build the system
+# Set up the initial master database
+# Set up TLS keys & certificates if needed
+# Set up config files
+# Set up your firewall to allow connections to the configured ports
+(root) /home/cmail/cmail/$MODULE/$MODULE $CONFFILE	#Run the modules
+# Send a test email to each configured address and watch the log for any warnings
