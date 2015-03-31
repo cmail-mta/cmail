@@ -7,6 +7,7 @@ all:
 	$(MAKE) -C cmail-popd
 	$(MAKE) -C cmail-imapd
 
+	-mkdir bin
 	mv cmail-msa/cmail-msa bin/
 	# mv cmail-mta/cmail-mta bin/
 	mv cmail-popd/cmail-popd bin/

@@ -111,6 +111,7 @@ int mail_reset(MAIL* mail){
 		.data_allocated = 0,
 		.data = NULL,
 		.submitter = NULL,
+		.protocol = NULL,
 		.message_id = ""
 	};
 
@@ -144,7 +145,8 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 		|| sqlite3_bind_text(stmt, 3, current_path->path, -1, SQLITE_STATIC)!=SQLITE_OK
 		|| sqlite3_bind_text(stmt, 4, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK
 		|| sqlite3_bind_text(stmt, 5, mail->submitter, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 6, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
+		|| sqlite3_bind_text(stmt, 6, mail->protocol, -1, SQLITE_STATIC)!=SQLITE_OK
+		|| sqlite3_bind_text(stmt, 7, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);

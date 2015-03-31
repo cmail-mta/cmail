@@ -63,6 +63,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 				NULL
 			},
 			.message_id = "",
+			.protocol = "unknown",
 			//these need to persist between clients
 			.data_offset = 0,
 			.data_allocated = 0,
@@ -176,6 +177,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	//TODO handle client timeout
 	
 	#ifndef CMAIL_NO_TLS
+	do{
 	switch(client_data->tls_mode){
 		case TLS_NONE:
 			//non-tls client
@@ -292,6 +294,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 
 	//update recv_offset with unprocessed bytes
 	client_data->recv_offset+=bytes;
+	#ifndef CMAIL_NO_TLS
+	}
+	while(client_data->tls_mode == TLS_ONLY && gnutls_record_check_pending(client_data->tls_session));
+	#endif
 	
 	return 0;
 }
