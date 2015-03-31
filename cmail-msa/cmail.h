@@ -66,6 +66,7 @@ typedef struct /*_MAIL_STRUCT*/ {
 	unsigned data_offset;
 	char* data;					//HEAP'd
 	char* submitter;				//Should always point to the submitter member of a CLIENT structure
+	char* protocol;
 	char message_id[CMAIL_MESSAGEID_MAX+1];
 } MAIL;
 

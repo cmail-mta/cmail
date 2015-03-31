@@ -63,6 +63,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 				NULL
 			},
 			.message_id = "",
+			.protocol = "unknown",
 			//these need to persist between clients
 			.data_offset = 0,
 			.data_allocated = 0,
