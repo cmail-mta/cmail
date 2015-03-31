@@ -27,7 +27,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 				break;
 		}
 		#else
-		client_data->mail.protocol="esmtp";
+		client_data->current_mail.protocol="esmtp";
 		#endif
 
 		client_data->state=STATE_IDLE;
