@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ "$1" = "config" ]; then
+	echo 'graph_title cmail Stored Messages'
+	echo 'graph_args -l 0'
+	echo 'graph_vlabel Mails'
+	echo 'graph_category cmail'
+	echo 'graph_info Messages stored in master database mailbox/outbox'
+	echo 'mailbox.label Mailbox'
+	echo 'mailbox.info Number of messages in mailbox table'
+	echo 'outbox.label Outbox'
+	echo 'outbox.info Number of messages in outbox table'
+	exit 0
+fi
+
+printf "mailbox.value %s\n" "`sqlite3 -list $DATABASE 'SELECT COUNT(*) FROM mailbox;'`"
+printf "outbox.value %s\n" "`sqlite3 -list $DATABASE 'SELECT COUNT(*) FROM outbox;'`"
