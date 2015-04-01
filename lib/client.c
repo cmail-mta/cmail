@@ -42,14 +42,19 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 			#ifndef CMAIL_NO_TLS
 			if(client_data->tls_mode==TLS_NONE){
 			#endif
-			logprintf(log, LOG_ERROR, "Write failed: %s\n", strerror(errno));
+			if(errno!=EAGAIN){
+				logprintf(log, LOG_ERROR, "Write failed: %s\n", strerror(errno));
+				break;
+			}
 			#ifndef CMAIL_NO_TLS
 			}
 			else{
-				logprintf(log, LOG_ERROR, "TLS Write failed: %s\n", gnutls_strerror(bytes_written));
+				if(bytes_written != GNUTLS_E_INTERRUPTED && bytes_written != GNUTLS_E_AGAIN){
+					logprintf(log, LOG_ERROR, "TLS Write failed: %s\n", gnutls_strerror(bytes_written));
+					break;
+				}
 			}
 			#endif
-			break;
 		}
 
 		bytes_sent+=bytes_written;
