@@ -116,17 +116,19 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 		bytes+=snprintf(buffer+bytes, sizeof(buffer)-bytes-1, "Time failed");
 	}
 
-	logprintf(log, LOG_DEBUG, "%d bytes of header data\n", bytes);
+	logprintf(log, LOG_DEBUG, "%d bytes of header data: %s\n", bytes, buffer);
 
-	for(i=0;i<bytes;i++){
+	for(i=0;i<=bytes;i++){
 		if(buffer[i]==' '){
 			mark=i;
 		}
 
 		if(((i-off)>=SMTP_HEADER_LINE_MAX && off<mark) || buffer[i]==0){
-			//send current contents
+			//add current contents
 			//terminate
-			buffer[mark]=0;
+			if(buffer[i]){
+				buffer[mark]=0;
+			}
 			mail_line(log, mail, buffer+off);
 			//un-terminate
 			buffer[mark]=' ';
