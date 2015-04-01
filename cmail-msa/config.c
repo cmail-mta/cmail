@@ -17,6 +17,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		#ifndef CMAIL_NO_TLS
 		.tls_mode = TLS_NONE,
 		#endif
+		.fixed_user = NULL,
 		.announce_domain = "cmail-msa",
 		.auth_offer = AUTH_NONE,
 		.auth_require = false
@@ -55,6 +56,10 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 						}
 						else if(!strcmp(token, "strict")){
 							settings.auth_require=true;
+						}
+						else if(!strncmp(token, "fixed@", 6)){
+							settings.auth_require=true;
+							settings.fixed_user=token+6;
 						}
 						else{
 							logprintf(config->log, LOG_WARNING, "Unknown auth parameter %s\n", token);
@@ -117,6 +122,14 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		if(!listener_data->announce_domain){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
 			return -1;
+		}
+
+		if(settings.fixed_user){
+			listener_data->fixed_user=common_strdup(settings.fixed_user);
+			if(!listener_data->fixed_user){
+				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for fixed user storage\n");
+				return -1;
+			}
 		}
 		return 0;
 	}
@@ -236,7 +249,15 @@ void config_free(CONFIGURATION* config){
 
 	for(i=0;i<config->listeners.count;i++){
 		listener_data=(LISTENER*)config->listeners.conns[i].aux_data;
+		
+		close(config->listeners.conns[i].fd);
+
 		free(listener_data->announce_domain);
+
+		if(listener_data->fixed_user){
+			free(listener_data->fixed_user);
+		}
+
 		#ifndef CMAIL_NO_TLS
 		if(listener_data->tls_mode!=TLS_NONE){
 			gnutls_certificate_free_credentials(listener_data->tls_cert);

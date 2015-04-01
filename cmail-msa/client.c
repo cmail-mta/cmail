@@ -123,6 +123,14 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		logprintf(log, LOG_WARNING, "Peer resolution failed\n");
 		//FIXME this might be bigger than we think
 	}
+
+	if(listener_data->fixed_user){
+		actual_data->auth.user=common_strdup(listener_data->fixed_user);
+		if(!actual_data->auth.user){
+			logprintf(log, LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
+			//dont fail here, its not critical
+		}
+	}
 	
 	actual_data->current_mail.submitter=actual_data->peer_name;
 	logprintf(log, LOG_DEBUG, "Initialized client data to peername %s, submitter %s\n", actual_data->peer_name, actual_data->current_mail.submitter);

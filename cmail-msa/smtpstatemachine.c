@@ -15,23 +15,22 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		#ifndef CMAIL_NO_TLS
 		switch(listener_data->tls_mode){
 			case TLS_ONLY:
-				client_data->current_mail.protocol="sesmtp";
+				client_data->current_mail.protocol=(client_data->auth.user?"sesmtpa":"sesmtp");
 				break;
 			case TLS_NEGOTIATE:
 				if(client_data->tls_mode==TLS_ONLY){
-					client_data->current_mail.protocol="esmtps";
+					client_data->current_mail.protocol=(client_data->auth.user?"esmtpsa":"esmtps");
 					break;
 				}
 			case TLS_NONE:
-				client_data->current_mail.protocol="esmtp";
+				client_data->current_mail.protocol=(client_data->auth.user?"esmtpa":"esmtp");
 				break;
 		}
 		#else
-		client_data->current_mail.protocol="esmtp";
+		client_data->current_mail.protocol=(client_data->auth.user?"esmtpa":"esmtp");
 		#endif
 
 		client_data->state=STATE_IDLE;
-		logprintf(log, LOG_INFO, "Client negotiates esmtp\n");
 
 		client_send(log, client, "250-%s ahoyhoy\r\n", listener_data->announce_domain);
 		
@@ -70,19 +69,19 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		#ifndef CMAIL_NO_TLS
 		switch(listener_data->tls_mode){
 			case TLS_ONLY:
-				client_data->current_mail.protocol="ssmtp";
+				client_data->current_mail.protocol=(client_data->auth.user?"ssmtpa":"ssmtp");
 				break;
 			case TLS_NEGOTIATE:
 				if(client_data->tls_mode==TLS_ONLY){
-					client_data->current_mail.protocol="smtps";
+					client_data->current_mail.protocol=(client_data->auth.user?"smtpsa":"smtps");
 					break;
 				}
 			case TLS_NONE:
-				client_data->current_mail.protocol="smtp";
+				client_data->current_mail.protocol=(client_data->auth.user?"smtpa":"smtp");
 				break;
 		}
 		#else
-		client_data->current_mail.protocol="smtp";
+		client_data->current_mail.protocol=(client_data->auth.user?"smtpa":"smtp");
 		#endif
 
 		client_data->state=STATE_IDLE;

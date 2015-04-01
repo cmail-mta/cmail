@@ -80,6 +80,7 @@ typedef enum /*_SMTP_STATE*/ {
 
 typedef struct /*_LISTEN_DATA*/ {
 	char* announce_domain;
+	char* fixed_user;
 	bool auth_require;
 	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS
