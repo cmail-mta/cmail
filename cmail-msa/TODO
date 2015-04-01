@@ -2,7 +2,6 @@ Implement support for dynamically loaded modules
 	Specify API for modules
 Implement client timeouts
 Periodically release unused memory
-Bind parameter autoauth=username
 Bind parameter filter-local-reverse
 Implement client command rate limiting
 Write some tests
