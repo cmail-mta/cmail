@@ -360,6 +360,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 
 int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
+	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 	unsigned i;
 	MAILPATH* current_path;
 
@@ -462,7 +463,14 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			return -1;
 		}
 		client_data->state=STATE_DATA;
-		logprintf(log, LOG_INFO, "Client wants to begin data transmission\n");
+		
+		//write received: header
+		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain)<0){
+			logprintf(log, LOG_WARNING, "Failed to write received header\n");
+		}
+
+		logprintf(log, LOG_INFO, "Client begins data transmission\n");
+
 		client_send(log, client, "354 Go ahead\r\n");
 		return 0;
 	}

@@ -94,6 +94,53 @@ int mail_line(LOGGER log, MAIL* mail, char* line){
 	return -1;
 }
 
+int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
+	char buffer[(SMTP_HEADER_LINE_MAX*4)+1];
+	
+	unsigned mark=0, i, off=0;
+	int bytes=0;
+	time_t unix_time=time(NULL);
+	struct tm* local_time=localtime(&unix_time);
+
+	//write received: header
+	bytes=snprintf(buffer, sizeof(buffer)-1, "Received: from %s by %s with %s; ", mail->submitter, announce, mail->protocol);
+
+	if(bytes<0){
+		return -1;
+	}
+
+	if(local_time){
+		bytes+=strftime(buffer+bytes, sizeof(buffer)-bytes-1, "%a, %d %b %Y %T %z", local_time);
+	}
+	else{
+		bytes+=snprintf(buffer+bytes, sizeof(buffer)-bytes-1, "Time failed");
+	}
+
+	logprintf(log, LOG_DEBUG, "%d bytes of header data\n", bytes);
+
+	for(i=0;i<bytes;i++){
+		if(buffer[i]==' '){
+			mark=i;
+		}
+
+		if((i>=SMTP_HEADER_LINE_MAX && off<mark) || buffer[i]==0){
+			//send current contents
+			//terminate
+			buffer[mark]=0;
+			mail_line(log, mail, buffer+off);
+			//un-terminate
+			buffer[mark]=' ';
+		
+			off=mark;
+			if(buffer[i]==0){
+				break;
+			}	
+		}
+	}
+	
+	return 0;
+}
+
 int mail_reset(MAIL* mail){
 	unsigned i;
 
