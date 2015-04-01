@@ -123,7 +123,7 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 			mark=i;
 		}
 
-		if((i>=SMTP_HEADER_LINE_MAX && off<mark) || buffer[i]==0){
+		if(((i-off)>=SMTP_HEADER_LINE_MAX && off<mark) || buffer[i]==0){
 			//send current contents
 			//terminate
 			buffer[mark]=0;
