@@ -56,8 +56,9 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 			}
 			#endif
 		}
-
-		bytes_sent+=bytes_written;
+		else{
+			bytes_sent+=bytes_written;
+		}
 	}
 	while(bytes_sent<bytes);
 	
