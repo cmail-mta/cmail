@@ -68,6 +68,7 @@ typedef struct /*_MAIL_STRUCT*/ {
 	char* submitter;				//Should always point to the submitter member of a CLIENT structure
 	char* protocol;
 	char message_id[CMAIL_MESSAGEID_MAX+1];
+	unsigned data_max;
 } MAIL;
 
 typedef enum /*_SMTP_STATE*/ {
@@ -81,6 +82,7 @@ typedef enum /*_SMTP_STATE*/ {
 typedef struct /*_LISTEN_DATA*/ {
 	char* announce_domain;
 	char* fixed_user;
+	unsigned max_size;
 	bool auth_require;
 	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS

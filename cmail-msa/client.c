@@ -44,6 +44,7 @@ int client_resolve(LOGGER log, CONNECTION* client){
 
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1, flags;
+	LISTENER* listener_data=(LISTENER*)listener->aux_data;
 	CLIENT empty_data = {
 		.listener=listener,
 		.state=STATE_NEW,
@@ -67,6 +68,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			//these need to persist between clients
 			.data_offset = 0,
 			.data_allocated = 0,
+			.data_max = listener_data->max_size,
 			.data = NULL
 		},
 		.auth = {
@@ -78,7 +80,6 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		}
 	};
 	CLIENT* actual_data;
-	LISTENER* listener_data=(LISTENER*)listener->aux_data;
 
 	if(connpool_active(*clients)>=CMAIL_MAX_CONCURRENT_CLIENTS){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");

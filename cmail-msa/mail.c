@@ -69,7 +69,11 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
 
 int mail_line(LOGGER log, MAIL* mail, char* line){
 	//logprintf(log, LOG_DEBUG, "Mail line is \"%s\"\n", line);
-	//FIXME check for max line length / max data section size
+	if(mail->data_max>0 && mail->data_offset >= mail->data_max){
+		logprintf(log, LOG_INFO, "Mail length (%d) exceeded data length limit (%d), truncating\n", mail->data_offset, mail->data_max);
+		return -1;
+	}
+
 	if(!mail->data || mail->data_allocated < mail->data_offset+strlen(line)+3){
 		mail->data=realloc(mail->data, mail->data_allocated+strlen(line)+3);
 		if(!mail->data){
@@ -91,7 +95,7 @@ int mail_line(LOGGER log, MAIL* mail, char* line){
 	logprintf(log, LOG_DEBUG, "Adding %d bytes to mail at index %d\n", strlen(line), mail->data_offset);
 	strncpy(mail->data+mail->data_offset, line, strlen(line)+1);
 	mail->data_offset+=strlen(line);
-	return -1;
+	return 0;
 }
 
 int mail_recvheader(LOGGER log, MAIL* mail, char* announce){

@@ -18,6 +18,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		.tls_mode = TLS_NONE,
 		#endif
 		.fixed_user = NULL,
+		.max_size = 0,
 		.announce_domain = "cmail-msa",
 		.auth_offer = AUTH_NONE,
 		.auth_require = false
@@ -72,6 +73,9 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			}
 			else if(!strncmp(token, "announce=", 9)){
 				settings.announce_domain=token+9;
+			}
+			else if(!strncmp(token, "size=", 5)){
+				settings.max_size=strtoul(token+5, NULL, 10);
 			}
 			else{
 				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);

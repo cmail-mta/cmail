@@ -37,7 +37,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		//TODO hook plugins here
 		
 		//send hardcoded esmtp options
-		client_send(log, client, "250-SIZE 52428800\r\n"); //FIXME make this configurable
+		client_send(log, client, "250-SIZE %d\r\n", listener_data->max_size); 
 		client_send(log, client, "250-8BITMIME\r\n"); //FIXME this might imply more processing than planned
 		client_send(log, client, "250-SMTPUTF8\r\n"); //RFC 6531
 		switch(listener_data->auth_offer){
@@ -491,32 +491,39 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			return mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1);
 		}
 		else{
-			//end of mail
-			logprintf(log, LOG_INFO, "End of mail data, routing\n");
-			//TODO call plugins here
-
-			if(!client_data->auth.user){
-				switch(mail_route(log, &(client_data->current_mail), database)){
-					case 250:
-						logprintf(log, LOG_INFO, "Incoming mail accepted from %s\n", client_data->peer_name);
-						client_send(log, client, "250 OK\r\n");
-						break;
-					default:
-						logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
-						client_send(log, client, "554 Rejected\r\n");
-						break;
-				}
+			//check if mail was too big
+			if(client_data->current_mail.data_max && client_data->current_mail.data_offset>client_data->current_mail.data_max){
+				logprintf(log, LOG_WARNING, "End of mail, data section exceeded size limitation, rejecting\n");
+				client_send(log, client, "552 Size limit exceeded\r\n");
 			}
 			else{
-				switch(mail_originate(log, client_data->auth.user, &(client_data->current_mail), database)){
-					case 250:
-						logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->auth.user, client_data->peer_name);
-						client_send(log, client, "250 OK\r\n");
-						break;
-					default:
-						logprintf(log, LOG_WARNING, "Originated mail could not be routed, rejecting\n");
-						client_send(log, client, "554 Rejected\r\n");
-						break;
+				//end of mail
+				logprintf(log, LOG_INFO, "End of mail data, routing\n");
+				//TODO call plugins here
+
+				if(!client_data->auth.user){
+					switch(mail_route(log, &(client_data->current_mail), database)){
+						case 250:
+							logprintf(log, LOG_INFO, "Incoming mail accepted from %s\n", client_data->peer_name);
+							client_send(log, client, "250 OK\r\n");
+							break;
+						default:
+							logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
+							client_send(log, client, "554 Rejected\r\n");
+							break;
+					}
+				}
+				else{
+					switch(mail_originate(log, client_data->auth.user, &(client_data->current_mail), database)){
+						case 250:
+							logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->auth.user, client_data->peer_name);
+							client_send(log, client, "250 OK\r\n");
+							break;
+						default:
+							logprintf(log, LOG_WARNING, "Originated mail could not be routed, rejecting\n");
+							client_send(log, client, "554 Rejected\r\n");
+							break;
+					}
 				}
 			}
 			mail_reset(&(client_data->current_mail));
