@@ -2,3 +2,5 @@
 tls_test.*
 bin/*
 .tags
+logs/*
+*.log

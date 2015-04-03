@@ -21,9 +21,17 @@ int config_parse(LOGGER log, void* config_data, char* conf_file){
 		//skip leading spaces
 		for(;isspace(line_data[0]);line_data++){
 		}
-		
+
+		//handle inline commecnts
+		for(offset=0;line_data[offset];offset++){
+			if(line_data[offset]=='#'){
+				line_data[offset]=0;
+				break;
+			}
+		}
+
 		//ignore empty lines & comments
-		if(line_data[0]!='#' && line_data[0]!=0){
+		if(line_data[0]){
 			//handle configuration
 			if(config_line(config_data, line_data)<0){
 				fclose(conf_stream);
