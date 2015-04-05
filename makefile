@@ -9,13 +9,13 @@ all:
 
 	-mkdir bin
 	mv cmail-msa/cmail-msa bin/
-	# mv cmail-mta/cmail-mta bin/
+	mv cmail-mta/cmail-mta bin/
 	mv cmail-popd/cmail-popd bin/
 	# mv cmail-imapd/cmail-imapd bin/
 
 install:
 	install -m 0755 bin/cmail-msa $(INSTALL_PATH)
-	# install -m 0755 bin/cmail-mta $(INSTALL_PATH)
+	install -m 0755 bin/cmail-mta $(INSTALL_PATH)
 	install -m 0755 bin/cmail-popd $(INSTALL_PATH)
 	# install -m 0755 bin/cmail-imapd $(INSTALL_PATH)
 
