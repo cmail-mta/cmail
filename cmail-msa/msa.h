@@ -8,7 +8,6 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <time.h>
-#include <sqlite3.h>
 
 #include "../lib/common.h"
 #define VERSION 			"cmail-msa 0.1"
@@ -24,6 +23,7 @@
 #include "../lib/config.h"
 #include "../lib/auth.h"
 #include "../lib/tls.h"
+#include "../lib/database.h"
 
 #include "../lib/logger.c"
 #include "../lib/network.c"

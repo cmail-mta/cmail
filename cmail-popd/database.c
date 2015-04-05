@@ -8,6 +8,12 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
 	char* QUERY_DETACH_DB="DETACH DATABASE ?;";
+	
+	//check the database schema version
+	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
+		logprintf(log, LOG_ERROR, "The database schema is at another version than required for this build\n");
+		return -1;
+	}
 
 	database->query_authdata=database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
 	database->query_userdatabase=database_prepare(log, database->conn, QUERY_USER_DATABASE);

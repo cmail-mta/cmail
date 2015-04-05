@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <sqlite3.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -18,6 +17,7 @@
 #include "../lib/connpool.h"
 #include "../lib/auth.h"
 #include "../lib/tls.h"
+#include "../lib/database.h"
 
 #include "../lib/logger.c"
 #include "../lib/signal.c"
@@ -25,9 +25,9 @@
 #include "../lib/config.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
+#include "../lib/database.c"
 
 #include "../lib/daemonize.c"
-#include "../lib/database.c"
 
 #include "poplimits.h"
 

@@ -1,4 +1,4 @@
-#include "cmail.h"
+#include "msa.h"
 
 int usage(char* filename){
 	printf("%s - Part of the cmail internet mail processing suite\n", VERSION);

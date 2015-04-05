@@ -2,10 +2,10 @@
 CFLAGS=-Wall -g
 LDLIBS=-lsqlite3 -lgnutls -lnettle
 
-all: cmail
-	mv cmail cmail-msa
+all: msa
+	mv msa cmail-msa
 
-cmail: cmail.c
+msa: msa.c
 
 run: all
 	valgrind --leak-check=full ./cmail-msa msa.conf nodetach

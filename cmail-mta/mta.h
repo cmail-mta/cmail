@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <sqlite3.h>
 #include <stdbool.h>
 
 #include "../lib/common.h"
@@ -12,13 +11,14 @@
 #include "../lib/privileges.h"
 #include "../lib/config.h"
 #include "../lib/tls.h"
+#include "../lib/database.h"
 
 #include "../lib/logger.c"
 #include "../lib/signal.c"
 #include "../lib/privileges.c"
 #include "../lib/config.c"
-#include "../lib/daemonize.c"
 #include "../lib/database.c"
+#include "../lib/daemonize.c"
 
 typedef struct /*_OUTBOUND_MAIL*/ {
 	int* ids;
