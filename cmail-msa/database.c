@@ -240,6 +240,12 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata FROM main.users WHERE user_name = ?;";
 	
+	//check the database schema version
+	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
+		logprintf(log, LOG_ERROR, "The database schema is at another version than required for this build\n");
+		return -1;
+	}
+
 	database->query_authdata=database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
 	database->query_addresses=database_prepare(log, database->conn, QUERY_ADDRESS_USER);
 	database->query_inrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_INBOUND);
