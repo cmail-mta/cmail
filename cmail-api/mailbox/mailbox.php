@@ -1,7 +1,6 @@
 <?php
 	require_once("../module.php");
-	require_once("MimeMailParser.class.php");
-	require_once("PlancakeEmailParser.php");
+	require_once("parser.php");
 
 	class Mailbox implements Module {
 
@@ -95,12 +94,11 @@
 				return $out;
 			}
 
-			$parser = new MimeMailParser();
 			$mails = array();
 			foreach($out as $mail) {
 				$mailBody = $mail["mail_data"];
 				
-				$parser->setText($mailBody);
+				$parser = new MailParser($mailBody);
 				$mail["mail_subject"] = $parser->getHeader("subject");
 				$mail["mail_from"] = $parser->getHeader("from");
 				$mail["mail_to"] = $parser->getHeader("to");
@@ -243,19 +241,12 @@
 			$out = $out[0];
 			$out["mail_sourcedb"] = $source;
 
-			//$parser = new MimeMailParser();
-			//$parser->setText($out["mail_data"]);
-			//$out["mail_from"] = $parser->getHeader("from");
-			//$out["mail_to"] = $parser->getHeader("to");
-			//$out["mail_subject"] = $parser->getHeader("subject");
-			//$out["mail_body"] = $parser->getMessageBody("text");
-
-			$parser = new PlancakeEmailParser($out["mail_data"]);
+			$parser = new MailParser($out["mail_data"]);
 
 			$out["mail_from"] = $parser->getHeader("from");
-			$out["mail_to"] = $parser->getTo();
-			$out["mail_subject"] = $parser->getSubject();
-			$out["mail_body"] = $parser->getPlainBody();
+			$out["mail_to"] = $parser->getHeader("to");
+			$out["mail_subject"] = $parser->getHeader("subject");
+			$out["mail_body"] = $parser->getBody();
 
 			$this->output->add("mail", $out);
 
