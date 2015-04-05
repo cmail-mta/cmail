@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #define MAX_CFGLINE 2048
 
 char* common_strdup(char* input){
