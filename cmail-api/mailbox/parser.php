@@ -65,7 +65,7 @@ class MailParser {
 			$this->parseHeaders($mail);
 		} else {
 			$this->parseHeaders(substr($mail, 0, $index));
-			$this->parseBody(substr($mail, $index + 2));
+			$this->parseBody(substr($mail, $index + 4));
 		}
 	}
 
