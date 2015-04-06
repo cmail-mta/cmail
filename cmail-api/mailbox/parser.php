@@ -9,6 +9,28 @@ class MailParser {
 	private $error;
 
 
+	private function convertEncodedWord($str) {
+
+		// [0] = charset
+		// [1] = encoding (Q or B)
+		// [2] = text
+		$split = explode("?", $str);
+
+		switch (strtolower($split[1])) {
+			case "b":
+				$decoded = base64_decode($split[2]);
+				break;
+			case "q":
+				$decoded = quoted_printable_decode($split[2]);
+				break;
+			default:
+				error_log("No valid encoding");
+				break;	
+		}
+
+		return mb_convert_encoding($decoded, "UTF-8", $split[0]);
+
+	}
 	private function replaceEncodedWords($line) {
 			
 		$index = strpos($line, "=?");
@@ -23,7 +45,7 @@ class MailParser {
 		}
 
 		$output = substr($line, 0, $index);
-		$output .= $this->convertEncodedString(substr($line, $index + 2, $index_end - $index - 2));
+		$output .= $this->convertEncodedWord(substr($line, $index + 2, $index_end - $index - 2));
 		$output .= substr($line, $index_end + 2);
 
 		return $this->replaceEncodedWords($output);
@@ -69,29 +91,6 @@ class MailParser {
 		return true;
 	}
 
-	function convertEncodedString($str) {
-
-		error_log($str);
-		// [0] = charset
-		// [1] = encoding (Q or B)
-		// [2] = text
-		$split = explode("?", $str);
-
-		switch (strtolower($split[1])) {
-			case "b":
-				$decoded = base64_decode($split[2]);
-				break;
-			case "q":
-				$decoded = quoted_printable_decode($split[2]);
-				break;
-			default:
-				error_log("No valid encoding");
-				break;	
-		}
-
-		return $decoded;
-
-	}
 
 	function extractBoundary($ct) {
 		$index = strpos($ct, "boundary=");
