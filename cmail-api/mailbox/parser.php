@@ -8,6 +8,27 @@ class MailParser {
 	private $attachments;
 	private $error;
 
+
+	private function replaceEncodedWords($line) {
+			
+		$index = strpos($line, "=?");
+		if ($index === FALSE) {
+			return $line;
+		}
+
+		$index_end = strpos($line, "?=");
+	
+		if ($index_end === FALSE) {
+			return $line;
+		}
+
+		$output = substr($line, 0, $index);
+		$output .= $this->convertEncodedString(substr($line, $index + 2, $index_end - $index - 2));
+		$output .= substr($line, $index_end + 2);
+
+		return $this->replaceEncodedWords($output);
+	}
+
 	private function parseHeaders($raw) {
 
 		$lines = explode("\r\n", $raw);
@@ -41,15 +62,113 @@ class MailParser {
 			if ($line[$index + 1] != " ") {
 				$valueCount++;
 			}
-			$this->headers[substr($line, 0, $index)] = substr($line, $valueCount);
+			$header_body = $this->replaceEncodedWords(substr($line, $valueCount));
+			$this->headers[substr($line, 0, $index)] = $header_body;
 		}
 
 		return true;
 	}
 
+	function convertEncodedString($str) {
+
+		error_log($str);
+		// [0] = charset
+		// [1] = encoding (Q or B)
+		// [2] = text
+		$split = explode("?", $str);
+
+		switch (strtolower($split[1])) {
+			case "b":
+				$decoded = base64_decode($split[2]);
+				break;
+			case "q":
+				$decoded = quoted_printable_decode($split[2]);
+				break;
+			default:
+				error_log("No valid encoding");
+				break;	
+		}
+
+		return $decoded;
+
+	}
+
+	function extractBoundary($ct) {
+		$index = strpos($ct, "boundary=");
+
+		if ($index === FALSE) {
+			$this->body = $raw;
+			return;
+		}
+		$boundary = substr($ct, $index + 9);
+
+		if ($boundary[0] == "\"") {
+			$boundary = substr($boundary, 1);
+		}
+
+		$index = strpos($boundary, "\"");
+
+		if ($index !== FALSE) {
+			$boundary = substr($boundary, 0, $index);
+		}
+
+		return $boundary;
+	}
+
+	function parseMultipartSignedBody($ct, $raw) {
+		//TODO: implement parse multipart signed
+		//
+
+		$boundary = $this->extractBoundary($ct);
+		error_log("found boundary: " . $boundary);
+
+
+
+		$this->body = $raw;	
+	}
+
+	function parseMultipartUnsignedBody($ct, $raw) {
+		//TODO: implement parse multipart unsigned
+	}
+
+	function parseTextPlainBody($ct, $raw) {
+		//TODO: implement encoding check
+		
+		$this->body = $raw;
+	}
+
 	function parseBody($raw) {
 
-		$this->body = $raw;
+		$contentType = $this->getHeader("content-type");
+
+		$splitted = explode(";", $contentType);
+
+		if (count($splitted) < 1) {
+			$this->body = $raw;
+			return;
+		}
+
+		error_log($splitted[0]);
+
+		if ($splitted[0][0] == " ") {
+			$splitted[0] = substr($splitted[0], 1);
+		}
+
+		switch ($splitted[0]) {
+
+			case "text/plain":
+				$this->parseTextPlainBody($contentType, $raw);
+				break;
+			case "multipart/signed":
+				$this->parseMultipartSignedBody($contentType, $raw);
+				break;
+			case "multipart/unsigned":
+				$this->parseMultipartUnsignedBody($contentType, $raw);
+				break;
+			default:
+				$this->body = $raw;
+				break;
+		}
 	}
 
 	public function __construct($mail) {
