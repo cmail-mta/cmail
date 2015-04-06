@@ -24,6 +24,7 @@ class MailParser {
 				$decoded = quoted_printable_decode($split[2]);
 				break;
 			default:
+				$decoded = $str;
 				error_log("No valid encoding");
 				break;	
 		}
@@ -48,9 +49,17 @@ class MailParser {
 		$output .= $this->convertEncodedWord(substr($line, $index + 2, $index_end - $index - 2));
 		$end = substr($line, $index_end + 2);
 
+
+		$count = 0;
+
 		// if long encoded long word
-		if (strpos(" =?", $end) == 0) {
-			$end = substr($end, 1);
+		
+		while ($end[$count] == " ") {
+
+			$count++;
+		}
+		if (strpos("=?", $end) == $count) {
+			$end = substr($end, $count);
 		}
 
 		$output .= $end;
