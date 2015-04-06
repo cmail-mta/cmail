@@ -42,13 +42,29 @@ int auth_base64decode(LOGGER log, char* in){
 	return (group*3)+3;
 }
 
+int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, char* pass, unsigned pass_bytes){
+	struct sha256_ctx hash_context;
+	uint8_t digest[SHA256_DIGEST_SIZE];
+
+	if(hash_bytes<BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE)){
+		return -1;
+	}
+
+	sha256_init(&hash_context);
+	
+	sha256_update(&hash_context, salt_bytes, (uint8_t*)salt);
+	sha256_update(&hash_context, pass_bytes, (uint8_t*)pass);
+	
+	sha256_digest(&hash_context, SHA256_DIGEST_SIZE, digest);
+	base16_encode_update((uint8_t*)hash, SHA256_DIGEST_SIZE, digest);
+	return BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE);
+}
+
 int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	int status, rv=-1;
 	char* user_salt;
 	char* stored_hash;
-	uint8_t digest[SHA256_DIGEST_SIZE];
 	char digest_b16[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE)+1];
-	struct sha256_ctx hash_context;
 	
 	if(!user || !password){
 		return -1;
@@ -76,11 +92,7 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 				}
 
 				//calculate credentials hash
-				sha256_init(&hash_context);
-				sha256_update(&hash_context, stored_hash-user_salt, (uint8_t*)user_salt);
-				sha256_update(&hash_context, strlen(password), (uint8_t*)password);
-				sha256_digest(&hash_context, SHA256_DIGEST_SIZE, digest);
-				base16_encode_update((uint8_t*)digest_b16, SHA256_DIGEST_SIZE, digest);
+				auth_hash(digest_b16, sizeof(digest_b16), user_salt, stored_hash-user_salt, password, strlen(password));
 
 				if(!strcmp(stored_hash+1, digest_b16)){
 					logprintf(log, LOG_INFO, "Credentials for user %s ok\n", user);
