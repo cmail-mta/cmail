@@ -38,21 +38,113 @@
 			return (count($this->getByUser($obj, false)) > 0);
 		}
 
-		public function get($obj, $write = true) {
 
-			if (!isset($obj["address_expression"]) || empty($obj["address_expression"])) {
+		private function checkAddressDelegate($address) {
+			$auth = Auth::getInstance($this->db, $this->output);
 
-				if (isset($obj["address_user"]) && !empty($obj["address_user"])) {
-					return $this->getByUser($obj);
-				} else {
-					return $this->getAll();
+			if (!$auth->isAuthorized()) {
+				return false;
+			}
+			//check delegates
+			if ($auth->hasRight("admin")) {
+				return true;
+			}
+
+			$sql = "SELECT * FROM api_address_delegates WHERE :address_expression LIKE api_expression AND api_user = :api_user";
+
+			$params = array(
+				":address_expression" => $address,
+				":api_user" => $auth->getUser()
+			);
+
+			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+
+			return (count($out) > 0);
+
+		}
+
+		private function checkUserAction($user) {
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->isAuthorized()) {
+				return false;
+			}
+
+			if ($auth->hasRight("admin")) {
+				return true;
+			}
+
+			if (!$auth->hasRight("delegate")) {
+				return false;
+			}
+
+			if ($user == $auth->user) {
+				return true;
+			}
+
+			$delegates = $auth->getDelegateUsers();
+
+			foreach($delegates as $delegate) {
+				if ($delegate === $user) {
+					return true;
 				}
 			}
 
-			$sql = "SELECT * FROM addresses WHERE address_expression = :address ORDER BY address_order DESC";
+			return false;
+		}
+
+		private function getDelegatedUsers($auth) {
+
+			$sql = "SELECT * FROM addresses WHERE address_user = :address_user";
 
 			$params = array(
-				":address" => $obj["address_expression"]
+				":address_user" => $auth->getUser()
+			);
+			$list = $auth->getDelegateUsers();
+			foreach($list as $index => $item) {
+				$sql .= " OR address_user = :address_user" . $index;
+				$params[":address_user" . $index] = $item;
+			}
+
+			$sql .= " ORDER BY address_order DESC";
+
+			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+
+			return $out;
+		}
+		private function getDelegatedAddresses($auth) {
+
+			$sql = "SELECT * FROM addresses WHERE :address_expression LIKE address_expression";
+
+			$params = array(
+				":address_user" => $auth->getUser()
+			);
+			$list = $auth->getDelegateAddresses();
+			foreach($list as $index => $item) {
+				$sql .= " OR :address_expression" . $index . " LIKE address_expression";
+				$params[":address_expression" . $index] = $item;
+			}
+
+			$sql .= " ORDER BY address_order DESC";
+
+			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+
+			return $out;
+		}
+
+		private function GetDelegated($auth, $write = true) {
+
+
+			$sql = "select * from addresses 
+				WHERE address_expression LIKE 
+				(select api_expression from api_address_delegates 
+				where api_address_delegates.api_user = :api_user) 
+				OR address_user IN 
+				(SELECT api_delegate FROM api_user_delegates 
+				WHERE api_user_delegates.api_user = :api_user) ORDER BY address_order DESC";
+
+			$params = array(
+				":api_user" => $auth->getUser()
 			);
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
@@ -62,6 +154,70 @@
 			}
 
 			return $out;
+		}
+
+		public function get($obj, $write = true) {
+
+			if (isset($obj["address_expression"]) && !empty($obj["address_expression"])) {
+				return $this->getByExpression($obj["address_expression"], $write);
+			}
+			if (isset($obj["address_user"]) && !empty($obj["address_user"])) {
+				return $this->getByUser($obj);
+			}
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
+				return $this->getByUser(array("address_user" => $auth->getUser()));
+			}
+
+			if ($auth->hasRight("delegate")) {
+				return $this->getDelegated($auth);
+			}
+
+			return $this->getAll();
+
+		}
+
+		public function getByExpression($expression, $write = true) {
+
+			$auth = Auth::getInstance($this->db, $this->output);
+			
+			if ($auth->hasRight("delegate")) {
+				$sql = "select * from addresses 
+					WHERE (address_expression LIKE 
+					(select api_expression from api_address_delegates 
+					where api_address_delegates.api_user = :api_user) 
+					OR address_user IN 
+					(SELECT api_delegate FROM api_user_delegates 
+					WHERE api_user_delegates.api_user = :api_user))
+				       	AND address_expression = :address_expression ORDER BY address_order DESC";
+
+
+				$params = array(
+					":address_expression" => $expression,
+					":api_user" => $auth->getUser()
+				);
+			} else if ($auth->hasRight("admin")) {
+				$sql = "SELECT * FROM addresses WHERE address_expression = :address";
+				$params = array(
+					":address" => $expression
+				);
+			} else {
+				$sql = "SELECT * FROM addresses WHERE address_expression = :address AND address_user = :user";
+				$params = array(
+					":address" => $expression,
+					":user" => $auth->getUser()
+				);
+			}
+
+			$addresses = $this->db->query($sql, $params, DB::F_ARRAY);
+
+			if ($write) {
+				$this->output->add("addresses", $addresses);
+			}
+
+			return $addresses;
 		}
 
 		public function getAll() {
@@ -99,18 +255,6 @@
 			return $out;
 		}
 
-		public function getNextOrder() {
-			$sql = "SELECT address_order FROM addresses ORDER BY address_order DESC LIMIT 1";
-
-			$out = $this->db->query($sql, array(), DB::F_ARRAY);
-			
-			if (count($out)) {
-
-				return $out[0]["address_order"] + 1;
-			}
-			return 1;
-		}
-
 		public function add($address) {
 
 			if (!isset($address["address_expression"])) {
@@ -122,21 +266,32 @@
 				return -2;
 			}
 
-			if (!isset($address["address_order"]) || $address["address_order"] == "") {
-				$order = $this->getNextOrder();
-				$this->output->addDebugMessage("address_order", "order set to " . $order);
-			} else {
-				$order = $address["address_order"];
+			$auth = Auth::getInstance($this->db, $this->output);
+			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
+				$this->add("status", "No right to add an user");
+				return -4;
 			}
 
-			$sql = "INSERT INTO addresses(address_expression, address_order, address_user) VALUES (:address_exp, :order, :username)";
+			if ($auth->hasRight("delegate")) {
+				if (!$this->checkAddressDelegate($address["address_expression"])) {
+					$this->output->add("status", "No right to insert this expression.");
+					return -5;
+				}
+			}
 
 			$params = array(
 				":address_exp" => $address["address_expression"],
-				":order" => $order,
 				":username" => $address["address_user"]
 			);
 
+			if (!isset($address["address_order"]) || $address["address_order"] == "") {
+				
+				$sql = "INSERT INTO addresses(address_expression, address_user) VALUES (:address_exp, :username)";
+			} else {
+				$params[":order"] = $address["address_order"];
+				$sql = "INSERT INTO addresses(address_expression, address_order, address_user) VALUES (:address_exp, :order, :username)";
+			}
+			
 			$id = $this->db->insert($sql, array($params));
 
 			if (is_null($id)) {
