@@ -46,7 +46,14 @@ class MailParser {
 
 		$output = substr($line, 0, $index);
 		$output .= $this->convertEncodedWord(substr($line, $index + 2, $index_end - $index - 2));
-		$output .= substr($line, $index_end + 2);
+		$end = substr($line, $index_end + 2);
+
+		// if long encoded long word
+		if (strpos(" =?", $end) == 0) {
+			$end = substr($end, 1);
+		}
+
+		$output .= $end;
 
 		return $this->replaceEncodedWords($output);
 	}
