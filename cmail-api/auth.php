@@ -35,6 +35,11 @@ class Auth {
 		return $this->user;
 	}
 
+	/**
+	 * Checks if the authorized users has the given right
+	 * @param right to check
+	 * @returns true or false
+	 */
 	public function hasRight($right) {
 
 		if (isset($this->rights[$right]) && $this->rights[$right]) {
@@ -44,10 +49,31 @@ class Auth {
 		return false;
 	}
 
+	/**
+	 * Returns the status of authorization
+	 * @returns true if user is authorized, else false
+	 */
 	public function isAuthorized() {
 		return $this->authorized;
 	}
 
+	public function hasDelegatedUser($user) {
+
+		$users = $this->getDelegateUsers();
+
+		foreach($users as $delegate) {
+			if ($delegate === $user) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Return a list with all users that are delegated to the current authorized user
+	 * @return list of users
+	 */
 	public function getDelegateUsers() {
 
 		if (!is_null($this->delegates_user)) {
@@ -74,6 +100,11 @@ class Auth {
 		return $output;
 
 	}
+
+	/**
+	 * Returns all address expressions that are delegated to the current authorized user
+	 * @return list of address expressions
+	 */
 	public function getDelegateAddresses() {
 
 		if (!is_null($this->delegates_addresses)) {
