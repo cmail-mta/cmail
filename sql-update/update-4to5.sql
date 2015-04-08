@@ -28,7 +28,9 @@ BEGIN TRANSACTION;
 		api_user		TEXT	NOT NULL
 						REFERENCES users ( user_name ) 	ON DELETE CASCADE
 										ON UPDATE CASCADE,
-		api_delegate		TEXT	NOT NULL,
+		api_delegate		TEXT	NOT NULL
+						REFERENCES users ( user_name ) 	ON DELETE CASCADE
+										ON UPDATE CASCADE,
 		CONSTRAINT api_user_delegate UNIQUE ( api_user, api_delegate ) ON CONFLICT FAIL
 	);
 
