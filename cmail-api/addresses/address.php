@@ -268,7 +268,7 @@
 
 			$auth = Auth::getInstance($this->db, $this->output);
 			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
-				$this->add("status", "No right to add an user");
+				$this->add("status", "No right to add an address.");
 				return -4;
 			}
 
@@ -306,17 +306,29 @@
 		public function update($address) {
 
 			if (!isset($address["address_expression"])) {
-				$this->output->addDebugMessage("addresses", "We need an address expression.");
+				$this->output->add("status", "We need an address expression.");
 				return false;
 			}
 
 			if (!isset($address["address_user"])) {
-				$this->output->addDebugMessage("addresses", "We want also an username.");
+				$this->output->add("status", "We want also an username.");
 				return false;
 			}
 
 			if (!isset($address["address_order"])) {
-				$this->output->addDebugMessage("addresses", "We want also an order.");
+				$this->output->add("status", "We want also an order.");
+				return false;
+			}
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
+				$this->output->add("status", "No right to update an address.");
+				return false;
+			}
+
+			if ($auth->hasRight("delegate") && !$this->checkAddressDelegate($address["address_expression"])) {
+				$this->output->add("status", "No right to update this to address");
 				return false;
 			}
 			
@@ -345,6 +357,20 @@
 				$this->output->add("status", "We need an address expression.");
 				return false;
 			}
+
+			$auth = Auth::getInstance($this->db, $this->output);
+			
+			$test = false;
+			if ($auth->hasRight("admin")) {
+				$test = true;
+			} else if ($auth->hasRight("delegate") && $this->checkAddressDelegate($obj["address_expression"])) {
+				$test = true;
+			}
+
+			if (!$test) {
+				$this->output->add("status", "No access.");
+				return false;
+			}
 			
 			$sql = "DELETE FROM addresses WHERE address_expression = :expression";
 
@@ -363,9 +389,16 @@
 		}
 
 
+		/**
+		 * Switches the order of two addresses
+		 * @param $obj object with
+		 * 	address1 address object 1
+		 * 	address2 address object 2
+		 * Address object has
+		 * 	address_expression expression
+		 * 	address_order current order
+		 */
 		public function switchOrder($obj) {
-
-			$this->db->beginTransaction();
 
 			if (!isset($obj["address1"]) || empty($obj["address1"])) {
 				$this->output->add("status", "Adress 1 is not defined");
@@ -395,6 +428,16 @@
 				$this->output->add("status", "Both addresses needs an order number");
 				return false;
 			}
+	
+			$auth = Auth::getInstance($this->db, $this->output);
+			$test = false;
+			if ($auth->hasRight("admin")) {
+				$test = true;
+			} else if ($auth->hasRight("delegate") && $this->checkAddressDelegate($obj["address_expression"]) 
+					&& $this->checkAddressDelegate($address2["address_expression"])) {
+				$test = true;
+			}
+			$this->db->beginTransaction();
 
 			// swap orders
 			$swap = $address1["address_order"];
@@ -423,6 +466,12 @@
 			return true;	
 		}
 
+		/**
+		 * Return all addresses that matches the given expression
+		 * @param $obj object with
+		 * 	address_expression expression for addresses
+		 * @return list of addresses
+		 */
 		public function match($obj) {
 
 
@@ -445,6 +494,10 @@
 
 		}
 
+		/**
+		 * Test a given routing
+		 */
+		// TODO: rewrite testRouting function!!!!
 		public function testRouting($obj) {
 
 			if (!isset($obj["address_expression"]) || empty($obj["address_expression"])) {
@@ -572,8 +625,6 @@
 			$this->output->add("steps", $steps);
 			return $steps;
 		}
-
-
 	}
 
 ?>
