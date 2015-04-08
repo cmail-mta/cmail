@@ -67,6 +67,10 @@ class Auth {
 			return true;
 		}
 
+		if (!$this->hasRight("delegate")) {
+			return false;
+		}
+
 		$users = $this->getDelegateUsers();
 
 		foreach($users as $delegate) {

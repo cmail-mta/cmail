@@ -141,6 +141,8 @@ class DB {
 	function insert($sql, $params) {
 		global $orderBy;
 
+		$this->output->addDebugMessage("dbquery", $sql);
+
 		$stm = $this->db->prepare($sql);
 
 		if ($this->db->errorCode() > 0) {
