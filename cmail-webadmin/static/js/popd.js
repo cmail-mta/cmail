@@ -23,6 +23,22 @@ cmail.pop = {
 
 				tr.appendChild(gui.createColumn(p.pop_user));
 
+				var lock = gui.create("td");
+				var checkbox = gui.createCheckbox("popLock", function() {
+					if(confirm("Do you really unlock this user?")) {
+						ajax.asyncPost(cmail.api_url + "pop/?unlock", JSON.stringify({
+							pop_user: p.pop_user
+						}), function(xhr) {
+							cmail.set_status(pop.status);
+							self.get_all();
+						});
+					} else {
+						checkbox.checked = p.pop_lock;
+					}
+				});
+				lock.appendChild(checkbox);
+				tr.appendChild(lock);
+
 				var options = gui.create("td");
 
 				options.appendChild(gui.createButton("delete", self.delete, [p], self));
@@ -47,9 +63,13 @@ cmail.pop = {
 	},
 	delete: function(p) {
 		var self = this;
-		ajax.asyncPost(cmail.api_url + "pop/?delete", JSON.stringify(p), function(xhr) {
-			cmail.set_status(JSON.parse(xhr.response).status);
-			self.get_all();
-		});
+
+		if (confirm("Do you really want to revoke access to this user?")) {
+
+			ajax.asyncPost(cmail.api_url + "pop/?delete", JSON.stringify(p), function(xhr) {
+				cmail.set_status(JSON.parse(xhr.response).status);
+				self.get_all();
+			});
+		}
 	}
 }

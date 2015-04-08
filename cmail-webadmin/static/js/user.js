@@ -144,10 +144,6 @@ cmail.user = {
 				cmail.set_status(JSON.parse(xhr.response).status);
 			});
 		} else {
-			//ajax.asyncPost(cmail.api_url + "users/?update", JSON.stringify({ user: user}), function(xhr) {
-			//	cmail.set_status(JSON.parse(xhr.response).status);
-			//});
-
 			if (gui.elem("user_password_revoke").checked) {
 				authdata = true;
 				user["user_authdata"] = null;
