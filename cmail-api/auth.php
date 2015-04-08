@@ -59,6 +59,14 @@ class Auth {
 
 	public function hasDelegatedUser($user) {
 
+		if (!$this->isAuthorized()) {
+			return false;
+		}
+
+		if ($this->hasRight("admin")) {
+			return true;
+		}
+
 		$users = $this->getDelegateUsers();
 
 		foreach($users as $delegate) {
