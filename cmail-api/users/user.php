@@ -9,6 +9,11 @@
 
 		private $db;
 		private $output;
+
+		// List of end points. Format is:
+		// $name => $func
+		// $name name of the end point
+		// $func name of the function that is called. Function must be in this class.
 		private $endPoints = array(
 			"get" => "get",
 			"add" => "add",
@@ -35,6 +40,11 @@
 		}
 
 
+		/**
+		 * Returns a list of users that are delegated to the authorized user. In list is the user itself.
+		 * @param $write if true send user list to output module
+		 * @return list of users
+		 */
 		private function getDelegated($write = true) {
 
 			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login 
@@ -66,6 +76,7 @@
 		/**
 		 * Returns the given user when in database. If no user is defined, send all users.
 		 * @param obj object with key username into
+		 * @param $write (optional) if true give user list to the output module
 		 * @output_flags users all users that matches this username (should be one)
 		 * @return list of users that matches (should be one)
 		 */
@@ -106,6 +117,13 @@
 			}
 
 		}
+
+		/**
+		 * Return a user by his name
+		 * @param $username name of the user
+		 * @param $write (optional) if true user object is given to output module
+		 * @return user object
+		 */
 		private function getByUser($username, $write = true) {
 
 			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login FROM users WHERE user_name = :user_name";
@@ -123,6 +141,11 @@
 			return $out;
 		}
 
+		/**
+		 * Return a list of active modules for the given user
+		 * @param user object with
+		 * 	user_name name of the user
+		 */
 		public function getActiveModules($user) {
 			global $modulelist;
 			$modules = array();
@@ -143,6 +166,11 @@
 			return $modules;
 		}
 
+		/**
+		 * Return if the module is active for the user
+		 * @param username
+		 * @return true or false
+		 */
 		public function isActive($username) {
 
 			if (!isset($username) || empty($username)) {
@@ -182,7 +210,6 @@
 		 * @return if salt is null then $salt:sha265($salt, $password), else sha265($salt, $password);
 		 */
 		public function create_password_hash($salt, $password) {
-
 
 			if (is_null($salt)) {
 				$salt = uniqid(mt_rand(), true);
@@ -250,18 +277,26 @@
 				":user_authdata" => $user["user_authdata"],
 			);
 
+			$this->db->beginTransaction();
 			$id = $this->db->insert($sql, array($params));
 
 			if (isset($id) && !empty($id)) {
 				$this->output->add("user", true);
 
 				if ($auth->hasRight("delegate")) {
-					$this->addDelegate(array("api_delegate" => $user["user_name"]), true);
+					$status = $this->addDelegate(array("api_delegate" => $user["user_name"]), true);
+
+					if ($status < 1) {
+						$this->db->rollback();
+						return false;
+					}
 				}
 
+				$this->db->commit();
 				return true;
 			} else {
 				$this->output->add("user", false);
+				$this->rollback();
 				return false;
 			}
 
