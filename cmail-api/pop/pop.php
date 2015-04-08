@@ -9,7 +9,8 @@
 		private $endPoints = array(
 			"get" => "get",
 			"add" => "add",
-			"delete" => "delete"
+			"delete" => "delete",
+			"unlock" => "unlock"
 		);
 
 		public function __construct($db, $output) {
@@ -110,7 +111,7 @@
 
 			$auth = Auth::getInstance($this->db, $this->output);
 			
-			if (!$auth->hasDelegatedUser($obj["pop_user"]) && ($auth->getUser() !== $obj["pop_user"])) {
+			if (!$auth->hasDelegatedUser($username) && ($auth->getUser() !== $username)) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -164,6 +165,31 @@
 			}
 		}
 
+
+		public function unlock($obj) {
+
+			if (!isset($obj["pop_user"]) || empty($obj["pop_user"])) {
+
+				$this->output->add("status", "No username is set");
+				return false;
+			}
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasDelegatedUser($obj["pop_user"]) && ($auth->getUser() !== $obj["pop_user"])) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "UPDATE popd SET pop_lock = 0 WHERE pop_user = :pop_user";
+			$params = array(
+				":pop_user" => $obj["pop_user"]
+			);
+
+			$status = $this->db->insert($sql, [$params]);
+
+			return ($status != 0);
+
+		}
 
 		/**
 		 * Adds the given user to the popd table (Enables pop)
