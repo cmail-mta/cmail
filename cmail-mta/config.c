@@ -65,6 +65,16 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 	return -1;
 }
 
+int config_announce(CONFIGURATION* config, char* directive, char* params){
+	config->settings.helo_announce=common_strdup(params);
+	return (config->settings.helo_announce)?0:-1;
+}
+
+int config_ports(CONFIGURATION* config, char* directive, char* params){
+	//TODO configure port priorities
+	return 0;
+}
+
 int config_line(void* config_data, char* line){
 	unsigned parameter;
 	CONFIGURATION* config=(CONFIGURATION*) config_data;
@@ -96,12 +106,56 @@ int config_line(void* config_data, char* line){
 		return config_logger(config, line, line+parameter);
 	}
 
+	else if(!strncmp(line, "announce", 8)){
+		return config_announce(config, line, line+parameter);
+	}
+
+	else if(!strncmp(line, "portprio", 8)){
+		return config_ports(config, line, line+parameter);
+	}
+
+	else if(!strncmp(line, "interval", 8)){
+		config->settings.check_interval=strtoul(line+parameter, NULL, 10);
+		//TODO sanity check this
+		return 0;
+	}
+
+	else if(!strncmp(line, "retries", 7)){
+		config->settings.mail_retries=strtoul(line+parameter, NULL, 10);
+		//TODO sanity check this
+		return 0;
+	}
+
+	else if(!strncmp(line, "retryinterval", 13)){
+		config->settings.retry_interval=strtoul(line+parameter, NULL, 10);
+		//TODO sanity check this
+		return 0;
+	}
+
+	else if(!strncmp(line, "tlspadding", 10)){
+		config->settings.tls_padding=strtoul(line+parameter, NULL, 10);
+		return 0;
+	}
+
+	else if(!strncmp(line, "ratelimit", 9)){
+		config->settings.rate_limit=strtoul(line+parameter, NULL, 10);
+		return 0;
+	}
+
 	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
 	return -1;
 }
 
 void config_free(CONFIGURATION* config){
 	database_free(config->log, &(config->database));
+	
+	if(config->settings.helo_announce){
+		free(config->settings.helo_announce);
+	}
+
+	if(config->settings.port_list){
+		//TODO free port list
+	}
 
 	if(config->log.stream!=stderr){
 		fclose(config->log.stream);

@@ -5,13 +5,15 @@ int usage(char* filename){
 	printf("Deliver outbound message to the next hop\n");
 	printf("Usage: %s <conffile> [options]\n", filename);
 	printf("Recognized options:\n");
-	printf("\tnodrop\t\tDo not drop privileges\n");
-	printf("\tnodetach\tDo not detach from console\n");
+	printf("\tnodrop\t\t\tDo not drop privileges\n");
+	printf("\tnodetach\t\tDo not detach from console\n");
+	printf("\tdeliver <remote>\tDeliver outbound mail for <remote>\n");
 	return EXIT_FAILURE;
 }
 
 int main(int argc, char** argv){
 	ARGUMENTS args = {
+		.delivery_domain = NULL,
 		.drop_privileges = true,
 		.daemonize = true,
 		.config_file = NULL
@@ -20,7 +22,8 @@ int main(int argc, char** argv){
 	CONFIGURATION config = {
 		.database = {
 			.conn = NULL,
-			.query_outbound = NULL
+			.query_outbound_hosts = NULL,
+			.query_outbound_mail = NULL
 		},
 		.log = {
 			.stream = stderr,
@@ -29,7 +32,16 @@ int main(int argc, char** argv){
 		.privileges = {
 			.uid = 0,
 			.gid= 0
-		}	
+		},
+		.settings = {
+			.helo_announce = NULL,
+			.port_list = NULL,
+			.check_interval = 10,
+			.rate_limit = 0,
+			.mail_retries = 5,
+			.retry_interval = 3600,
+			.tls_padding = 10
+		}
 	};
 
 	if(argc<2){
@@ -50,6 +62,7 @@ int main(int argc, char** argv){
 
 	//read config file
 	if(config_parse(config.log, &config, args.config_file)<0){
+		logprintf(config.log, LOG_ERROR, "Failed to parse config file\n");
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
 		return EXIT_FAILURE;
@@ -57,6 +70,7 @@ int main(int argc, char** argv){
 
 	//initialize database
 	if(database_initialize(config.log, &(config.database))<0){
+		logprintf(config.log, LOG_ERROR, "Failed to initialize database\n");
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
 		return EXIT_FAILURE;
@@ -104,8 +118,13 @@ int main(int argc, char** argv){
 	}
 	
 	//run core loop
-	core_loop(config.log, &(config.database));
-	
+	if(args.delivery_domain){
+		logic_deliver_host(config.log, &(config.database), config.settings, args.delivery_domain);
+	}
+	else{
+		logic_loop_hosts(config.log, &(config.database), config.settings);
+	}
+
 	//cleanup
 	config_free(&config);
 	TLSSUPPORT(gnutls_global_deinit());
