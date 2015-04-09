@@ -46,12 +46,53 @@
 
 				<div class="separator"></div>
 
+				<table>
+					<thead>
+						<th>Right</th><th>Options</th>
+					</thead>
+					<tbody id="user_rights">
+					</tbody>
+				</table>
+
+				<label id="rights">Add right: <br />
+					<input type="text" id="user_right" />
+					<span class="button" onclick="cmail.user.add_right()">Add</span>
+				</label>
+
+				<div class="separator"></div>
+
 				<span class="button" onclick="cmail.user.save()">Save</span>
 				<span class="button" onclick="cmail.user.hide_form()">Cancel</span>
 			</form>
 		</div>
 
+		<div id="delegate_user_add" class="editPanel">
+			<form>
+				<input type="hidden" id="form_user_delegate_type" value="new" />
+				<label>Username <br />
+					<input id="api_user" list="usernamelist" type="text" />
+				</label>
+				<label>Delegated user <br />
+					<input id="api_delegate" list="usernamelist"  type="text"/>
+				</label>
+				<span class="button" onclick="cmail.api.user.save()">Save</span>
+				<span class="button" onclick="cmail.api.user.hide_form()">Cancel</span>
+			</form>
+		</div>
 
+		<div id="delegate_address_add" class="editPanel">
+			<form>
+				<input type="hidden" id="form_delegate_address__type" value="new" />
+				<label>Username <br />
+					<input id="api_user" list="usernamelist" type="text" />
+				</label>
+				<label>Delegated user <br />
+					<input id="api_delegate" list=""  type="text"/>
+				</label>
+				<span class="button" onclick="cmail.api.user.save()">Save</span>
+				<span class="button" onclick="cmail.api.user.hide_form()">Cancel</span>
+			</form>
+		</div>
 		<div id="msaadd" class="editPanel">
 			<form>
 				<input type="hidden" id="form_msa_type" value="new"/>

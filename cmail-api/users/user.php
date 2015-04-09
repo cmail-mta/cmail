@@ -18,7 +18,9 @@
 			"get" => "get",
 			"add" => "add",
 			"delete" => "delete",
-			"set_password" => "set_password"
+			"set_password" => "set_password",
+			"delete_right" => "deleteRight",
+			"add_right" => "addRight"
 		);
 
 		/**
@@ -132,13 +134,91 @@
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 
+			if (count($out) < 1) {
+				if ($write) {
+					$this->output->add("users", []);
+				}
+				return [];
+			}
+
 			$out["modules"] = $this->getActiveModules($out[0]);
+
+			$right_sql = "SELECT api_right FROM api_access WHERE api_user = :api_user";
+			$right_params = array(
+				":api_user" => $username
+			);
+
+			$rights = $this->db->query($right_sql, $right_params, DB::F_ARRAY);
+			$out[0]["user_rights"] = [];
+
+			foreach($rights as $right) {
+				$out[0]["user_rights"][] = $right["api_right"];
+			}
 
 			if ($write) {
 				$this->output->add("users", $out);
 			}
 
 			return $out;
+		}
+
+		public function deleteRight($user) {
+
+
+			if (!isset($user["user_name"]) || empty($user["user_name"])) {
+				$this->output->add("status", "No user is set.");
+				return false;
+			}
+
+			if (!isset($user["user_right"]) || empty($user["user_right"])) {
+				$this->output->add("status", "No right is set.");
+				return false;
+			}
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("admin")) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "DELETE FROM api_access WHERE :api_user = api_user AND api_right = :api_right)";
+
+			$params = array(
+				":api_user" => $user["user_name"],
+				":api_right" => $user["user_right"]
+			);
+
+			return $this->db->insert($sql, [$params]);
+		}
+		public function addRight($user) {
+
+
+			if (!isset($user["user_name"]) || empty($user["user_name"])) {
+				$this->output->add("status", "No user is set.");
+				return false;
+			}
+
+			if (!isset($user["user_right"]) || empty($user["user_right"])) {
+				$this->output->add("status", "No right is set.");
+				return false;
+			}
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("admin")) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "INSERT INTO api_access (api_user, api_right) VALUES (:api_user, :api_right)";
+
+			$params = array(
+				":api_user" => $user["user_name"],
+				":api_right" => $user["user_right"]
+			);
+
+			return $this->db->insert($sql, [$params]);
 		}
 
 		/**

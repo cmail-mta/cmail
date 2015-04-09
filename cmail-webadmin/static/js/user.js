@@ -79,8 +79,34 @@ cmail.user = {
 			userlist.appendChild(gui.createOption("", username));
 		});
 	},
-	show_form: function(name) {
+	delete_right: function() {
 
+		var obj = {
+			user_name: gui.elem("user_name").value,
+			user_right: gui.elem("user_right").value
+		}
+
+		var self = this;
+		ajax.asyncPost(cmail.api_url + "users/?delete_right", JSON.stringify(obj), function(xhr) {
+			cmail.set_status(JSON.parse(xhr.response).status);
+			self.show_form(obj.user_name);
+		});
+	},
+	add_right: function() {
+
+		var obj = {
+			user_name: gui.elem("user_name").value,
+			user_right: gui.elem("user_right").value
+		}
+
+		var self = this;
+		ajax.asyncPost(cmail.api_url + "users/?add_right", JSON.stringify(obj), function(xhr) {
+			cmail.set_status(JSON.parse(xhr.response).status);
+			self.show_form(obj.user_name);
+		});
+	},
+	show_form: function(name) {
+		var self = this;
 		if (name) {
 			gui.elem("form_type").value = "edit";
 			var user = this.get(name);
@@ -93,11 +119,24 @@ cmail.user = {
 			gui.elem("user_name").value = user.user_name;
 			gui.elem("user_name").disabled = true;
 
+			user_rights = gui.elem("user_rights");
+			user_rights.innerHTML = "";
+			user.user_rights.forEach(function(right) {
+				var tr = gui.create('tr');
+				tr.appendChild(gui.createColumn(right));
+				var option = gui.create("td");
+				option.appendChild(gui.createButton("delete", self.delete_right, [user.user_name, right], self));
+
+				tr.appendChild(option);
+				user_rights.appendChild(tr);
+			});
+
 		} else {
 
 			gui.elem("form_type").value = "new";
 			gui.elem("user_name").value = "";
 			gui.elem("user_name").disabled = false;
+			gui.elem("user_rights").innerHTML = "";
 
 		}
 
