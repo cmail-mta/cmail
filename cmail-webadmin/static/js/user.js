@@ -1,6 +1,7 @@
 var cmail = cmail || {};
 
 cmail.user = {
+	user_rights: [],
 	/**
 	 * Returns a single user object from api
 	 * @param name name of the user
@@ -69,8 +70,25 @@ cmail.user = {
 		});
 
 		self.fill_username_list(list);
+		console.log(obj);
+		self.setRights(obj.rights);
 		});
 
+	},
+	setRights: function(rights) {
+		if(rights["admin"]) {
+			var admins = document.querySelectorAll(".admin");
+			for (var i = 0; i < admins.length; i++) {
+				admins[i].style.display = "block";
+			}
+		}
+
+		if (rights["admin"] || rights["delegate"]) {
+			var delegates = document.querySelectorAll(".delegate");
+			for (var i = 0; i < delegates.length; i++) {
+				delegates[i].style.display = "block";
+			}
+		}
 	},
 	fill_username_list: function(list) {
 		var userlist = gui.elem("usernamelist");
@@ -79,34 +97,36 @@ cmail.user = {
 			userlist.appendChild(gui.createOption("", username));
 		});
 	},
-	delete_right: function() {
+	delete_right: function(tr, right) {
+		var index = this.user_rights.indexOf(right);
 
-		var obj = {
-			user_name: gui.elem("user_name").value,
-			user_right: gui.elem("user_right").value
+		if (index < 0) {
+			return;
 		}
 
-		var self = this;
-		ajax.asyncPost(cmail.api_url + "users/?delete_right", JSON.stringify(obj), function(xhr) {
-			cmail.set_status(JSON.parse(xhr.response).status);
-			self.show_form(obj.user_name);
-		});
+		this.user_rights.splice(index, 1);
+		gui.elem("user_rights").removeChild(tr);
 	},
 	add_right: function() {
-
-		var obj = {
-			user_name: gui.elem("user_name").value,
-			user_right: gui.elem("user_right").value
-		}
+		var right = gui.elem("user_right").value;
+		this.appendRight(right);
+	},
+	appendRight: function(right) {
 
 		var self = this;
-		ajax.asyncPost(cmail.api_url + "users/?add_right", JSON.stringify(obj), function(xhr) {
-			cmail.set_status(JSON.parse(xhr.response).status);
-			self.show_form(obj.user_name);
-		});
+		this.user_rights.push(right);
+		var rights = gui.elem("user_rights");
+		var tr = gui.create('tr');
+		tr.appendChild(gui.createColumn(right));
+		var option = gui.create("td");
+		option.appendChild(gui.createButton("delete", self.delete_right, [tr, right], self));
+		tr.appendChild(option);
+		rights.appendChild(tr);
 	},
 	show_form: function(name) {
 		var self = this;
+		this.user_rights = [];
+		gui.elem("user_right").innerHTML = "";
 		if (name) {
 			gui.elem("form_type").value = "edit";
 			var user = this.get(name);
@@ -122,13 +142,7 @@ cmail.user = {
 			user_rights = gui.elem("user_rights");
 			user_rights.innerHTML = "";
 			user.user_rights.forEach(function(right) {
-				var tr = gui.create('tr');
-				tr.appendChild(gui.createColumn(right));
-				var option = gui.create("td");
-				option.appendChild(gui.createButton("delete", self.delete_right, [user.user_name, right], self));
-
-				tr.appendChild(option);
-				user_rights.appendChild(tr);
+				self.appendRight(right);
 			});
 
 		} else {
@@ -176,6 +190,7 @@ cmail.user = {
 		var user = {
 			user_name: gui.elem("user_name").value,
 			user_authdata: authdata,
+			user_rights: self.user_rights
 		};
 
 		if (gui.elem("form_type").value === "new") {
@@ -194,8 +209,15 @@ cmail.user = {
 				});
 			}
 
+			ajax.asyncPost(cmail.api_url + "users/?update_rights", JSON.stringify({
+				user_name: user.user_name,
+				user_rights: self.user_rights
+			}), function(xhr) {
+				cmail.set_status(JSON.parse(xhr.response).status);
+				self.get_all();
+			});
+
 		}
-		this.get_all();
 		this.hide_form();
 	}
 };

@@ -20,7 +20,8 @@
 			"delete" => "delete",
 			"set_password" => "set_password",
 			"delete_right" => "deleteRight",
-			"add_right" => "addRight"
+			"add_right" => "addRight",
+			"update_rights" => "updateRights"
 		);
 
 		/**
@@ -221,6 +222,49 @@
 			return $this->db->insert($sql, [$params]);
 		}
 
+		public function updateRights($user) {
+			if (!isset($user["user_name"]) || empty($user["user_name"])) {
+				$this->output->add("status", "No user is set.");
+				return false;
+			}
+
+			if (!isset($user["user_rights"]) || empty($user["user_rights"])) {
+				$this->output->add("status", "No rights is set.");
+				return false;
+			}
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("admin")) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "DELETE FROM api_rights WHERE api_user = :api_user";
+
+			$params = array(
+				":api_user" => $user["user_name"]
+			);
+
+			$this->db->beginTransaction();
+
+			if (!$this->db->insert($sql, [$params])) {
+				$this->db->rollback();
+				return;
+			}
+
+			foreach($user["user_rights"] as $right) {
+				if (!$this->addRight(array(
+					"user_right" => $right,
+					"user_name" => $user["user_name"]
+				))) {
+					$this->db->rollback();
+					return;
+				}
+			}
+
+			$this->db->commit();
+		}
+
 		/**
 		 * Return a list of active modules for the given user
 		 * @param user object with
@@ -358,7 +402,18 @@
 			);
 
 			$this->db->beginTransaction();
+			
 			$id = $this->db->insert($sql, array($params));
+
+
+			if (isset($user["user_rights"]) && !empty($user["user_rights"])) {
+				foreach($user["user_rights"] as $right) {
+					$this->addRight(array(
+						"user_right" => $right,
+						"user_name" => $user["user_name"]
+					));
+				}
+			}
 
 			if (isset($id) && !empty($id)) {
 				$this->output->add("user", true);

@@ -85,3 +85,7 @@ label {
 .separator {
 	clear: both;
 }
+
+.admin, .delegate {
+	display: none;
+}

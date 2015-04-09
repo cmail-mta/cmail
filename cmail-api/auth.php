@@ -158,7 +158,7 @@ class Auth {
 			$this->rights[$right["api_right"]] = true;
 		}
 
-		$this->output->addDebugMessage("rights", $this->rights);
+		$this->output->add("rights", $this->rights);
 	}
 
 	/**
