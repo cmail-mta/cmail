@@ -67,7 +67,7 @@ cmail.address = {
 	},
 	show_form: function(expression) {
 		if (expression) {
-			gui.elem("form_type").value = "edit";
+			gui.elem("form_address_type").value = "edit";
 
 			var address = this.get(expression);
 
