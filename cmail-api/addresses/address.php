@@ -528,7 +528,6 @@
 			$steps[] = "Address matched: " . $address["address_expression"];
 			$msa = $msaModule->get(array("msa_user" => $address["address_user"]), false);
 
-
 			if (count($msa) < 1) {
 				$this->output->add("steps", ["No routing informations found for user " . $address["address_user"]]);
 				return false;

@@ -63,13 +63,13 @@
 				return $this->getAll($write);
 			}
 
-			$this->getByUser($obj["msa_user"], $write);
+			return $this->getByUser($obj["msa_user"], $write);
 		}
 
 		private function getByUser($username, $write = true) {
 
 			$auth = Auth::getInstance($this->db, $this->output);
-			if (($auth->getUser() !== $username) && !$auth->hasDelegatedUser($username)) {
+			if (!$auth->hasDelegatedUser($username)) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}

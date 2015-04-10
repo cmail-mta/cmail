@@ -71,7 +71,7 @@ class DB {
 		$stm->execute($params);
 		if ($this->db->errorCode() > 0) {
 			$this->output->addDebugMessage("db", $this->db->errorInfo());
-			error_log($this->db->errorInfo());
+			//error_log($this->db->errorInfo());
 			return null;
 		}
 		return $stm;
