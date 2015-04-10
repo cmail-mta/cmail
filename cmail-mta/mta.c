@@ -8,12 +8,14 @@ int usage(char* filename){
 	printf("\tnodrop\t\t\tDo not drop privileges\n");
 	printf("\tnodetach\t\tDo not detach from console\n");
 	printf("\tdeliver <remote>\tDeliver outbound mail for <remote>\n");
+	printf("\thandoff <remote>\tDeliver handoff mail for <remote>\n");
 	return EXIT_FAILURE;
 }
 
 int main(int argc, char** argv){
 	ARGUMENTS args = {
 		.delivery_domain = NULL,
+		.delivery_mode = DELIVER_DOMAIN,
 		.drop_privileges = true,
 		.daemonize = true,
 		.config_file = NULL
@@ -119,7 +121,7 @@ int main(int argc, char** argv){
 	
 	//run core loop
 	if(args.delivery_domain){
-		logic_deliver_host(config.log, &(config.database), config.settings, args.delivery_domain);
+		logic_deliver_host(config.log, &(config.database), config.settings, args.delivery_domain, args.delivery_mode);
 	}
 	else{
 		logic_loop_hosts(config.log, &(config.database), config.settings);

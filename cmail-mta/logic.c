@@ -1,4 +1,4 @@
-int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host){
+int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
 	int status;
 	int mails;
 	MAIL current_mail = {
@@ -10,7 +10,7 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		.data = NULL
 	};
 
-	logprintf(log, LOG_INFO, "Entering mail delivery loop\n");
+	logprintf(log, LOG_INFO, "Entering mail delivery loop for host %s in mode %s\n", host, (mode==DELIVER_DOMAIN)?"domain":"handoff");
 	//TODO select only mails from one host
 /*
 	mails=0;
@@ -46,6 +46,7 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 
 int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	int status;
+	DELIVERY_MODE mail_mode=DELIVER_DOMAIN;
 	char* mail_remote=NULL;
 
 	logprintf(log, LOG_INFO, "Entering core loop\n");
@@ -55,12 +56,15 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 			status=sqlite3_step(database->query_outbound_hosts);
 			switch(status){
 				case SQLITE_ROW:
+					mail_mode=DELIVER_HANDOFF;
 					mail_remote=(char*)sqlite3_column_text(database->query_outbound_hosts, 0);
+					
 					if(!mail_remote){
+						mail_mode=DELIVER_DOMAIN;
 						mail_remote=(char*)sqlite3_column_text(database->query_outbound_hosts, 1);
 					}
 					//handle outbound mail for single host
-					logprintf(log, LOG_INFO, "Starting delivery for %s\n", mail_remote);
+					logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", mail_remote, (mail_mode==DELIVER_DOMAIN)?"domain":"handoff");
 					//TODO actually start delivery
 					break;
 				case SQLITE_DONE:

@@ -1,5 +1,5 @@
 int database_initialize(LOGGER log, DATABASE* database){
-	char* QUERY_OUTBOUND_HOSTS="SELECT mail_remote, SUBSTR(mail_envelopeto, INSTR(mail_envelopeto, '@')+1) AS mail_host, LENGTH(mail_data) FROM main.outbox GROUP BY mail_remote, SUBSTR(mail_envelopeto, INSTR(mail_envelopeto, '@')+1);";
+	char* QUERY_OUTBOUND_HOSTS="SELECT mail_remote, NULL AS mail_host FROM main.outbox WHERE mail_remote IS NOT NULL GROUP BY mail_remote UNION SELECT NULL AS mail_remote, SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 ) AS mail_host FROM main.outbox WHERE mail_remote IS NULL GROUP BY SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 );";
 	char* QUERY_OUTBOUND_MAIL="SELECT GROUP_CONCAT(mail_id) AS mail_idlist, mail_remote, SUBSTR(mail_envelopeto, INSTR(mail_envelopeto, '@')+1) AS mail_host, GROUP_CONCAT(mail_envelopeto) AS mail_recipients, LENGTH(mail_data) AS mail_size, mail_data FROM main.outbox GROUP BY mail_remote, SUBSTR(mail_envelopeto, INSTR(mail_envelopeto, '@')+1), mail_data, mail_envelopefrom;";
 	
 	//check the database schema version

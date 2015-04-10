@@ -21,6 +21,11 @@
 #include "../lib/database.c"
 #include "../lib/daemonize.c"
 
+typedef enum /*_DELIVERY_MODE*/ {
+	DELIVER_DOMAIN,
+	DELIVER_HANDOFF
+} DELIVERY_MODE;
+
 typedef struct /*_OUTBOUND_MAIL*/ {
 	int* ids;
 	char* remote;
@@ -38,6 +43,7 @@ typedef struct /*_DATABASE_CONN*/ {
 
 typedef struct /*_ARGUMENT_COLLECTION*/ {
 	char* delivery_domain;
+	DELIVERY_MODE delivery_mode;
 	bool drop_privileges;
 	bool daemonize;
 	char* config_file;

@@ -10,8 +10,11 @@ int args_parse(ARGUMENTS* args, int argc, char** argv){
 		else if(!strcmp(argv[i], "nodetach")){
 			args->daemonize=false;
 		}
-		else if(!strcmp(argv[i], "deliver")){
+		else if(!strcmp(argv[i], "deliver")||!strcmp(argv[i], "handoff")){
 			if(i+1<argc){
+				if(argv[i][0]=='h'){
+					args->delivery_mode=DELIVER_HANDOFF;
+				}
 				printf("Updating delivery domain to %s\n", argv[i+1]);
 				args->delivery_domain=argv[++i];
 			}
