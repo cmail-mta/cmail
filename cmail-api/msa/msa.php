@@ -28,6 +28,30 @@
 		}
 
 		/**
+		 * Return all msa entries for delegated users and the entry for himself
+		 * @param $write if true send list to output module
+		 * @return list of users
+		 */
+		private function getDelegated($write = true) {
+
+			$auth = Auth::getInstance($this->db, $this->output);
+			$sql = "SELECT * FROM msa WHERE msa_user = :api_user OR msa_user IN
+				(SELECT api_delegate FROM api_user_delegates WHERE api_user = :api_user)";
+
+			$params = array(
+				":api_user" => $auth->getUser()
+			);
+
+			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+
+			if ($write) {
+				$this->output->add("msa", $out);
+			}
+
+			return $out;
+		}
+
+		/**
 		 * Returns the msa entry for the given username
 		 * @param $obj object with
 		 * 	- msa_user name of the user
@@ -36,12 +60,23 @@
 		public function get($obj, $write = true) {
 			if (!isset($obj["msa_user"]) || empty($obj["msa_user"])) {
 				// if no username is set, return all users
-				return $this->getAll();
+				return $this->getAll($write);
+			}
+
+			return $this->getByUser($obj["msa_user"], $write);
+		}
+
+		private function getByUser($username, $write = true) {
+
+			$auth = Auth::getInstance($this->db, $this->output);
+			if (!$auth->hasDelegatedUser($username)) {
+				$this->output->add("status", "Not allowed.");
+				return false;
 			}
 
 			$sql = "SELECT * FROM msa WHERE msa_user = :msa_user";
 
-			$params = array(":msa_user" => $obj["msa_user"]);
+			$params = array(":msa_user" => $username);
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 			if ($write) {
@@ -63,12 +98,24 @@
 		 * Returns all msa entries
 		 * @return list of all msa entries in database 
 		 */
-		public function getAll() {
+		public function getAll($write = true) {
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("delegate") && !$auth->hasRight("admin")) {
+				return $this->getByUser($auth->getUser());
+			}
+
+			if ($auth->hasRight("delegate") && !$auth->hasRight("admin")) {
+				return $this->getDelegated();
+			}
 
 			$sql = "SELECT * FROM msa";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
-			$this->output->add("msa", $out);
+			if ($write) {
+				$this->output->add("msa", $out);
+			}
 
 			return $out;
 		}
@@ -136,7 +183,14 @@
                         if (!isset($msa["msa_outrouter"]) || empty($msa["msa_outrouter"])) {
                                 $this->output->add("status", "User outrouter is not set.");
                                 return false;
-                        }
+			}
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasDelegatedUser($msa["msa_user"])) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
 
 			if (isset($msa["msa_inroute"]) && !empty($msa["msa_inroute"]) && $msa["msa_inrouter"] == "store") {
 
@@ -194,6 +248,12 @@
 				return false;
 			}
 
+			$auth = Auth::getInstance($this->db, $this->output);
+			if (!$auth->hasDelegatedUser($obj["msa_user"])) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
 			if ($obj["msa_inrouter"] == "store") {
 				if (!$this->updateUserDatabase($obj, isset($obj["msa_transfer"]))) {
 					return false;
@@ -229,6 +289,12 @@
 
 			if (!isset($obj["msa_user"]) || empty($obj["msa_user"])) {
 				$this->output->add("status", "Username is not set.");
+				return false;
+			}
+
+			$auth = Auth::getInstance($this->db, $this->output);
+			if (!$auth->hasDelegatedUser($obj["msa_user"])) {
+				$this->output->add("status", "Not allowed.");
 				return false;
 			}
 

@@ -1,0 +1,122 @@
+This is the endpoint documentation for cmail api.
+
+== Modules ==
+
+The api is divided in modules. Every module handles endpoints. A module has
+its own folder which contains at least a index.php and the <modulename>.php
+file. It also contains all php files needed by the module which isn't another
+module. A module must contain a class that implements the Module class. The
+class name of this main module is the name of the Module. To enable the Module
+the class name and the path to the file containing the class must be placed in
+the config.php file in the module list.
+
+== List of modules ==
+
+- User		Basic Module for user management
+- Address	Module for handling addresses
+- Delegate	Module for delegating users or address ranges
+  		to other users. Required for right "delegate"
+- MSA		MSA config module
+- POP		POP config module
+- Mailbox	Module used for the webmailer (not recommended)
+
+== Endpoints ==
+
+An endpoint consists of the api part, the module part and the endpoint
+parameter. The only exception for this is the get_modules endpoint. This
+endpoint has no module part.
+
+=== api part ===
+This is the path to the api.
+
+=== module part ===
+
+This part contains the path from api folder to the index.php file of the
+module (on most servers the index.php file must not be part of the url).
+
+=== paramter part ===
+
+This part leads to the accessed function of the module. It begins with '?'
+followed by the function name.
+
+== List of Endpoints sorted by Module ==
+
+
+
+=== General ===
+
+==== /?get_modules ====
+
+Parameter:	none
+Returns:	Returns a list of all enabled modules.
+
+=== User ===
+==== /users/?get ====
+
+Returns a list of users. If username is given it returns only the given user.
+A normal user gets only its entry. Users with right delegate get all users
+that a delegated to it or itself and users with right admin get all users.
+
+Paramter:
+{
+	user_name: if given return only this user
+}
+Returns:	List of users or only the given user
+
+==== /users/?add ====
+
+Add a user.
+
+Paramter:
+{
+	user_name: username
+	user_authdata: password (if empty no access to modules)
+	rights: list of user rights (see rights section)
+}
+==== /users/?delete ====
+
+Delete a user.
+
+Parameter:
+{
+		user_name: username
+}
+==== /users/?set_password ====
+
+Set the password of a user.
+
+Paramter:
+{
+	user_name	username
+	user_authdata	password (if empty revoke access to modules)
+}
+
+==== /users/?delete_right ====
+
+Delete a right from an user.
+
+Parameter:
+{
+	user_name: username
+	user_right: right see rights section
+}
+
+==== /users/?add_right ====
+
+Adds a right to an user.
+
+Paramter:
+{
+	user_name: username
+	user_right: right see rights section
+}
+
+==== /users/?update_rights ====
+
+Updates all rights for a user. Rights not in this list will be deleted.
+
+Parameter:
+{
+	user_name: username
+	user_rights: list of rights
+}

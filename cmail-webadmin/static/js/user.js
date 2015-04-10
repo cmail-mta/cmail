@@ -1,6 +1,7 @@
 var cmail = cmail || {};
 
 cmail.user = {
+	user_rights: [],
 	/**
 	 * Returns a single user object from api
 	 * @param name name of the user
@@ -69,8 +70,29 @@ cmail.user = {
 		});
 
 		self.fill_username_list(list);
+		console.log(obj);
+		self.setRights(obj.rights);
 		});
 
+	},
+	setRights: function(rights) {
+		if(!rights["admin"]) {
+			var style = gui.create('link');
+			style.setAttribute("rel", "stylesheet");
+			style.setAttribute("type", "text/css");
+			style.setAttribute("href", "static/admin.css");
+			document.head.appendChild(style);
+			return;
+		}
+
+		if (!rights["delegate"]) {
+			var style = gui.create('link');
+			style.setAttribute("rel", "stylesheet");
+			style.setAttribute("type", "text/css");
+			style.setAttribute("href", "static/delegate.css");
+			document.head.appendChild(style);
+			return;
+		}
 	},
 	fill_username_list: function(list) {
 		var userlist = gui.elem("usernamelist");
@@ -79,8 +101,36 @@ cmail.user = {
 			userlist.appendChild(gui.createOption("", username));
 		});
 	},
-	show_form: function(name) {
+	delete_right: function(tr, right) {
+		var index = this.user_rights.indexOf(right);
 
+		if (index < 0) {
+			return;
+		}
+
+		this.user_rights.splice(index, 1);
+		gui.elem("user_rights").removeChild(tr);
+	},
+	add_right: function() {
+		var right = gui.elem("user_right").value;
+		this.appendRight(right);
+	},
+	appendRight: function(right) {
+
+		var self = this;
+		this.user_rights.push(right);
+		var rights = gui.elem("user_rights");
+		var tr = gui.create('tr');
+		tr.appendChild(gui.createColumn(right));
+		var option = gui.create("td");
+		option.appendChild(gui.createButton("delete", self.delete_right, [tr, right], self));
+		tr.appendChild(option);
+		rights.appendChild(tr);
+	},
+	show_form: function(name) {
+		var self = this;
+		this.user_rights = [];
+		gui.elem("user_right").innerHTML = "";
 		if (name) {
 			gui.elem("form_type").value = "edit";
 			var user = this.get(name);
@@ -93,11 +143,18 @@ cmail.user = {
 			gui.elem("user_name").value = user.user_name;
 			gui.elem("user_name").disabled = true;
 
+			user_rights = gui.elem("user_rights");
+			user_rights.innerHTML = "";
+			user.user_rights.forEach(function(right) {
+				self.appendRight(right);
+			});
+
 		} else {
 
 			gui.elem("form_type").value = "new";
 			gui.elem("user_name").value = "";
 			gui.elem("user_name").disabled = false;
+			gui.elem("user_rights").innerHTML = "";
 
 		}
 
@@ -137,6 +194,7 @@ cmail.user = {
 		var user = {
 			user_name: gui.elem("user_name").value,
 			user_authdata: authdata,
+			user_rights: self.user_rights
 		};
 
 		if (gui.elem("form_type").value === "new") {
@@ -144,10 +202,6 @@ cmail.user = {
 				cmail.set_status(JSON.parse(xhr.response).status);
 			});
 		} else {
-			//ajax.asyncPost(cmail.api_url + "users/?update", JSON.stringify({ user: user}), function(xhr) {
-			//	cmail.set_status(JSON.parse(xhr.response).status);
-			//});
-
 			if (gui.elem("user_password_revoke").checked) {
 				authdata = true;
 				user["user_authdata"] = null;
@@ -159,8 +213,15 @@ cmail.user = {
 				});
 			}
 
+			ajax.asyncPost(cmail.api_url + "users/?update_rights", JSON.stringify({
+				user_name: user.user_name,
+				user_rights: self.user_rights
+			}), function(xhr) {
+				cmail.set_status(JSON.parse(xhr.response).status);
+				self.get_all();
+			});
+
 		}
-		this.get_all();
 		this.hide_form();
 	}
 };

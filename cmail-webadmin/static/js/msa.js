@@ -65,7 +65,7 @@ cmail.msa = {
 		if (confirm("Do you really delete the address " + username + "?") == true) {
 			ajax.asyncPost(cmail.api_url + "msa/?delete", JSON.stringify({ msa_user: username }), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
-				self.get();
+				self.get_all();
 			});
 		}
 

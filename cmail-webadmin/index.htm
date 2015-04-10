@@ -12,6 +12,7 @@
 	<body onload="cmail.init();">
 		<div id="headmenu">
 			<a class="item" href="#user">User</a>
+			<a class="item" href="#delegates">Delegates</a>
 			<a class="item" href="#msa">MSA</a>
 			<a class="item" href="#address">Adresses</a>
 			<a class="item" href="#pop">POP</a>
@@ -40,17 +41,33 @@
 
 				<div class="separator"></div>
 
-				<label>
+				<label class="delegate">
 					Revoke Access <input type="checkbox" id="user_password_revoke" />
 				</label>
 
 				<div class="separator"></div>
 
+				<div class="admin">
+					<table>
+						<thead>
+							<th>Right</th><th>Options</th>
+						</thead>
+						<tbody id="user_rights">
+						</tbody>
+					</table>
+	
+					<label id="rights">Add right: <br />
+						<input type="text" id="user_right" />
+						<span class="button" onclick="cmail.user.add_right()">Add</span>
+					</label>
+
+					<div class="separator"></div>
+
+				</div>
 				<span class="button" onclick="cmail.user.save()">Save</span>
 				<span class="button" onclick="cmail.user.hide_form()">Cancel</span>
 			</form>
 		</div>
-
 
 		<div id="msaadd" class="editPanel">
 			<form>
@@ -93,7 +110,7 @@
 
 		<div id="addressadd" class="editPanel">
 			<form>
-				<input type="hidden" id="form_address_type" value="type" />
+				<input type="hidden" id="form_address_type" value="new" />
 
 				<label>Address <br />
 					<input id="address_expression" type="text" />
@@ -134,7 +151,39 @@
 
 		</div>
 
+		<div id="delegates" class="tab">
 
+			<h2>Delegates</h2>
+			<br />
+			<div id="delegates_action_bar" class="admin">
+				<label>User <br />
+					<input type="text" list="usernamelist" id="delegate_user_add" />
+				</label>
+				<label>Delegation <br />
+					<input type="text" list="usernamelist" id="delegate_delegation_add" />
+				</label>
+				<span class="button" onclick="cmail.delegates.add_user()">Add User</span>
+				<span class="button" onclick="cmail.delegates.add_address()">Add Address</span>
+			</div>
+
+			<table>
+				<thead>
+					<th>Delegate</th><th>Address expression</th><th>Options</th>
+				</thead>
+				<tbody id="delegates_address">
+				</tbody>
+			</table>
+			<div class="seperator"></div>
+			<br />
+			<table>
+				<thead>
+					<th>Delegate</th><th>Delegated User</th><th>Options</th>
+				</thead>
+				<tbody id="delegates_user">
+				</tbody>
+			</table>
+
+		</div>
 
 		<div id="address" class="tab">
 			<h2>Addresses</h2>
@@ -188,7 +237,7 @@
 
 			<table>
 				<thead>
-					<th>User</th><th>Options</th>
+					<th>User</th><th>Lock</th><th>Options</th>
 				</thead>
 
 				<tbody id="pop_user_list">
@@ -234,6 +283,7 @@
 		<script src="static/js/cmail.js"></script>
 		<script src="static/js/config.js"></script>
 		<script src="static/js/popd.js"></script>
+		<script src="static/js/delegates.js"></script>
 		<script src="static/js/address.js"></script>
 		<script src="static/js/user.js"></script>
 		<script src="static/js/msa.js"></script>

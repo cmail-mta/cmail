@@ -20,7 +20,7 @@ function main($module_name) {
 	$output = Output::getInstance();
 	$db = new DB($dbpath, $output);
 
-	$API_VERSION = 4;
+	$API_VERSION = 5;
 
 
 	// db connection
@@ -53,7 +53,8 @@ function main($module_name) {
 		$obj["auth"] = [];
 	}
 
-	if (!auth($db, $output, $obj["auth"])) {
+	$auth = Auth::getInstance($db, $output);
+	if (!$auth->auth($db, $output, $obj["auth"])) {
 		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials)\"");
 		header("HTTP/1.0 401 Unauthorized");
 

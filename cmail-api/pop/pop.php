@@ -9,7 +9,8 @@
 		private $endPoints = array(
 			"get" => "get",
 			"add" => "add",
-			"delete" => "delete"
+			"delete" => "delete",
+			"unlock" => "unlock"
 		);
 
 		public function __construct($db, $output) {
@@ -40,13 +41,44 @@
 			return $this->endPoints;
 		}
 
+		private function getDelegated($write = true) {
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			$sql = "SELECT pop_user, pop_lock FROM popd WHERE pop_user = :api_user OR pop_user IN 
+				(SELECT api_delegate FROM api_user_delegates WHERE api_user = :api_user)";
+
+			$params = array(
+				":api_user" => $auth->getUser()
+			);
+
+			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+
+			if ($write) {
+				$this->output->add("pop", $out);
+			}
+
+			return $out;
+		}
+
 		/**
-		 * Returns all users in popd table.
+		 * Returns all users in psend list to output module.
+		 * @param $write if true
 		 * @return list of users
 		 */
-		public function getAll() {
-			
-			$sql = "SELECT pop_user FROM popd";
+		public function getAll($write = true) {
+
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("admin")) {
+				if ($auth->hasRight("delegate")) {
+					return $this->getDelegated();
+				} else {
+					return $this->getByUser($auth->getUser());
+				}
+			}
+
+			$sql = "SELECT pop_user, pop_lock FROM popd";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
 
@@ -63,15 +95,30 @@
 		 * @return list of user(s)
 		 */
 		public function get($obj, $write = true) {
+
 			if (!isset($obj["pop_user"]) || empty($obj["pop_user"])) {
 				
 				//getall
 				return $this->getAll();
 			}
 
-			$sql = "SELECT pop_user FROM popd WHERE pop_user = :pop_user";
+			return $this->getByUser($obj["pop_user"], $write);
+
+		}
+
+		private function getByUser($username, $write = true) {
+
+
+			$auth = Auth::getInstance($this->db, $this->output);
+			
+			if (!$auth->hasDelegatedUser($username) && ($auth->getUser() !== $username)) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "SELECT pop_user, pop_lock FROM popd WHERE pop_user = :pop_user";
 			$params = array(
-				":pop_user" => $obj["pop_user"]
+				":pop_user" => $username
 			);
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
@@ -95,6 +142,13 @@
 				return false;
 			}
 
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasDelegatedUser($obj["pop_user"]) && ($auth->getUser() !== $obj["pop_user"])) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
 			$sql = "DELETE FROM popd WHERE pop_user = :pop_user";
 
 			$params = array(
@@ -112,6 +166,31 @@
 		}
 
 
+		public function unlock($obj) {
+
+			if (!isset($obj["pop_user"]) || empty($obj["pop_user"])) {
+
+				$this->output->add("status", "No username is set");
+				return false;
+			}
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasDelegatedUser($obj["pop_user"]) && ($auth->getUser() !== $obj["pop_user"])) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "UPDATE popd SET pop_lock = 0 WHERE pop_user = :pop_user";
+			$params = array(
+				":pop_user" => $obj["pop_user"]
+			);
+
+			$status = $this->db->insert($sql, [$params]);
+
+			return ($status != 0);
+
+		}
+
 		/**
 		 * Adds the given user to the popd table (Enables pop)
 		 * @param object with
@@ -123,7 +202,12 @@
 				$this->output->add("status", "No username is set");
 				return false;
 			}
+			$auth = Auth::getInstance($this->db, $this->output);
 
+			if (!$auth->hasDelegatedUser($obj["pop_user"]) && ($auth->getUser() !== $obj["pop_user"])) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
 			$sql = "INSERT INTO popd (pop_user) VALUES (:pop_user)";
 			$params = array(
 				":pop_user" => $obj["pop_user"]
