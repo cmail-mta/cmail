@@ -76,18 +76,22 @@ cmail.user = {
 
 	},
 	setRights: function(rights) {
-		if(rights["admin"]) {
-			var admins = document.querySelectorAll(".admin");
-			for (var i = 0; i < admins.length; i++) {
-				admins[i].style.display = "block";
-			}
+		if(!rights["admin"]) {
+			var style = gui.create('link');
+			style.setAttribute("rel", "stylesheet");
+			style.setAttribute("type", "text/css");
+			style.setAttribute("href", "static/admin.css");
+			document.head.appendChild(style);
+			return;
 		}
 
-		if (rights["admin"] || rights["delegate"]) {
-			var delegates = document.querySelectorAll(".delegate");
-			for (var i = 0; i < delegates.length; i++) {
-				delegates[i].style.display = "block";
-			}
+		if (!rights["delegate"]) {
+			var style = gui.create('link');
+			style.setAttribute("rel", "stylesheet");
+			style.setAttribute("type", "text/css");
+			style.setAttribute("href", "static/delegate.css");
+			document.head.appendChild(style);
+			return;
 		}
 	},
 	fill_username_list: function(list) {

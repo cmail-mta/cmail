@@ -21,7 +21,7 @@
 			"set_password" => "set_password",
 			"delete_right" => "deleteRight",
 			"add_right" => "addRight",
-			"update_rights" => "updateRights"
+			"update_rights" => "updateRights",
 		);
 
 		/**
@@ -92,7 +92,7 @@
 					// if no username is set, return all users
 					return $this->getAll();
 				} else {
-					return $this->getByUser($obj, $write);
+					return $this->getByUser($obj["username"], $write);
 				}
 			} else if ($auth->hasRight("delegate")) {
 				if (isset($obj["username"]) && !empty($obj["username"])) {
@@ -345,8 +345,17 @@
 			}
 		}
 
-		private function addDelegate($obj, $delegated = false) {
+		public function addDelegate($obj, $delegated = false) {
 			
+			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
+				$this->output->add("status", "User is not set.");
+				return false;
+			}
+			
+			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
+				$this->output->add("status", "Delegated user is not set.");
+				return false;
+			}
 			$auth = Auth::getInstance($this->db, $this->output);
 
 			if (!$auth->hasRight("admin") && !$delegated) {
@@ -358,6 +367,85 @@
 			$params = array(
 				":api_user" => $auth->getUser(),
 				":api_delegate" => $obj["api_delegate"]
+			);
+
+			return $this->db->insert($sql, [$params]);
+		}
+
+		public function removeDelegate($obj) {
+			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
+				$this->output->add("status", "User is not set.");
+				return false;
+			}
+			
+			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
+				$this->output->add("status", "Delegated user is not set.");
+				return false;
+			}
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!$auth->hasRight("admin") && !$delegated) {
+				return false;
+			}
+
+			$sql = "DELETE FROM api_user_delegates WHERE api_user = :api_user AND api_delegate = :api_delegate";
+
+			$params = array(
+				":api_user" => $auth->getUser(),
+				":api_delegate" => $obj["api_delegate"]
+			);
+
+			return $this->db->insert($sql, [$params]);
+
+		}
+
+		public function addDelegatedAddress($obj) {
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
+				$this->output->add("status", "User is not set.");
+				return false;
+			}
+			if (!isset($obj["api_expression"]) || empty($obj["api_expression"])) {
+				$this->output->add("status", "Address expression is not set.");
+				return false;
+			}
+			if (!$auth->hasRight("admin")) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "INSERT INTO api_address_delegates (api_user, api_expression) VALUES (:api_user, :api_expression)";
+
+			$params = array(
+				":api_user" => $obj["api_user"],
+				":api_expression" => $obj["api_expression"]
+			);
+
+			return $this->db->insert($sql, [$params]);
+		}
+
+		public function removeDelegatedAddress($obj, $write = true) {
+			$auth = Auth::getInstance($this->db, $this->output);
+
+			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
+				$this->output->add("status", "User is not set.");
+				return false;
+			}
+			if (!isset($obj["api_expression"]) || empty($obj["api_expression"])) {
+				$this->output->add("status", "Address expression is not set.");
+				return false;
+			}
+			if (!$auth->hasRight("admin")) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "DELETE FROM api_address_delegates WHERE api_user = :api_user AND api_expression = :api_expression";
+
+			$params = array(
+				":api_user" => $obj["api_user"],
+				":api_expression" => $obj["api_expression"]
 			);
 
 			return $this->db->insert($sql, [$params]);

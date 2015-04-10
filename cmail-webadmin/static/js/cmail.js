@@ -38,6 +38,7 @@ var cmail = {
 	},
 	tabs: [
 		"user",
+		"delegates",
 		"address",
 		"msa",
 		"pop",
