@@ -48,10 +48,12 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	int status;
 	DELIVERY_MODE mail_mode=DELIVER_DOMAIN;
 	char* mail_remote=NULL;
+	unsigned mails_delivered=0;
 
 	logprintf(log, LOG_INFO, "Entering core loop\n");
 
 	do{
+		mails_delivered=0;
 		do{
 			status=sqlite3_step(database->query_outbound_hosts);
 			switch(status){
@@ -65,17 +67,21 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					}
 					//handle outbound mail for single host
 					logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", mail_remote, (mail_mode==DELIVER_DOMAIN)?"domain":"handoff");
-					//TODO actually start delivery
+					
+					//TODO implement multi-threading here
+					mails_delivered+=logic_deliver_host(log, database, settings, mail_remote, mail_mode);
+
 					break;
 				case SQLITE_DONE:
-					//TODO count mails
-					logprintf(log, LOG_INFO, "Interval done\n");
+					logprintf(log, LOG_INFO, "Interval done, delivered %d mails\n", mails_delivered);
 					break;
 			}
 		}
 		while(status==SQLITE_ROW);
 	
 		sqlite3_reset(database->query_outbound_hosts);
+	
+		//TODO check for mails over the retry limit
 		sleep(settings.check_interval);
 	}
 	while(!abort_signaled);

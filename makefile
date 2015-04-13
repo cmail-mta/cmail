@@ -2,15 +2,15 @@ INSTALL_PATH=/usr/local/bin
 .PHONY: clean install
 
 all:
-	$(MAKE) -C cmail-msa
-	$(MAKE) -C cmail-mta
-	$(MAKE) -C cmail-popd
-	$(MAKE) -C cmail-imapd
+	@$(MAKE) -C cmail-msa
+	@$(MAKE) -C cmail-mta
+	@$(MAKE) -C cmail-popd
+	@$(MAKE) -C cmail-imapd
 
 	-mkdir bin
-	mv cmail-msa/cmail-msa bin/
-	mv cmail-mta/cmail-mta bin/
-	mv cmail-popd/cmail-popd bin/
+	@mv cmail-msa/cmail-msa bin/
+	@mv cmail-mta/cmail-mta bin/
+	@mv cmail-popd/cmail-popd bin/
 	# mv cmail-imapd/cmail-imapd bin/
 
 install:
