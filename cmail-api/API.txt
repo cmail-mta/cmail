@@ -2,50 +2,43 @@ This is the endpoint documentation for cmail api.
 
 == Modules ==
 
-The api is divided in modules. Every module handles endpoints. A module has
-its own folder which contains at least a index.php and the <modulename>.php
-file. It also contains all php files needed by the module which isn't another
-module. A module must contain a class that implements the Module class. The
-class name of this main module is the name of the Module. To enable the Module
-the class name and the path to the file containing the class must be placed in
-the config.php file in the module list.
+The API is split into multiple modules, each handling multiple endpoints. 
+All code belonging to a specific module is stored in its folder, containing
+at the minimum an index.php and a <modulename>.php file. 
+
+Modules must implement a class named after the Module, extending the base 
+Module class. To enable a Module for requests by the API, the class name and 
+path to the file containing the class implementation must be placed in the 
+config.php file in the module list.
 
 == List of modules ==
 
 - User		Basic Module for user management
 - Address	Module for handling addresses
 - Delegate	Module for delegating users or address ranges
-  		to other users. Required for right "delegate"
-- MSA		MSA config module
-- POP		POP config module
+  		to other users. Required for permission "delegate"
+- MSA		MSA configuration module
+- POP		POP configuration module
 - Mailbox	Module used for the webmailer (not recommended)
 
 == Endpoints ==
 
-An endpoint consists of the api part, the module part and the endpoint
-parameter. The only exception for this is the get_modules endpoint. This
-endpoint has no module part.
+An endpoint URL consists of 
+	- the API URl
+	- the Module subpath (path to index.php) and 
+	- the endpoint name as GET parameter
 
-=== api part ===
-This is the path to the api.
-
-=== module part ===
-
-This part contains the path from api folder to the index.php file of the
-module (on most servers the index.php file must not be part of the url).
-
-=== paramter part ===
-
-This part leads to the accessed function of the module. It begins with '?'
-followed by the function name.
+The only exception to this is the get_modules endpoint, being part
+of the API core.
 
 == List of Endpoints sorted by Module ==
 
-
+TODO: Document response format
 
 === General ===
 
 ==== /?get_modules ====
+Query all active API modules
 
 Parameter:	none
 Returns:	Returns a list of all enabled modules.
@@ -53,70 +46,79 @@ Returns:	Returns a list of all enabled modules.
 === User ===
 ==== /users/?get ====
 
-Returns a list of users. If username is given it returns only the given user.
-A normal user gets only its entry. Users with right delegate get all users
-that a delegated to it or itself and users with right admin get all users.
+Query the user list. If the user_name parameter is set, return only information
+relevant to the given user.
 
-Paramter:
-{
-	user_name: if given return only this user
-}
+Unprivileged users will only get their own information in the response.
+Users with delegations receive information about all users in their 
+administrative zone.
+Administrators will receive information about all users registered in the system.
+
+Parameter:
+	{
+	user_name:  (optional) Query for information about a specific user
+	}
+
 Returns:	List of users or only the given user
 
 ==== /users/?add ====
 
-Add a user.
+Add a user to the system.
 
-Paramter:
-{
-	user_name: username
-	user_authdata: password (if empty no access to modules)
-	rights: list of user rights (see rights section)
-}
+Parameter:
+	{
+	user_name: Name of user to be created (will fail if not unique)
+	user_authdata: (optional) Plaintext user password (If not set or blank,
+				the created user will not have authenticated access
+				to the system)
+	rights: (optional) Array of permissions to grant to the new user 
+				(Refer to the permissions section below)
+	}
+
 ==== /users/?delete ====
 
-Delete a user.
+Delete a user, including all data linked to it.
 
 Parameter:
-{
-		user_name: username
-}
+	{
+		user_name: Name of user to be deleted
+	}
+
 ==== /users/?set_password ====
 
-Set the password of a user.
+Set user password.
 
-Paramter:
-{
-	user_name	username
-	user_authdata	password (if empty revoke access to modules)
-}
+Parameter:
+	{
+	user_name:	User name
+	user_authdata:	(optional) New password. (If not set or blank, authenticated
+				access is not/no longer granted)
+	}
 
 ==== /users/?delete_right ====
-
-Delete a right from an user.
+Revoke a permission for a specific user.
 
 Parameter:
-{
-	user_name: username
-	user_right: right see rights section
-}
+	{
+	user_name: User to modify
+	user_right: Permission to revoke (Refer to permissions section below)
+	}
 
 ==== /users/?add_right ====
-
-Adds a right to an user.
-
-Paramter:
-{
-	user_name: username
-	user_right: right see rights section
-}
-
-==== /users/?update_rights ====
-
-Updates all rights for a user. Rights not in this list will be deleted.
+Grant a permission to a specific user.
 
 Parameter:
-{
-	user_name: username
-	user_rights: list of rights
-}
+	{
+	user_name: User to modify
+	user_right: Permission to grant (Refer to permissions section below)
+	}
+
+==== /users/?update_rights ====
+Set the permission list for a user to match exactly the permissions specified,
+deleting and adding permissions where necessary.
+
+Parameter:
+	{
+	user_name: User to modify
+	user_rights: Array of permissions (Refer to permissions section below)
+	}
