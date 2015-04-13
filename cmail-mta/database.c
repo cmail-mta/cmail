@@ -1,6 +1,8 @@
 int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_OUTBOUND_HOSTS="SELECT mail_remote, NULL AS mail_host FROM main.outbox WHERE mail_remote IS NOT NULL GROUP BY mail_remote UNION SELECT NULL AS mail_remote, SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 ) AS mail_host FROM main.outbox WHERE mail_remote IS NULL GROUP BY SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 );";
-	char* QUERY_OUTBOUND_MAIL="SELECT GROUP_CONCAT(mail_id) AS mail_idlist, mail_remote, SUBSTR(mail_envelopeto, INSTR(mail_envelopeto, '@')+1) AS mail_host, GROUP_CONCAT(mail_envelopeto) AS mail_recipients, LENGTH(mail_data) AS mail_size, mail_data FROM main.outbox GROUP BY mail_remote, SUBSTR(mail_envelopeto, INSTR(mail_envelopeto, '@')+1), mail_data, mail_envelopefrom;";
+
+	char* QUERY_OUTBOUND_MAIL_BY_DOMAIN="SELECT GROUP_CONCAT(mail_id) AS mail_idlist, GROUP_CONCAT(mail_envelopeto) AS mail_recipients, LENGTH(mail_data) AS mail_size, mail_data FROM main.outbox WHERE SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 )=? GROUP BY mail_data, mail_envelopefrom;";
+	char* QUERY_OUTBOUND_MAIL_BY_REMOTE="SELECT GROUP_CONCAT(mail_id) AS mail_idlist, GROUP_CONCAT(mail_envelopeto) AS mail_recipients, LENGTH(mail_data) AS mail_size, mail_data FROM main.outbox WHERE mail_remote=? GROUP BY mail_data, mail_envelopefrom;";
 	
 	//check the database schema version
 	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
@@ -9,9 +11,10 @@ int database_initialize(LOGGER log, DATABASE* database){
 	}
 	
 	database->query_outbound_hosts=database_prepare(log, database->conn, QUERY_OUTBOUND_HOSTS);
-	database->query_outbound_mail=database_prepare(log, database->conn, QUERY_OUTBOUND_MAIL);
+	database->query_domain=database_prepare(log, database->conn, QUERY_OUTBOUND_MAIL_BY_DOMAIN);
+	database->query_remote=database_prepare(log, database->conn, QUERY_OUTBOUND_MAIL_BY_REMOTE);
 
-	if(!database->query_outbound_hosts || !database->query_outbound_mail){
+	if(!database->query_outbound_hosts || !database->query_domain || !database->query_remote){
 		logprintf(log, LOG_ERROR, "Failed to create mail query statement\n");
 		return -1;
 	}
@@ -24,7 +27,8 @@ void database_free(LOGGER log, DATABASE* database){
 	
 	if(database->conn){
 		sqlite3_finalize(database->query_outbound_hosts);
-		sqlite3_finalize(database->query_outbound_mail);
+		sqlite3_finalize(database->query_remote);
+		sqlite3_finalize(database->query_domain);
 		sqlite3_close(database->conn);
 		database->conn=NULL;
 	}

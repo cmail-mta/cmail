@@ -38,7 +38,8 @@ typedef struct /*_OUTBOUND_MAIL*/ {
 typedef struct /*_DATABASE_CONN*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_outbound_hosts;
-	sqlite3_stmt* query_outbound_mail;
+	sqlite3_stmt* query_remote;
+	sqlite3_stmt* query_domain;
 } DATABASE;
 
 typedef struct /*_ARGUMENT_COLLECTION*/ {

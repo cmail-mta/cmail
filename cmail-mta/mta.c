@@ -25,7 +25,8 @@ int main(int argc, char** argv){
 		.database = {
 			.conn = NULL,
 			.query_outbound_hosts = NULL,
-			.query_outbound_mail = NULL
+			.query_remote = NULL,
+			.query_domain = NULL
 		},
 		.log = {
 			.stream = stderr,
