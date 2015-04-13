@@ -1,6 +1,6 @@
 int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
 	int status;
-	unsigned delivered_mails=0;
+	unsigned delivered_mails=0, i;
 	sqlite3_stmt* data_statement=(mode==DELIVER_DOMAIN)?database->query_domain:database->query_remote;
 	MAIL current_mail = {
 		.ids = NULL,
@@ -10,6 +10,9 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		.length = 0,
 		.data = NULL
 	};
+	unsigned char nsbuf[4096]; //FIXME this is currently hardcoded
+	ns_msg msg;
+	ns_rr rr;
 
 	if(!host || strlen(host)<2){
 		logprintf(log, LOG_ERROR, "No valid hostname provided\n");
@@ -19,6 +22,20 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 	logprintf(log, LOG_INFO, "Entering mail delivery loop for host %s in mode %s\n", host, (mode==DELIVER_DOMAIN)?"domain":"handoff");
 
 	//TODO resolve mail host
+	status=res_query(host, ns_c_any, ns_t_mx, nsbuf, sizeof(nsbuf));
+	if(status<0){
+		logprintf(log, LOG_ERROR, "Failed to resolve host %s: %s\n", host, strerror(errno));
+		return 0; //TODO return error
+	}
+
+	logprintf(log, LOG_DEBUG, "%d bytes of nameserver data\n", status);
+	ns_initparse(nsbuf, status, &msg);
+	status=ns_msg_count(msg, ns_s_an);
+	
+	for(i=0;i<status;i++){
+		ns_parserr(&msg, ns_s_an, i, &rr);
+		//logprintf(log, LOG_DEBUG, "MX List entry %d, %d bytes: %s\n", i, ns_rr_rdlen(rr), ns_rr_rdata(rr)+1);
+	}
 
 	//set data query
 	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){

@@ -51,6 +51,11 @@ int main(int argc, char** argv){
 		return usage(argv[0]);
 	}
 
+	if(res_init()<0){
+		printf("Failed to initialize resolver routines\n");
+		return -1;
+	}
+
 	//parse arguments
 	if(args_parse(&args, argc-1, argv+1)<0){
 		return usage(argv[0]);

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
 
 #include "../lib/common.h"
 
