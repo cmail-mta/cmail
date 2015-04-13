@@ -147,7 +147,7 @@ class DB {
 
 		if ($this->db->errorCode() > 0) {
 			$this->output->addDebugMessage("db", $this->db->errorInfo());
-			return null;
+			return -1;
 		}
 
 		foreach ($params as $param) {
@@ -157,7 +157,7 @@ class DB {
 			if ($stm->errorInfo()[1] != 0) {
 				$this->output->add("status", $stm->errorInfo()[2]);
 				$stm->closeCursor();
-				return null;
+				return -1;
 			}
 		}
 

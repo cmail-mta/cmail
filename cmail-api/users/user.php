@@ -228,7 +228,7 @@
 				return false;
 			}
 
-			if (!isset($user["user_rights"]) || empty($user["user_rights"])) {
+			if (!isset($user["user_rights"])) {
 				$this->output->add("status", "No rights is set.");
 				return false;
 			}
@@ -239,7 +239,7 @@
 				return false;
 			}
 
-			$sql = "DELETE FROM api_rights WHERE api_user = :api_user";
+			$sql = "DELETE FROM api_access WHERE api_user = :api_user";
 
 			$params = array(
 				":api_user" => $user["user_name"]
@@ -247,7 +247,7 @@
 
 			$this->db->beginTransaction();
 
-			if (!$this->db->insert($sql, [$params])) {
+			if ($this->db->insert($sql, [$params]) < 0) {
 				$this->db->rollback();
 				return;
 			}
