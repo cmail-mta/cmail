@@ -1,15 +1,8 @@
 int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
-	int status;
-	unsigned delivered_mails=0, i=0, mx_count=0, port;
+	int status, sock=-1, delivered_mails=-1;
+	unsigned i=0, mx_count=0, port;
 	sqlite3_stmt* data_statement=(mode==DELIVER_DOMAIN)?database->query_domain:database->query_remote;
-	MAIL current_mail = {
-		.ids = NULL,
-		.remote = NULL,
-		.mailhost = NULL,
-		.recipients = NULL,
-		.length = 0,
-		.data = NULL
-	};
+
 	adns_state resolver=NULL;
 	adns_answer* resolver_answer=NULL;
 	char* mail_remote=host;
@@ -19,7 +12,13 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		return -1;
 	}
 
-	logprintf(log, LOG_INFO, "Entering mail delivery loop for host %s in mode %s\n", host, (mode==DELIVER_DOMAIN)?"domain":"handoff");
+	logprintf(log, LOG_INFO, "Entering mail delivery procedure for host %s in mode %s\n", host, (mode==DELIVER_DOMAIN)?"domain":"handoff");
+	
+	//prepare mail data query
+	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
+		return -1;
+	}
 
 	//resolve host for MX records
 	if(mode==DELIVER_DOMAIN){
@@ -55,12 +54,6 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 			mx_count=resolver_answer->nrrs;
 		}
 	}
-	
-	//prepare mail data query
-	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
-		return -1;
-	}
 
 	//connect to remote
 	i=0;
@@ -76,47 +69,44 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 			#else
 			logprintf(log, LOG_INFO, "Trying port %d\n", settings.port_list[port].port);
 			#endif
-			//TODO open connection, negotiate smtp
-			//if connected, break;
+
+			sock=network_connect(log, mail_remote, settings.port_list[port].port);
+
+			if(sock>0){
+				//negotiate smtp
+				if(protocol_negotiate(log, settings, settings.port_list[port])<0){
+					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
+					continue;	
+				}
+				
+				//connected, run the delivery loop
+				delivered_mails=protocol_deliver_loop(log, database, data_statement, sock);
+				if(delivered_mails<0){
+					logprintf(log, LOG_WARNING, "Failed to deliver mail\n");
+					//failed to deliver != no mx reachable
+					delivered_mails=0;
+				}
+				i=mx_count; //break the outer loop
+				break;
+			}
 		}
 
 		i++;
 	}
 	while(i<mx_count);
 
-	do{
-		status=sqlite3_step(data_statement);
-		switch(status){
-			case SQLITE_ROW:
-				//handle outbound mail
-				if(mail_dbread(log, &current_mail, data_statement)<0){
-					logprintf(log, LOG_ERROR, "Failed to handle mail with IDlist %s, database status %s\n", (char*)sqlite3_column_text(data_statement, 0), sqlite3_errmsg(database->conn));
-				}
-				else{
-					if(mail_dispatch(log, database, &current_mail)<0){
-						logprintf(log, LOG_WARNING, "Failed to dispatch mail with IDlist %s\n", (char*)sqlite3_column_text(data_statement, 0));
-					}
-					delivered_mails++;
-				}
-				mail_free(&current_mail);
-				break;
-			case SQLITE_DONE:
-				logprintf(log, LOG_INFO, "Iteration done, handled %d mails\n", delivered_mails);
-				break;
-		}
+	if(delivered_mails<0){
+		//TODO handle "no mxes reachable" -> increase retry count for all mails
+		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", host);
 	}
-	while(status==SQLITE_ROW);
-
-	sqlite3_reset(data_statement);
-	sqlite3_clear_bindings(data_statement);
-
+	
 	if(mode==DELIVER_DOMAIN){
 		free(resolver_answer);
 		adns_finish(resolver);
 	}
 
-	logprintf(log, LOG_INFO, "Mail delivery loop for %s done\n", host);
-	return 0;
+	logprintf(log, LOG_INFO, "Mail delivery for %s done\n", host);
+	return delivered_mails;
 }
 
 int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){

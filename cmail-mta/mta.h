@@ -14,6 +14,7 @@
 #include "../lib/config.h"
 #include "../lib/tls.h"
 #include "../lib/database.h"
+#include "../lib/network.h"
 
 #include "../lib/logger.c"
 #include "../lib/signal.c"
@@ -21,6 +22,7 @@
 #include "../lib/config.c"
 #include "../lib/database.c"
 #include "../lib/daemonize.c"
+#include "../lib/network.c"
 
 typedef enum /*_DELIVERY_MODE*/ {
 	DELIVER_DOMAIN,
@@ -79,4 +81,5 @@ typedef struct /*_CONFIGURATION_AGGREG*/ {
 #include "database.c"
 #include "config.c"
 #include "mail.c"
+#include "protocol.c"
 #include "logic.c"
