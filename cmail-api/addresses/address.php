@@ -10,6 +10,8 @@
 
 		private $db;
 		private $output;
+		private $c;
+
 		private $endPoints = array(
 			"get" => "get",
 			"add" => "add",
@@ -19,9 +21,11 @@
 			"test" => "testRouting"
 		);
 
-		public function __construct($db, $output) {
-			$this->db = $db;
-			$this->output = $output;
+		public function __construct($c) {
+			$this->c = $c;
+			$this->db = $c->getDB();
+			$this->output = $c->getOutput();
+			
 		}
 
 
@@ -521,7 +525,7 @@
 
 			$router = "msa_" . $obj["address_routing"];
 
-			$msaModule = getModuleInstance("MSA", $this->db, $this->output);
+			$msaModule = getModuleInstance("MSA", $this->c);
 
 			$finished = false;
 			$steps = array();

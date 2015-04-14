@@ -13,10 +13,42 @@ require_once("pdo_sqlite.php");
 // auth plugin
 require_once("auth.php");
 
+
+class Controller {
+
+
+	private $output;
+	private $db;
+	private $auth;
+
+	public function __construct($db, $output, $auth) {
+
+		$this->output = $output;
+		$this->db = $db;
+		$this->auth = $auth;
+	}
+
+	public function getOutput() {
+		return $this->output;
+	}
+
+	public function getDB() {
+		return $this->db;
+	}
+
+	public function getAuth() {
+		return $this->auth;
+	}
+}
+
+
 function main($module_name) {
 
 	global $modulelist, $dbpath;
 	// init
+	if(!session_start()) {
+		die();	
+	}
 	$output = Output::getInstance();
 	$db = new DB($dbpath, $output);
 
@@ -54,7 +86,8 @@ function main($module_name) {
 	}
 
 	$auth = Auth::getInstance($db, $output);
-	if (!$auth->auth($db, $output, $obj["auth"])) {
+	$c = new Controller($db, $output, $auth);
+	if (!$auth->auth($obj["auth"])) {
 		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials)\"");
 		header("HTTP/1.0 401 Unauthorized");
 
@@ -73,7 +106,7 @@ function main($module_name) {
 			$output->add("modules", $modules); 
 		}
 	} else {
-		$module = getModuleInstance($module_name, $db, $output);
+		$module = getModuleInstance($module_name, $c);
 		foreach ($module->getEndPoints() as $ep => $func) {
 			if (isset($_GET[$ep])) {
 				$module->$func($obj);

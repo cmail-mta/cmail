@@ -2,13 +2,13 @@
 
 	$activeModules = array();
 
-	function getModuleInstance($name, $db, $output) {
+	function getModuleInstance($name, $c) {
 		global $activeModules, $modulelist;
 
 
 		if (!isset($activeModules[$name])) {
 			require_once($modulelist[$name]);
-			$activeModules[$name] = new $name($db, $output);
+			$activeModules[$name] = new $name($c);
 		}
 		return $activeModules[$name];
 	}

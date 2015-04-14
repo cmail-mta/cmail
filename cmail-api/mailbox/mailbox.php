@@ -6,6 +6,7 @@
 
 
 		private $db;
+		private $c;
 		private $userdb = null;
 		private $output;
 		private $user;
@@ -16,9 +17,10 @@
 			"delete" => "delete"
 		);
 
-		public function __construct($db, $output) {
-			$this->db = $db;
-			$this->output = $output;
+		public function __construct($c) {
+			$this->c = $c;
+			$this->db = $c->getDB();
+			$this->output = $c->getOutput();
 
 			$this->user = $_SERVER["PHP_AUTH_USER"];
 

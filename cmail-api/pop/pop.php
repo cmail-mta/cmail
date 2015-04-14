@@ -6,6 +6,7 @@
 
 		private $db;
 		private $output;
+		private $c;
 		private $endPoints = array(
 			"get" => "get",
 			"add" => "add",
@@ -13,9 +14,10 @@
 			"unlock" => "unlock"
 		);
 
-		public function __construct($db, $output) {
-			$this->db = $db;
-			$this->output = $output;
+		public function __construct($c) {
+			$this->c = $c;
+			$this->db = $c->getDB();
+			$this->output = $c->getOutput();
 		}
 
 		/**

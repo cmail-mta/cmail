@@ -9,6 +9,7 @@
 
 		private $db;
 		private $output;
+		private $c;
 		private $auth;
 
 		// List of end points. Format is:
@@ -28,10 +29,11 @@
 		 * @param $db the db object
 		 * @param $output the output object
 		 */
-		public function __construct($db, $output) {
-			$this->db = $db;
-			$this->output = $output;
-			$this->auth = Auth::getInstance($db, $output);
+		public function __construct($c) {
+			$this->c = $c;
+			$this->db = $c->getDB();
+			$this->output = $c->getOutput();
+			$this->auth = $c->getAuth();
 		}
 
 		/**
