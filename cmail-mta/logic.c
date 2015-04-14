@@ -10,7 +10,7 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		.length = 0,
 		.data = NULL
 	};
-	adns_state resolver;
+	adns_state resolver=NULL;
 	adns_answer* resolver_answer=NULL;
 	char* mail_remote=host;
 
@@ -39,6 +39,11 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 
 		if(resolver_answer->nrrs<=0){
 			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to REMOTE strategy\n", host);
+			
+			//free resolver data
+			free(resolver_answer);
+			adns_finish(resolver);
+			
 			mode=DELIVER_HANDOFF;
 			//TODO check for errors
 		}
@@ -95,7 +100,11 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 
 	sqlite3_reset(data_statement);
 	sqlite3_clear_bindings(data_statement);
-	adns_finish(resolver);
+
+	if(mode==DELIVER_DOMAIN){
+		free(resolver_answer);
+		adns_finish(resolver);
+	}
 
 	logprintf(log, LOG_INFO, "Mail delivery loop for %s done\n", host);
 	return 0;
