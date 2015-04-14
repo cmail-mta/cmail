@@ -1,6 +1,6 @@
 .PHONY: clean
 CFLAGS=-Wall -g
-LDLIBS=-lsqlite3 -lnettle -lgnutls -lresolv
+LDLIBS=-lsqlite3 -lnettle -lgnutls -ladns
 
 all: mta
 	mv mta cmail-mta

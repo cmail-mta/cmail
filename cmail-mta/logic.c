@@ -1,6 +1,6 @@
 int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
 	int status;
-	unsigned delivered_mails=0, i;
+	unsigned delivered_mails=0, i=0, mx_count=0;
 	sqlite3_stmt* data_statement=(mode==DELIVER_DOMAIN)?database->query_domain:database->query_remote;
 	MAIL current_mail = {
 		.ids = NULL,
@@ -10,9 +10,9 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		.length = 0,
 		.data = NULL
 	};
-	unsigned char nsbuf[4096]; //FIXME this is currently hardcoded
-	ns_msg msg;
-	ns_rr rr;
+	adns_state resolver;
+	adns_answer* resolver_answer=NULL;
+	char* mail_remote=host;
 
 	if(!host || strlen(host)<2){
 		logprintf(log, LOG_ERROR, "No valid hostname provided\n");
@@ -21,21 +21,48 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 
 	logprintf(log, LOG_INFO, "Entering mail delivery loop for host %s in mode %s\n", host, (mode==DELIVER_DOMAIN)?"domain":"handoff");
 
-	//TODO resolve mail host
-	status=res_query(host, ns_c_any, ns_t_mx, nsbuf, sizeof(nsbuf));
-	if(status<0){
-		logprintf(log, LOG_ERROR, "Failed to resolve host %s: %s\n", host, strerror(errno));
-		return 0; //TODO return error
+	//resolve host for MX records
+	if(mode==DELIVER_DOMAIN){
+		status=adns_init(&resolver, adns_if_none, log.stream);
+		if(status!=0){
+			logprintf(log, LOG_ERROR, "Failed to initialize adns: %s\n", strerror(status));
+			return 0; //TODO return error
+		}
+
+		status=adns_synchronous(resolver, host, adns_r_mx, adns_qf_cname_loose, &resolver_answer);
+		if(status!=0){
+			logprintf(log, LOG_ERROR, "Failed to run query: %s\n", strerror(status));
+			return 0; //TODO return error
+		}
+
+		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
+
+		if(resolver_answer->nrrs<=0){
+			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to REMOTE strategy\n", host);
+			mode=DELIVER_HANDOFF;
+			//TODO check for errors
+		}
+		else{
+			for(i=0;i<resolver_answer->nrrs;i++){
+				logprintf(log, LOG_DEBUG, "MX %d: %s\n", i, resolver_answer->rrs.inthostaddr[i].ha.host);
+			}
+
+			mx_count=resolver_answer->nrrs;
+		}
 	}
 
-	logprintf(log, LOG_DEBUG, "%d bytes of nameserver data\n", status);
-	ns_initparse(nsbuf, status, &msg);
-	status=ns_msg_count(msg, ns_s_an);
-	
-	for(i=0;i<status;i++){
-		ns_parserr(&msg, ns_s_an, i, &rr);
-		//logprintf(log, LOG_DEBUG, "MX List entry %d, %d bytes: %s\n", i, ns_rr_rdlen(rr), ns_rr_rdata(rr)+1);
+	//connect to remote
+	i=0;
+	do{
+		if(mode==DELIVER_DOMAIN){
+			mail_remote=resolver_answer->rrs.inthostaddr[i].ha.host;
+		}
+		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", i, mail_remote);
+		
+		
+		i++;
 	}
+	while(i<mx_count);
 
 	//set data query
 	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){
@@ -68,6 +95,7 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 
 	sqlite3_reset(data_statement);
 	sqlite3_clear_bindings(data_statement);
+	adns_finish(resolver);
 
 	logprintf(log, LOG_INFO, "Mail delivery loop for %s done\n", host);
 	return 0;
