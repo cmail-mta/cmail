@@ -9,6 +9,7 @@
 
 		private $db;
 		private $output;
+		private $c;
 
 		// List of end points. Format is:
 		// $name => $func
@@ -29,9 +30,10 @@
 		 * @param $db the db object
 		 * @param $output the output object
 		 */
-		public function __construct($db, $output) {
-			$this->db = $db;
-			$this->output = $output;	
+		public function __construct($c) {
+			$this->c = $c;
+			$this->db = $c->getDB();
+			$this->output = $c->getOutput();	
 		}
 
 		/**
@@ -277,7 +279,7 @@
 			foreach ($modulelist as $name => $address) {
 				if ($name != "User") {
 				
-					$module = getModuleInstance($name, $this->db, $this->output);
+					$module = getModuleInstance($name, $this->c);
 			
 					if (isset($module)) {
 						$modules[$name] = $module->isActive($user["user_name"]);

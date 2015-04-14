@@ -20,15 +20,34 @@ class Auth {
 		$this->rights = array();
 	}
 
+	public function __sleep() {
+
+		return array("rights", "user", "delegates_user", "delegates_address", "authorized");
+	}
+
 	/**
 	 * get auth instance
 	 */
 	public static function getInstance($db, $output) {
 
 		if (is_null(self::$auth)) {
-			self::$auth = new self($db, $output);
+			if (isset($_SESSION['auth'])) {
+				self::$auth = unserialize($_SESSION['auth']);
+				self::$auth->setDB($db);
+				self::$auth->setOutput($output);
+			} else {
+				self::$auth = new self($db, $output);
+			}
 		}
 		return self::$auth;
+	}
+
+	public function setDB($db) {
+		$this->db = $db;
+	}
+
+	public function setOutput($output) {
+		$this->output = $output;
 	}
 
 	public function getUser() {
@@ -109,6 +128,7 @@ class Auth {
 			$output[] = $delegate["api_delegate"];
 		}
 		$this->delegates_user = $output;
+		$_SESSION['auth'] = serialize($this);
 		return $output;
 
 	}
@@ -140,6 +160,7 @@ class Auth {
 			$output[] = $delegate["api_expression"];
 		}
 		$this->delegates_addresses = $output;
+		$_SESSION['auth'] = serialize($this);
 		return $output;
 
 	}
@@ -169,6 +190,19 @@ class Auth {
 	 * @return true if ok, else false
 	 */
 	function auth($auth) {
+
+		$this->output->add("session", isset($_SERVER['auth']));	
+
+		if (isset($auth["logout"])) {
+			return false;
+		}
+		
+		if ($this->authorized) {
+			
+			$this->output->add("rights", $this->rights);
+			return true;
+		}
+		
 		$auth = array();
 		if (!isset($_SERVER["PHP_AUTH_USER"]) || empty($_SERVER["PHP_AUTH_USER"])) {
 			return false;
@@ -216,6 +250,7 @@ class Auth {
 
 		if ($this->authorized) {
 			$this->getRights();
+			$_SESSION['auth'] = serialize($this);
 		}
 
 		return $this->authorized;
