@@ -45,7 +45,7 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 			adns_finish(resolver);
 			
 			mode=DELIVER_HANDOFF;
-			//TODO check for errors
+			//TODO report error type
 		}
 		else{
 			for(i=0;i<resolver_answer->nrrs;i++){
@@ -54,6 +54,12 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 
 			mx_count=resolver_answer->nrrs;
 		}
+	}
+	
+	//prepare mail data query
+	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
+		return 0; //TODO return error without messing up the sum
 	}
 
 	//connect to remote
@@ -64,16 +70,12 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		}
 		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", i, mail_remote);
 		
+		//TODO open connection
+		//if connected, break;
 		
 		i++;
 	}
 	while(i<mx_count);
-
-	//set data query
-	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
-		return 0; //TODO return error without messing up the sum
-	}
 
 	do{
 		status=sqlite3_step(data_statement);

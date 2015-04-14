@@ -71,7 +71,65 @@ int config_announce(CONFIGURATION* config, char* directive, char* params){
 }
 
 int config_ports(CONFIGURATION* config, char* directive, char* params){
-	//TODO configure port priorities
+	char* tokenize_argument;
+	char* token=NULL;
+	int num_ports=0;
+	REMOTE_PORT empty_port = {
+		#ifndef CMAIL_NO_TLS
+		.tls_mode = TLS_NONE,
+		#endif
+		.port = 0
+	};
+
+	REMOTE_PORT new_port;
+
+	token=strtok_r(params, " ", &tokenize_argument);
+	do{
+		new_port=empty_port;
+		if(token){
+			new_port.port=strtoul(token, &token, 10);
+			#ifndef CMAIL_NO_TLS
+			if(!strcmp(token, "@tls")){
+				new_port.tls_mode=TLS_ONLY;
+			}
+			else if(!strcmp(token, "@starttls")){
+				new_port.tls_mode=TLS_NEGOTIATE;
+			}
+			#endif
+
+			if(new_port.port){
+				#ifndef CMAIL_NO_TLS
+				logprintf(config->log, LOG_DEBUG, "Adding port %d: %d @ tls mode %s\n", num_ports, new_port.port, (new_port.tls_mode==TLS_NONE)?"none":(new_port.tls_mode==TLS_ONLY)?"only":"negotiate");
+				#else
+				logprintf(config->log, LOG_DEBUG, "Adding port %d in position %d\n", new_port.port, num_ports);
+				#endif
+				
+				config->settings.port_list=realloc(config->settings.port_list, (num_ports+1)*sizeof(REMOTE_PORT));
+				if(!config->settings.port_list){
+					logprintf(config->log, LOG_ERROR, "Failed to allocate memory for port list\n");
+					return -1;
+				}
+				config->settings.port_list[num_ports]=new_port;
+
+				num_ports++;
+			}
+			else{
+				logprintf(config->log, LOG_WARNING, "Invalid port config stanza\n");
+			}
+		}
+
+		token=strtok_r(NULL, " ", &tokenize_argument);
+	}
+	while(token);
+
+	//add sentinel port
+	config->settings.port_list=realloc(config->settings.port_list, (num_ports+1)*sizeof(REMOTE_PORT));
+	if(!config->settings.port_list){
+		logprintf(config->log, LOG_ERROR, "Failed to allocate memory for port list\n");
+		return -1;
+	}
+	config->settings.port_list[num_ports]=new_port;
+
 	return 0;
 }
 
@@ -154,7 +212,7 @@ void config_free(CONFIGURATION* config){
 	}
 
 	if(config->settings.port_list){
-		//TODO free port list
+		free(config->settings.port_list);
 	}
 
 	if(config->log.stream!=stderr){
