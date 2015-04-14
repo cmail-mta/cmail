@@ -1,3 +1,53 @@
+int network_connect(LOGGER log, char* host, uint16_t port){
+	int sockfd=-1, error;
+	char port_str[20];
+	struct addrinfo hints;
+	struct addrinfo* head;
+	struct addrinfo* iter;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	snprintf(port_str, sizeof(port_str), "%d", port);
+
+	error=getaddrinfo(host, port_str, &hints, &head);
+	if(error){
+		logprintf(log, LOG_WARNING, "getaddrinfo: %s\r\n", gai_strerror(error));
+		return -1;
+	}
+
+	for(iter=head;iter;iter=iter->ai_next){
+		sockfd=socket(iter->ai_family, iter->ai_socktype, iter->ai_protocol);
+		if(sockfd<0){
+			continue;
+		}
+
+		error=connect(sockfd, iter->ai_addr, iter->ai_addrlen);
+		if(error!=0){
+			close(sockfd);
+			continue;
+		}
+
+		break;
+	}
+
+	freeaddrinfo(head);
+	iter=NULL;
+
+	if(sockfd<0){
+		logprintf(log, LOG_WARNING, "Failed to create client socket: %s\n", strerror(errno));
+		return -1;
+	}
+
+	if(error!=0){
+		logprintf(log, LOG_WARNING, "Failed to create connect: %s\n", strerror(errno));
+		return -1;
+	}
+
+	return sockfd;
+}
+
 int network_listener(LOGGER log, char* bindhost, char* port){
 	int fd=-1, status, yes=1;
 	struct addrinfo hints;
