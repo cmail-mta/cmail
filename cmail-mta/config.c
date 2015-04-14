@@ -99,7 +99,7 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 
 			if(new_port.port){
 				#ifndef CMAIL_NO_TLS
-				logprintf(config->log, LOG_DEBUG, "Adding port %d: %d @ tls mode %s\n", num_ports, new_port.port, (new_port.tls_mode==TLS_NONE)?"none":(new_port.tls_mode==TLS_ONLY)?"only":"negotiate");
+				logprintf(config->log, LOG_DEBUG, "Adding port %d: %d @ tls mode %s\n", num_ports, new_port.port, tls_modestring(new_port.tls_mode));
 				#else
 				logprintf(config->log, LOG_DEBUG, "Adding port %d in position %d\n", new_port.port, num_ports);
 				#endif
@@ -128,7 +128,7 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 		logprintf(config->log, LOG_ERROR, "Failed to allocate memory for port list\n");
 		return -1;
 	}
-	config->settings.port_list[num_ports]=new_port;
+	config->settings.port_list[num_ports]=empty_port;
 
 	return 0;
 }

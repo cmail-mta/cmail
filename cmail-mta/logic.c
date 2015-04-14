@@ -1,6 +1,6 @@
 int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
 	int status;
-	unsigned delivered_mails=0, i=0, mx_count=0;
+	unsigned delivered_mails=0, i=0, mx_count=0, port;
 	sqlite3_stmt* data_statement=(mode==DELIVER_DOMAIN)?database->query_domain:database->query_remote;
 	MAIL current_mail = {
 		.ids = NULL,
@@ -16,7 +16,7 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 
 	if(!host || strlen(host)<2){
 		logprintf(log, LOG_ERROR, "No valid hostname provided\n");
-		return 0; //TODO return error
+		return -1;
 	}
 
 	logprintf(log, LOG_INFO, "Entering mail delivery loop for host %s in mode %s\n", host, (mode==DELIVER_DOMAIN)?"domain":"handoff");
@@ -26,13 +26,13 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		status=adns_init(&resolver, adns_if_none, log.stream);
 		if(status!=0){
 			logprintf(log, LOG_ERROR, "Failed to initialize adns: %s\n", strerror(status));
-			return 0; //TODO return error
+			return -1;
 		}
 
 		status=adns_synchronous(resolver, host, adns_r_mx, adns_qf_cname_loose, &resolver_answer);
 		if(status!=0){
 			logprintf(log, LOG_ERROR, "Failed to run query: %s\n", strerror(status));
-			return 0; //TODO return error
+			return -1;
 		}
 
 		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
@@ -59,7 +59,7 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 	//prepare mail data query
 	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
-		return 0; //TODO return error without messing up the sum
+		return -1;
 	}
 
 	//connect to remote
@@ -70,9 +70,16 @@ int logic_deliver_host(LOGGER log, DATABASE* database, MTA_SETTINGS settings, ch
 		}
 		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", i, mail_remote);
 		
-		//TODO open connection
-		//if connected, break;
-		
+		for(port=0;settings.port_list[port].port;port++){
+			#ifndef CMAIL_NO_TLS
+			logprintf(log, LOG_INFO, "Trying port %d TLS mode %s\n", settings.port_list[port].port, tls_modestring(settings.port_list[port].tls_mode));
+			#else
+			logprintf(log, LOG_INFO, "Trying port %d\n", settings.port_list[port].port);
+			#endif
+			//TODO open connection, negotiate smtp
+			//if connected, break;
+		}
+
 		i++;
 	}
 	while(i<mx_count);
@@ -137,7 +144,14 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", mail_remote, (mail_mode==DELIVER_DOMAIN)?"domain":"handoff");
 					
 					//TODO implement multi-threading here
-					mails_delivered+=logic_deliver_host(log, database, settings, mail_remote, mail_mode);
+					status=logic_deliver_host(log, database, settings, mail_remote, mail_mode);
+
+					if(status<0){
+						logprintf(log, LOG_WARNING, "Delivery procedure returned an error\n");
+					}
+					else{
+						mails_delivered+=status;
+					}
 
 					break;
 				case SQLITE_DONE:
