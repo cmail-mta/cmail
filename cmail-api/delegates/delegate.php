@@ -45,6 +45,20 @@
 		}
 
 
+		public function getActiveUsers() {
+			$sql = "SELECT api_user FROM api_user_delegates UNION SELECT api_user FROM api_address_delegates";
+
+			$users = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
+
+			$output = array();
+
+			foreach($users as $user) {
+				$output[$user["api_user"]] = true;
+			}
+
+			return $output;
+		}
+
 		/**
 		 * Returns all delegated users and all delegated addresses of the user
 		 * @param $write (optional) if true give delegates to the output module

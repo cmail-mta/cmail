@@ -8,7 +8,6 @@
 	class Address implements Module {
 
 
-		private $db;
 		private $output;
 		private $c;
 
@@ -21,16 +20,42 @@
 			"test" => "testRouting"
 		);
 
+		/**
+		 * Constructor for the address class.
+		 * @param $c controller class
+		 */
 		public function __construct($c) {
 			$this->c = $c;
-			$this->db = $c->getDB();
-			$this->output = $c->getOutput();
-			
+			$this->output = $c->getOutput();	
+		}
+
+		/**
+		 * Returns all endpoints.
+		 * @return object with endpoints as keys and
+		 * 	   function names as value
+		 */
+		public function getEndPoints() {
+			return $this->endPoints;
 		}
 
 
-		public function getEndPoints() {
-			return $this->endPoints;
+		/**
+		 * Returns a list of all users who has an entry in the table
+		 * @return list with users as key and true as values
+		 */
+		public function getActiveUsers() {
+
+			$sql = "SELECT address_user FROM addresses GROUP BY address_user";
+
+			$users = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
+
+			$output = array();
+			foreach($users as $user) {
+
+				$output[$user["address_user"]] = true;
+			}
+
+			return $output;
 		}
 
 		public function isActive($username) {
@@ -44,7 +69,7 @@
 
 
 		private function checkAddressDelegate($address) {
-			$auth = Auth::getInstance($this->db, $this->output);
+			$auth = $this->c->getAuth();
 
 			if (!$auth->isAuthorized()) {
 				return false;
@@ -61,14 +86,14 @@
 				":api_user" => $auth->getUser()
 			);
 
-			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+			$out = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
 
 			return (count($out) > 0);
 
 		}
 
 		private function checkUserAction($user) {
-			$auth = Auth::getInstance($this->db, $this->output);
+			$auth = Auth::getInstance($this->c->getDB(), $this->output);
 
 			if (!$auth->isAuthorized()) {
 				return false;
@@ -112,7 +137,7 @@
 
 			$sql .= " ORDER BY address_order DESC";
 
-			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+			$out = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
 
 			return $out;
 		}
@@ -131,7 +156,7 @@
 
 			$sql .= " ORDER BY address_order DESC";
 
-			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+			$out = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
 
 			return $out;
 		}
@@ -151,7 +176,7 @@
 				":api_user" => $auth->getUser()
 			);
 
-			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+			$out = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
 
 			if ($write) {
 				$this->output->add("addresses", $out);
@@ -169,7 +194,7 @@
 				return $this->getByUser($obj);
 			}
 
-			$auth = Auth::getInstance($this->db, $this->output);
+			$auth = $this->c->getAuth();
 
 			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
 				return $this->getByUser(array("address_user" => $auth->getUser()));
@@ -185,8 +210,7 @@
 
 		public function getByExpression($expression, $write = true) {
 
-			$auth = Auth::getInstance($this->db, $this->output);
-			
+			$auth = $this->c->getAuth();	
 			if ($auth->hasRight("delegate")) {
 				$sql = "select * from addresses 
 					WHERE (address_expression LIKE 
@@ -215,7 +239,7 @@
 				);
 			}
 
-			$addresses = $this->db->query($sql, $params, DB::F_ARRAY);
+			$addresses = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
 
 			if ($write) {
 				$this->output->add("addresses", $addresses);
@@ -229,7 +253,7 @@
 
 			$sql = "SELECT * FROM addresses ORDER BY address_order DESC";
 
-			$out = $this->db->query($sql, array(), DB::F_ARRAY);
+			$out = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
 
 			$this->output->add("addresses", $out);
 
@@ -250,7 +274,7 @@
 				":username" => $obj["address_user"]
 			);
 
-			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+			$out = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
 
 			if ($write) {
 				$this->output->add("addresses", $out);
@@ -270,7 +294,7 @@
 				return -2;
 			}
 
-			$auth = Auth::getInstance($this->db, $this->output);
+			$auth = $this->c->getAuth();
 			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
 				$this->add("status", "No right to add an address.");
 				return -4;
@@ -296,7 +320,7 @@
 				$sql = "INSERT INTO addresses(address_expression, address_order, address_user) VALUES (:address_exp, :order, :username)";
 			}
 			
-			$id = $this->db->insert($sql, array($params));
+			$id = $this->c->getDB()->insert($sql, array($params));
 
 			if (is_null($id)) {
 				$id = -1;
@@ -324,8 +348,7 @@
 				return false;
 			}
 
-			$auth = Auth::getInstance($this->db, $this->output);
-
+			$auth = $this->getAuth();
 			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
 				$this->output->add("status", "No right to update an address.");
 				return false;
@@ -344,7 +367,7 @@
 				":order" => $address["address_order"]
 			);
 
-			$status = $this->db->insert($sql, array($params));
+			$status = $this->this->getDB()->insert($sql, array($params));
 
 			if (isset($status)) {
 				$this->output->add("status", "ok");
@@ -362,7 +385,7 @@
 				return false;
 			}
 
-			$auth = Auth::getInstance($this->db, $this->output);
+			$auth = $this->getAuth();
 			
 			$test = false;
 			if ($auth->hasRight("admin")) {
@@ -382,7 +405,7 @@
 				":expression" => $obj["address_expression"]
 			);
 
-			$status = $this->db->insert($sql, array($params));
+			$status = $this->c->getDB()->insert($sql, array($params));
 
 			if (isset($status)) {
 				$this->output->add("status", "ok");
@@ -433,7 +456,7 @@
 				return false;
 			}
 	
-			$auth = Auth::getInstance($this->db, $this->output);
+			$auth = $this->c->getAuth();
 			$test = false;
 			if ($auth->hasRight("admin")) {
 				$test = true;
@@ -441,7 +464,7 @@
 					&& $this->checkAddressDelegate($address2["address_expression"])) {
 				$test = true;
 			}
-			$this->db->beginTransaction();
+			$this->c->getDB()->beginTransaction();
 
 			// swap orders
 			$swap = $address1["address_order"];
@@ -449,21 +472,21 @@
 			$address2["address_order"] = $swap;
 
 			if (!$this->delete($address1)) {
-				$this->db->rollback();
+				$this->c->getDB()->rollback();
 				return false;
 			}
 
 			if(!$this->update($address2)) {
-				$this->db->rollback();
+				$this->c->getDB()->rollback();
 				return false;
 			}
 
 			if (!$this->add($address1)) {
-				$this->db->rollback();
+				$this->c->getDB()->rollback();
 				return false;
 			}
 
-			$this->db->commit();
+			$this->c->getDB()->commit();
 
 
 			$this->output->add("status", "ok");
@@ -491,10 +514,9 @@
 				":address_expression" => $obj["address_expression"]
 			);
 
-			$out = $this->db->query($sql, $params, DB::F_ARRAY);
+			$out = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
 
 			return $out;
-
 
 		}
 

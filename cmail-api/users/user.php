@@ -44,6 +44,19 @@
 			return $this->endPoints;
 		}
 
+		public function getActiveUsers() {
+			$sql = "SELECT user_name FROM users WHERE user_authdata IS NOT NULL";
+
+			$users = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
+
+			$output = array();
+
+			foreach($users as $user) {
+				$output[$user["user_name"]] = true;
+			}
+
+			return $output;
+		}
 
 		/**
 		 * Returns a list of users that are delegated to the authorized user. In list is the user itself.
@@ -67,8 +80,9 @@
 
 			$output = [];
 
+			$list = $this->getModuleUserLists();
 			foreach($out as $user) {
-				$user["modules"] = $this->getActiveModules($user);
+				$user["modules"] = $this->getActiveModules($user, $list);
 				$output[] = $user;
 			}
 
@@ -144,7 +158,7 @@
 				return [];
 			}
 
-			$out["modules"] = $this->getActiveModules($out[0]);
+			$out["modules"] = $this->getActiveModules($out[0], $this->getModuleUserLists());
 
 			$right_sql = "SELECT api_right FROM api_access WHERE api_user = :api_user";
 			$right_params = array(
@@ -272,20 +286,12 @@
 		 * @param user object with
 		 * 	user_name name of the user
 		 */
-		public function getActiveModules($user) {
-			global $modulelist;
+		public function getActiveModules($user, $list) {
 			$modules = array();
 
-			foreach ($modulelist as $name => $address) {
-				if ($name != "User") {
-				
-					$module = getModuleInstance($name, $this->c);
-			
-					if (isset($module)) {
-						$modules[$name] = $module->isActive($user["user_name"]);
-					}
-				} else {
-					$modules[$name] = $user["user_login"] == 1;
+			foreach ($list as $name => $users) {
+				if (isset($users[$user["user_name"]])) {
+					$modules[$name] = true;
 				}
 			}
 
@@ -308,6 +314,17 @@
 			return ($this->get($obj, false)["user_can_login"]);
 		}
 
+		private function getModuleUserLists() {
+
+			global $modulelist;
+
+			$list = array();
+			foreach($modulelist as $module => $path) {
+				$list[$module] = getModuleInstance($module, $this->c)->getActiveUsers();
+			}
+			return $list;
+		}
+
 		/**
 		 * Returns all users in database.
 		 * @output_flags users the userlist
@@ -318,9 +335,9 @@
 			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login FROM users";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
-
+			$list = $this->getModuleUserLists();
 			foreach($out as $key => $user) {
-				$out[$key]["modules"] = $this->getActiveModules($user);
+				$out[$key]["modules"] = $this->getActiveModules($user, $list);
 			}
 
 			$this->output->add("users", $out);

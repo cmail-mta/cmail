@@ -64,6 +64,20 @@
 			return $this->endPoints;
 		}
 
+		public function getActiveUsers() {
+			$sql = "SELECT mail_user FROM mailbox GROUP BY mail_user";
+
+			$users = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
+
+			$output = array();
+
+			foreach($users as $user) {
+				$output[$user["mail_user"]] = true;
+			}
+
+			return $output;
+		}
+
 		public function get($obj, $write = true) {
 
 			$sql = "SELECT * FROM mailbox WHERE mail_user = :mail_user";

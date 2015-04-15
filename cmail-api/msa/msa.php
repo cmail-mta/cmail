@@ -29,6 +29,21 @@
 			return $this->endPoints;
 		}
 
+
+		public function getActiveUsers() {
+
+			$sql = "SELECT msa_user FROM msa GROUP BY msa_user";
+
+			$users = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
+
+			$output = array();
+			foreach($users as $user) {
+				$output[$user["msa_user"]] = true;
+			}
+
+			return $output;
+		}
+
 		/**
 		 * Return all msa entries for delegated users and the entry for himself
 		 * @param $write if true send list to output module

@@ -16,6 +16,7 @@
 	interface Module {
 		public function getEndPoints();
 		public function isActive($username);
+		public function getActiveUsers();
 	}
 
 ?>

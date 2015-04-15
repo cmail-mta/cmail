@@ -43,6 +43,21 @@
 			return $this->endPoints;
 		}
 
+		public function getActiveUsers() {
+
+			$sql = "SELECT pop_user FROM popd GROUP BY pop_user";
+
+			$users = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
+
+			$output = array();
+
+			foreach($users as $user) {
+				$output[$user["pop_user"]] = true;
+			}
+
+			return $output;
+		}
+
 		private function getDelegated($write = true) {
 
 			$auth = Auth::getInstance($this->db, $this->output);
