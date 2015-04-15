@@ -18,8 +18,6 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 				return -1;
 			}
 			
-			//UPDATE CLIENT TO TLS_ONLY
-			//SEND GREETING IF LISTENER IS TLSONLY
 			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
 			return 0;
 		case TLS_ONLY:

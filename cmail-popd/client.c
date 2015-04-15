@@ -114,8 +114,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
-	ssize_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
-	ssize_t bytes;
+	ssize_t left, bytes;
 	unsigned c;
 	int i;
 
