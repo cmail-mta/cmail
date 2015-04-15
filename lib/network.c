@@ -1,3 +1,39 @@
+ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned bytes){
+	int status;
+	
+	#ifndef CMAIL_NO_TLS
+	switch(client->tls_mode){
+		case TLS_NONE:
+			//non-tls client
+			return recv(client->fd, buffer, bytes, 0);
+		case TLS_NEGOTIATE:
+			//tls handshake not completed
+			status=gnutls_handshake(client->tls_session);
+			if(status){
+				if(gnutls_error_is_fatal(status)){
+					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
+					return -2;
+				}
+				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
+				return -1;
+			}
+			
+			//UPDATE CLIENT TO TLS_ONLY
+			//SEND GREETING IF LISTENER IS TLSONLY
+			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
+			return 0;
+		case TLS_ONLY:
+			//read with tls
+			return gnutls_record_recv(client->tls_session, buffer, bytes);
+	}
+	#else
+	return recv(client->fd, buffer, bytes, 0);
+	#endif
+	
+	logprintf(log, LOG_ERROR, "Network read with invalid TLSMODE\n");
+	return -2;
+}
+
 int network_connect(LOGGER log, char* host, uint16_t port){
 	int sockfd=-1, error;
 	char port_str[20];

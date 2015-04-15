@@ -178,46 +178,17 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 	ssize_t left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
 	ssize_t bytes;
-	unsigned c, status;
+	unsigned c;
 	int i;
 
 	//TODO handle client timeout
 	
 	#ifndef CMAIL_NO_TLS
 	do{
-	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
-	switch(client->tls_mode){
-		case TLS_NONE:
-			//non-tls client
-			bytes=recv(client->fd, client_data->recv_buffer+client_data->recv_offset, left, 0);
-			break;
-		case TLS_NEGOTIATE:
-			//tls handshake not completed
-			status=gnutls_handshake(client->tls_session);
-			if(status){
-				if(gnutls_error_is_fatal(status)){
-					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
-					client_close(client);
-					return -1;
-				}
-				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
-				return 0;
-			}
-			client->tls_mode=TLS_ONLY;
-			if(client_data->listener->tls_mode==TLS_ONLY){
-				//send greeting if listener is tlsonly
-				client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
-			}
-			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
-			return 0;
-		case TLS_ONLY:
-			//read with tls
-			bytes=gnutls_record_recv(client->tls_session, client_data->recv_buffer+client_data->recv_offset, left);
-			break;
-	}
-	#else
-	bytes=recv(client->fd, client_data->recv_buffer+client_data->recv_offset, left, 0);
 	#endif
+	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
+	
+	bytes=network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
 
 	//failed to read from socket
 	if(bytes<0){
@@ -237,7 +208,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		#ifndef CMAIL_NO_TLS
 			break;
 			case TLS_NEGOTIATE:
-				logprintf(log, LOG_WARNING, "This should never have been reached\n");
+				//errors during TLS negotiation
+				if(bytes==-2){
+					client_close(client);
+				}
 				return 0;
 			case TLS_ONLY:
 				switch(bytes){
@@ -254,11 +228,26 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		#endif
 	}
 	
-	//client disconnect
+	//client disconnect / handshake success
 	else if(bytes==0){
+		#ifndef CMAIL_NO_TLS
+		switch(client->tls_mode){
+			case TLS_NEGOTIATE:
+				//tls handshake ok
+				client->tls_mode=TLS_ONLY;
+				if(client_data->listener->tls_mode==TLS_ONLY){
+					//send greeting if listener is tlsonly
+					client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
+				}
+				break;
+			default:
+		#endif
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
 		client_close(client);
 		return 0;
+		#ifndef CMAIL_NO_TLS
+		}
+		#endif
 	}
 
 	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
