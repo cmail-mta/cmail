@@ -85,7 +85,7 @@ cmail.user = {
 			return;
 		}
 
-		if (!rights["delegate"]) {
+		if (!rights["delegate"] && !rights["admin"]) {
 			var style = gui.create('link');
 			style.setAttribute("rel", "stylesheet");
 			style.setAttribute("type", "text/css");
@@ -160,6 +160,7 @@ cmail.user = {
 
 		gui.elem("user_password").value = "";
 		gui.elem("user_password2").value = "";
+		gui.elem("user_password_revoke").checked = false;
 
 		gui.elem("useradd").style.display = "block";
 	},
