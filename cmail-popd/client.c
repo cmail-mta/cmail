@@ -28,9 +28,6 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			.fetch_user = NULL,
 			.delete_user = NULL
 		},
-		#ifndef CMAIL_NO_TLS
-		.tls_mode=TLS_NONE,
-		#endif
 		.auth = {
 			.method = AUTH_USER,
 			.user = NULL,
@@ -78,10 +75,10 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	
 	#ifndef CMAIL_NO_TLS
 	//if on tlsonly port, immediately wait for negotiation
-	if(listener_data->tls_mode==TLS_ONLY){
+	if(listener->tls_mode==TLS_ONLY){
 		logprintf(log, LOG_INFO, "Listen socket is TLSONLY, waiting for negotiation...\n");
-		actual_data->tls_mode=TLS_NEGOTIATE;
-		return tls_initclient(log, clients->conns[client_slot].fd, actual_data);
+		clients->conns[client_slot].tls_mode=TLS_NEGOTIATE;
+		return tls_initclient(log, &(clients->conns[client_slot]), listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
 	
@@ -94,10 +91,10 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	
 	#ifndef CMAIL_NO_TLS
 	//shut down the tls session
-	if(client_data->tls_mode!=TLS_NONE){
-		gnutls_bye(client_data->tls_session, GNUTLS_SHUT_RDWR);
-		gnutls_deinit(client_data->tls_session);
-		client_data->tls_mode=TLS_NONE;
+	if(client->tls_mode!=TLS_NONE){
+		gnutls_bye(client->tls_session, GNUTLS_SHUT_RDWR);
+		gnutls_deinit(client->tls_session);
+		client->tls_mode=TLS_NONE;
 	}
 	#endif
 
@@ -127,14 +124,14 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	#ifndef CMAIL_NO_TLS
 	do{
 	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
-	switch(client_data->tls_mode){
+	switch(client->tls_mode){
 		case TLS_NONE:
 			//non-tls client
 			bytes=recv(client->fd, client_data->recv_buffer+client_data->recv_offset, left, 0);
 			break;
 		case TLS_NEGOTIATE:
 			//tls handshake not completed
-			status=gnutls_handshake(client_data->tls_session);
+			status=gnutls_handshake(client->tls_session);
 			if(status){
 				if(gnutls_error_is_fatal(status)){
 					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
@@ -144,8 +141,8 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
 				return 0;
 			}
-			client_data->tls_mode=TLS_ONLY;
-			if(listener_data->tls_mode==TLS_ONLY){
+			client->tls_mode=TLS_ONLY;
+			if(client_data->listener->tls_mode==TLS_ONLY){
 				//send greeting if listener is tlsonly
 				client_send(log, client, "+OK %s POP3 ready\r\n", listener_data->announce_domain);
 			}
@@ -153,7 +150,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 			return 0;
 		case TLS_ONLY:
 			//read with tls
-			bytes=gnutls_record_recv(client_data->tls_session, client_data->recv_buffer+client_data->recv_offset, left);
+			bytes=gnutls_record_recv(client->tls_session, client_data->recv_buffer+client_data->recv_offset, left);
 			break;
 	}
 	#else
@@ -163,7 +160,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	//failed to read from socket
 	if(bytes<0){
 		#ifndef CMAIL_NO_TLS
-		switch(client_data->tls_mode){
+		switch(client->tls_mode){
 			case TLS_NONE:
 		#endif
 		switch(errno){
@@ -244,7 +241,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	client_data->recv_offset+=bytes;
 	#ifndef CMAIL_NO_TLS
 	}
-	while(client_data->tls_mode == TLS_ONLY && gnutls_record_check_pending(client_data->tls_session));
+	while(client->tls_mode == TLS_ONLY && gnutls_record_check_pending(client->tls_session));
 	#endif
 	
 	return 0;

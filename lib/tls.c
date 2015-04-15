@@ -1,29 +1,28 @@
 #ifndef CMAIL_NO_TLS
 
-int tls_initclient(LOGGER log, int fd, CLIENT* client_data){
+int tls_initclient(LOGGER log, CONNECTION* client, gnutls_priority_t tls_priorities, gnutls_certificate_credentials_t tls_cert){
 	int status;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 
-	status=gnutls_init(&(client_data->tls_session), GNUTLS_SERVER);
+	status=gnutls_init(&(client->tls_session), GNUTLS_SERVER);
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to initialize TLS session for client: %s\n", gnutls_strerror(status));
 		return -1;
 	}
 
-	status=gnutls_priority_set(client_data->tls_session, listener_data->tls_priorities);
+	status=gnutls_priority_set(client->tls_session, tls_priorities);
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to update priority set for client: %s\n", gnutls_strerror(status));
 	}
 
-	status=gnutls_credentials_set(client_data->tls_session, GNUTLS_CRD_CERTIFICATE, listener_data->tls_cert);
+	status=gnutls_credentials_set(client->tls_session, GNUTLS_CRD_CERTIFICATE, tls_cert);
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to set credentials for client: %s\n", gnutls_strerror(status));
 		return -1;
 	}
 
-	gnutls_certificate_server_set_request(client_data->tls_session, GNUTLS_CERT_IGNORE);
+	gnutls_certificate_server_set_request(client->tls_session, GNUTLS_CERT_IGNORE);
 	
-	gnutls_transport_set_int(client_data->tls_session, fd);
+	gnutls_transport_set_int(client->tls_session, client->fd);
 
 	return 0;
 }

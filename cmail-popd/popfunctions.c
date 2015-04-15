@@ -8,7 +8,7 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 	
 	//allow tls-only auth
 	#ifndef CMAIL_NO_TLS
-	if(client_data->tls_mode == TLS_ONLY || !listener_data->tls_require){
+	if(client->tls_mode == TLS_ONLY || !listener_data->tls_require){
 	#endif
 	client_send(log, client, "UIDL\r\n");
 	client_send(log, client, "USER\r\n");
@@ -19,7 +19,7 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	#ifndef CMAIL_NO_TLS
 	//do not announce when already in tls or no tls possible
-	if(client_data->tls_mode == TLS_NONE && listener_data->tls_mode == TLS_NEGOTIATE){
+	if(client->tls_mode == TLS_NONE && client_data->listener->tls_mode == TLS_NEGOTIATE){
 		client_send(log, client, "STLS\r\n");
 	}
 	#endif
@@ -216,11 +216,10 @@ int pop_rset(LOGGER log, CONNECTION* client, DATABASE* database){
 }
 
 int pop_xyzzy(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	logprintf(log, LOG_INFO, "Client performs incantation\n");
 	#ifndef CMAIL_NO_TLS
-	logprintf(log, LOG_DEBUG, "Client TLS status: %s\n", (client_data->tls_mode==TLS_NONE)?"none":"ok");
+	logprintf(log, LOG_DEBUG, "Client TLS status: %s\n", tls_modestring(client->tls_mode));
 	#endif
 	client_send(log, client, "+OK Nothing happens\r\n");
 	return 0;

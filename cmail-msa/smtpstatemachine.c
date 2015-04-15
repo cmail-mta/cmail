@@ -13,12 +13,12 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 
 	if(!strncasecmp(client_data->recv_buffer, "ehlo ", 5)){
 		#ifndef CMAIL_NO_TLS
-		switch(listener_data->tls_mode){
+		switch(client_data->listener->tls_mode){
 			case TLS_ONLY:
 				client_data->current_mail.protocol=(client_data->auth.user?"sesmtpa":"sesmtp");
 				break;
 			case TLS_NEGOTIATE:
-				if(client_data->tls_mode==TLS_ONLY){
+				if(client->tls_mode==TLS_ONLY){
 					client_data->current_mail.protocol=(client_data->auth.user?"esmtpsa":"esmtps");
 					break;
 				}
@@ -45,7 +45,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 				break;
 			case AUTH_TLSONLY:
 				#ifndef CMAIL_NO_TLS
-				if(client_data->tls_mode!=TLS_ONLY){
+				if(client->tls_mode!=TLS_ONLY){
 					break;
 				}
 				#else
@@ -57,7 +57,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		}
 		#ifndef CMAIL_NO_TLS
 		//advertise only when possible
-		if(listener_data->tls_mode==TLS_NEGOTIATE && client_data->tls_mode==TLS_NONE){
+		if(client_data->listener->tls_mode==TLS_NEGOTIATE && client->tls_mode==TLS_NONE){
 			client_send(log, client, "250-STARTTLS\r\n"); //RFC 3207
 		}
 		#endif
@@ -67,12 +67,12 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 	
 	if(!strncasecmp(client_data->recv_buffer, "helo ", 5)){
 		#ifndef CMAIL_NO_TLS
-		switch(listener_data->tls_mode){
+		switch(client_data->listener->tls_mode){
 			case TLS_ONLY:
 				client_data->current_mail.protocol=(client_data->auth.user?"ssmtpa":"ssmtp");
 				break;
 			case TLS_NEGOTIATE:
-				if(client_data->tls_mode==TLS_ONLY){
+				if(client->tls_mode==TLS_ONLY){
 					client_data->current_mail.protocol=(client_data->auth.user?"smtpsa":"smtps");
 					break;
 				}
@@ -98,7 +98,6 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 
 int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
 	char* parameter=client_data->recv_buffer;
 
 	if(!strcmp(client_data->recv_buffer, "*")){
@@ -171,12 +170,12 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 					client_send(log, client, "235 Authenticated\r\n");
 				
 					#ifndef CMAIL_NO_TLS
-					switch(listener_data->tls_mode){
+					switch(client_data->listener->tls_mode){
 						case TLS_ONLY:
 							client_data->current_mail.protocol="sesmtpa";
 							break;
 						case TLS_NEGOTIATE:
-							if(client_data->tls_mode==TLS_ONLY){
+							if(client->tls_mode==TLS_ONLY){
 								client_data->current_mail.protocol="esmtpsa";
 								break;
 							}
@@ -216,13 +215,13 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	#ifndef CMAIL_NO_TLS
 	//accept only when offered, reject when already negotiated
 	if(!strncasecmp(client_data->recv_buffer, "starttls", 8)){
-		if(client_data->tls_mode!=TLS_NONE){
+		if(client->tls_mode!=TLS_NONE){
 			logprintf(log, LOG_WARNING, "Client with active TLS session tried to negotiate\n");
 			client_send(log, client, "503 Already in TLS session\r\n");
 			return 0;
 		}
 
-		if(listener_data->tls_mode!=TLS_NEGOTIATE){
+		if(client_data->listener->tls_mode!=TLS_NEGOTIATE){
 			logprintf(log, LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
 			client_send(log, client, "503 Not advertised\r\n");
 			return 0;
@@ -234,8 +233,8 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		
 		client_send(log, client, "220 Go ahead\r\n");
 		
-		client_data->tls_mode=TLS_NEGOTIATE;
-		return tls_initclient(log, client->fd, client_data);
+		client->tls_mode=TLS_NEGOTIATE;
+		return tls_initclient(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
 
@@ -247,7 +246,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 			case AUTH_TLSONLY:
 				#ifndef CMAIL_NO_TLS
-				if(client_data->tls_mode!=TLS_ONLY){
+				if(client->tls_mode!=TLS_ONLY){
 				#endif
 					logprintf(log, LOG_WARNING, "Non-TLS client tried to auth on auth-tlsonly listener\n");
 					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is market obsolete
@@ -277,7 +276,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
 		logprintf(log, LOG_DEBUG, "Authentication: %s\n", client_data->auth.user?client_data->auth.user:"none");
 		#ifndef CMAIL_NO_TLS
-		logprintf(log, LOG_DEBUG, "TLS State: %s\n", (client_data->tls_mode==TLS_NONE)?"none":"ok");
+		logprintf(log, LOG_DEBUG, "TLS State: %s\n", (client->tls_mode==TLS_NONE)?"none":"ok");
 		#endif
 		return 0;
 	}

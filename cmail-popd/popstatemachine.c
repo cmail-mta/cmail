@@ -12,7 +12,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	#ifndef CMAIL_NO_TLS
 	if(!strncasecmp(client_data->recv_buffer, "stls", 4)){
-		if(client_data->tls_mode != TLS_NONE || listener_data->tls_mode != TLS_NEGOTIATE){
+		if(client->tls_mode != TLS_NONE || client_data->listener->tls_mode != TLS_NEGOTIATE){
 			logprintf(log, LOG_WARNING, "Client tried STARTTLS at wrong time\n");
 			client_send(log, client, "-ERR Not possible now\r\n");
 			return 0;
@@ -20,8 +20,8 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 		client_send(log, client, "+OK Start TLS negotiation\r\n");
 
-		client_data->tls_mode=TLS_NEGOTIATE;
-		return tls_initclient(log, client->fd, client_data);
+		client->tls_mode=TLS_NEGOTIATE;
+		return tls_initclient(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
 
@@ -31,7 +31,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	#ifndef CMAIL_NO_TLS
 	//disable login on tls-required auth
-	if(client_data->tls_mode==TLS_ONLY || !listener_data->tls_require){
+	if(client->tls_mode==TLS_ONLY || !listener_data->tls_require){
 	#endif
 		if(!strncasecmp(client_data->recv_buffer, "user ", 5)){
 			if(client_data->auth.user){

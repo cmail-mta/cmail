@@ -97,17 +97,12 @@ typedef struct /*_CLIENT_DATA*/ {
 	POPSTATE state;
 	AUTH_DATA auth;
 	MAILDROP maildrop;
-	#ifndef CMAIL_NO_TLS
-	gnutls_session_t tls_session;
-	TLSMODE tls_mode;
-	#endif
 } CLIENT;
 
 typedef struct /*_POP3_LISTENER*/ {
 	char* announce_domain;
 	#ifndef CMAIL_NO_TLS
 	bool tls_require;
-	TLSMODE tls_mode;
 	gnutls_certificate_credentials_t tls_cert;
 	gnutls_priority_t tls_priorities;
 	gnutls_dh_params_t tls_dhparams;

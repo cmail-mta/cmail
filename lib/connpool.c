@@ -2,6 +2,9 @@ int connpool_add(CONNPOOL* pool, int fd){
 	unsigned i;
 	int free_slot;
 	CONNECTION new_connection = {
+		#ifndef CMAIL_NO_TLS
+		.tls_mode=TLS_NONE,
+		#endif
 		.fd = -1,
 		.aux_data = NULL
 	};

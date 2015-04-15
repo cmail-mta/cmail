@@ -7,6 +7,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	char* port=NULL;
 
 	#ifndef CMAIL_NO_TLS
+	TLSMODE tls_mode=TLS_NONE;
 	char* tls_keyfile=NULL;
 	char* tls_certfile=NULL;
 	char* tls_priorities=NULL;
@@ -14,9 +15,6 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 
 	int listener_slot=-1;
 	LISTENER settings = {
-		#ifndef CMAIL_NO_TLS
-		.tls_mode = TLS_NONE,
-		#endif
 		.fixed_user = NULL,
 		.max_size = 0,
 		.announce_domain = "cmail-msa",
@@ -41,7 +39,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 				tls_keyfile=token+4;
 			}
 			else if(!strcmp(token, "tlsonly")){
-				settings.tls_mode=TLS_ONLY;
+				tls_mode=TLS_ONLY;
 			}
 			else if(!strncmp(token, "ciphers=", 8)){
 				tls_priorities=token+8;
@@ -85,8 +83,8 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 
 	#ifndef CMAIL_NO_TLS
 	if(tls_keyfile && tls_certfile){
-		if(settings.tls_mode==TLS_NONE){
-			settings.tls_mode=TLS_NEGOTIATE;
+		if(tls_mode==TLS_NONE){
+			tls_mode=TLS_NEGOTIATE;
 		}
 
 		if(tls_initserver(config->log, &settings, tls_certfile, tls_keyfile, tls_priorities)<0){
@@ -122,6 +120,10 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		*listener_data=settings;
 
 		//copy data to heap
+		#ifndef CMAIL_NO_TLS
+		config->listeners.conns[listener_slot].tls_mode=tls_mode;
+		#endif
+
 		listener_data->announce_domain=common_strdup(settings.announce_domain);
 		if(!listener_data->announce_domain){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
@@ -263,7 +265,7 @@ void config_free(CONFIGURATION* config){
 		}
 
 		#ifndef CMAIL_NO_TLS
-		if(listener_data->tls_mode!=TLS_NONE){
+		if(config->listeners.conns[i].tls_mode!=TLS_NONE){
 			gnutls_certificate_free_credentials(listener_data->tls_cert);
 			gnutls_priority_deinit(listener_data->tls_priorities);
 			gnutls_dh_params_deinit(listener_data->tls_dhparams);

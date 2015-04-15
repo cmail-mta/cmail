@@ -1,6 +1,5 @@
 ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t bytes){
 	ssize_t bytes_sent=0, bytes_written, bytes_left;
-	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	//early bail saves some syscalls
 	if(bytes==0){
@@ -19,7 +18,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 			bytes_left=MAX_SEND_CHUNK;
 		}
 		#ifndef CMAIL_NO_TLS
-		switch(client_data->tls_mode){
+		switch(client->tls_mode){
 			case TLS_NONE:
 				bytes_written=send(client->fd, data+bytes_sent, bytes_left, 0);
 				break;
@@ -27,7 +26,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 				logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
 				break;
 			case TLS_ONLY:
-				bytes_written=gnutls_record_send(client_data->tls_session, data+bytes_sent, bytes_left);
+				bytes_written=gnutls_record_send(client->tls_session, data+bytes_sent, bytes_left);
 				break;
 		}
 		#else
@@ -40,7 +39,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 
 		if(bytes_written<0){
 			#ifndef CMAIL_NO_TLS
-			if(client_data->tls_mode==TLS_NONE){
+			if(client->tls_mode==TLS_NONE){
 			#endif
 			if(errno!=EAGAIN){
 				logprintf(log, LOG_ERROR, "Write failed: %s\n", strerror(errno));

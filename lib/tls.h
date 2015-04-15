@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef CMAIL_NO_TLS
 	#include <gnutls/gnutls.h>
 	#define TLSSUPPORT(x) (x)

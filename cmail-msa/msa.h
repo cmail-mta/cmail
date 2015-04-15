@@ -86,7 +86,6 @@ typedef struct /*_LISTEN_DATA*/ {
 	bool auth_require;
 	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS
-	TLSMODE tls_mode;
 	gnutls_certificate_credentials_t tls_cert;
 	gnutls_priority_t tls_priorities;
 	gnutls_dh_params_t tls_dhparams;
@@ -102,10 +101,6 @@ typedef struct /*_CLIENT_DATA*/ {
 	MAIL current_mail;
 	AUTH_DATA auth;
 	/*last_action*/
-	#ifndef CMAIL_NO_TLS
-	gnutls_session_t tls_session;
-	TLSMODE tls_mode;
-	#endif
 } CLIENT;
 
 typedef struct /*_PATH_POOL*/{
