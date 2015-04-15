@@ -1,6 +1,7 @@
 int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_OUTBOUND_HOSTS="SELECT mail_remote, NULL AS mail_host FROM main.outbox WHERE mail_remote IS NOT NULL GROUP BY mail_remote UNION SELECT NULL AS mail_remote, SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 ) AS mail_host FROM main.outbox WHERE mail_remote IS NULL GROUP BY SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 );";
 
+	//TODO fetch only mail within retry interval range
 	char* QUERY_OUTBOUND_MAIL_BY_DOMAIN="SELECT GROUP_CONCAT(mail_id) AS mail_idlist, GROUP_CONCAT(mail_envelopeto) AS mail_recipients, LENGTH(mail_data) AS mail_size, mail_data FROM main.outbox WHERE SUBSTR( mail_envelopeto, INSTR( mail_envelopeto, '@' ) + 1 )=? GROUP BY mail_data, mail_envelopefrom;";
 	char* QUERY_OUTBOUND_MAIL_BY_REMOTE="SELECT GROUP_CONCAT(mail_id) AS mail_idlist, GROUP_CONCAT(mail_envelopeto) AS mail_recipients, LENGTH(mail_data) AS mail_size, mail_data FROM main.outbox WHERE mail_remote=? GROUP BY mail_data, mail_envelopefrom;";
 	

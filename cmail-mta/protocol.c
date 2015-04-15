@@ -1,10 +1,29 @@
-int protocol_negotiate(LOGGER log, MTA_SETTINGS settings, REMOTE_PORT port){
-	return -1;
+int protocol_negotiate(LOGGER log, MTA_SETTINGS settings, CONNECTION* conn, REMOTE_PORT port){
+	fd_set readfds;
+	struct timeval tv;
+	int status;
+	char recv_buffer[SMTP_MAX_LINE_LENGTH];
+	unsigned recv_offset=0;
+	
+	do{
+		tv.tv_sec=SMTP_220_TIMEOUT;
+		tv.tv_usec=0;
+
+		FD_ZERO(&readfds);
+		FD_SET(conn->fd, &readfds);
+
+		status=select(conn->fd+1, &readfds, NULL, NULL, &tv);
+		
+		if(FD_ISSET(conn->fd, &readfds)){
+			//TODO read with/without TLS
+		}
+	}
+	while(!abort_signaled);
 }
 
-int protocol_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_statement, int socket){
+int protocol_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_statement, CONNECTION* conn){
 	int status;
-	unsigned delivered_mails;
+	unsigned delivered_mails=0;
 	MAIL current_mail = {
 		.ids = NULL,
 		.remote = NULL,

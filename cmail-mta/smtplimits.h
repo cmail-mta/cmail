@@ -1,0 +1,1 @@
+#define SMTP_220_TIMEOUT 300

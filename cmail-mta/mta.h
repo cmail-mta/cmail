@@ -4,6 +4,8 @@
 #include <adns.h>
 
 #include "../lib/common.h"
+#include "smtplimits.h"
+#include "../cmail-msa/smtplimits.h"
 
 #define VERSION "cmail-mta 0.1"
 #define CMAIL_MTA_INTERVAL 10
@@ -76,6 +78,12 @@ typedef struct /*_CONFIGURATION_AGGREG*/ {
 	USER_PRIVS privileges;
 	MTA_SETTINGS settings;
 } CONFIGURATION;
+
+typedef struct /*_CLIENT_CONN*/ {
+	#ifndef CMAIL_NO_TLS
+	gnutls_session_t tls_session;
+	#endif
+} CONNDATA;
 
 #include "args.c"
 #include "database.c"

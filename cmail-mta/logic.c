@@ -1,7 +1,15 @@
 int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
-	int status, sock=-1, delivered_mails=-1;
+	int status, delivered_mails=-1;
 	unsigned i=0, mx_count=0, port;
 	sqlite3_stmt* data_statement=(mode==DELIVER_DOMAIN)?database->query_domain:database->query_remote;
+
+	CONNDATA conn_data = {
+	};
+
+	CONNECTION conn = {
+		.fd = -1,
+		.aux_data = &conn_data
+	};
 
 	adns_state resolver=NULL;
 	adns_answer* resolver_answer=NULL;
@@ -70,17 +78,17 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 			logprintf(log, LOG_INFO, "Trying port %d\n", settings.port_list[port].port);
 			#endif
 
-			sock=network_connect(log, mail_remote, settings.port_list[port].port);
+			conn.fd=network_connect(log, mail_remote, settings.port_list[port].port);
 
-			if(sock>0){
+			if(conn.fd>0){
 				//negotiate smtp
-				if(protocol_negotiate(log, settings, settings.port_list[port])<0){
+				if(protocol_negotiate(log, settings, &conn, settings.port_list[port])<0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					continue;	
 				}
 				
 				//connected, run the delivery loop
-				delivered_mails=protocol_deliver_loop(log, database, data_statement, sock);
+				delivered_mails=protocol_deliver_loop(log, database, data_statement, &conn);
 				if(delivered_mails<0){
 					logprintf(log, LOG_WARNING, "Failed to deliver mail\n");
 					//failed to deliver != no mx reachable
