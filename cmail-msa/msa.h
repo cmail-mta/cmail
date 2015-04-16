@@ -25,6 +25,7 @@
 #include "../lib/tls.h"
 #include "../lib/database.h"
 
+#include "../lib/common.c"
 #include "../lib/logger.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
@@ -95,8 +96,8 @@ typedef struct /*_LISTEN_DATA*/ {
 typedef struct /*_CLIENT_DATA*/ {
 	CONNECTION* listener;
 	SMTPSTATE state;
-	char recv_buffer[SMTP_MAX_LINE_LENGTH];
-	unsigned recv_offset;
+	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
+	size_t recv_offset;
 	char peer_name[MAX_FQDN_LENGTH];
 	MAIL current_mail;
 	AUTH_DATA auth;

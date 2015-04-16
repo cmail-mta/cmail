@@ -10,3 +10,5 @@ typedef struct /*_LOGGER*/ {
 #define LOG_INFO 	1
 #define LOG_DEBUG 	3
 #define LOG_ALL_IO	4
+
+void logprintf(LOGGER log, unsigned level, char* fmt, ...);

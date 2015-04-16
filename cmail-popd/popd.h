@@ -19,6 +19,7 @@
 #include "../lib/tls.h"
 #include "../lib/database.h"
 
+#include "../lib/common.c"
 #include "../lib/logger.c"
 #include "../lib/signal.c"
 #include "../lib/privileges.c"
@@ -92,8 +93,8 @@ typedef struct /*_CONFIGURATION_DATA*/ {
 
 typedef struct /*_CLIENT_DATA*/ {
 	CONNECTION* listener;
-	char recv_buffer[POP_MAX_LINE_LENGTH];
-	unsigned recv_offset;
+	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
+	size_t recv_offset;
 	POPSTATE state;
 	AUTH_DATA auth;
 	MAILDROP maildrop;

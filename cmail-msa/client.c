@@ -176,9 +176,7 @@ int client_close(CONNECTION* client){
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
-	ssize_t left, bytes;
-	unsigned c;
-	int i;
+	ssize_t left, bytes, line_length;
 
 	//TODO handle client timeout
 	
@@ -186,6 +184,15 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	do{
 	#endif
 	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
+
+	if(left<2){
+		//unterminated line
+		//FIXME this might be kind of a harsh response
+		logprintf(log, LOG_WARNING, "Line too long, closing client connection\n");
+		client_send(log, client, "500 Line too long\r\n");
+		client_close(client);
+		return 0;
+	}
 	
 	bytes=network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
 
@@ -243,52 +250,30 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		#endif
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
 		client_close(client);
-		return 0;
 		#ifndef CMAIL_NO_TLS
 		}
 		#endif
+		return 0;
 	}
 
 	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
 
-	//scan the newly received data for terminators
-	for(i=0;i<bytes-1;i++){
-		if(client_data->recv_offset+i>=SMTP_MAX_LINE_LENGTH-2){
-			//TODO implement this properly
-			//FIXME if in data mode, process the line anyway
-			//else, skip until next newline (set flag to act accordingly in next read)
-			logprintf(log, LOG_WARNING, "Line too long, handling current contents\n");
-			client_send(log, client, "500 Line too long\r\n");
-			client_data->recv_buffer[client_data->recv_offset+i]='\r';
-			client_data->recv_buffer[client_data->recv_offset+i+1]='\n';
-		}
-
-		if(client_data->recv_buffer[client_data->recv_offset+i]=='\r' 
-				&& client_data->recv_buffer[client_data->recv_offset+i+1]=='\n'){
-			//terminate line
-			client_data->recv_buffer[client_data->recv_offset+i]=0;
-			//process by state machine (FIXME might use the return value for something)
-			logprintf(log, LOG_DEBUG, "Extracted line spans %d bytes\n", client_data->recv_offset+i);
-			client_line(log, client, database, path_pool);
-			//copyback
-			i++;
-			for(c=0;c+i<bytes-1;c++){
-				//logprintf(log, LOG_DEBUG, "Moving character %02X from position %d to %d\n", client_data->recv_buffer[client_data->recv_offset+i+1+c], client_data->recv_offset+i+1+c, c);
-				client_data->recv_buffer[c]=client_data->recv_buffer[client_data->recv_offset+i+1+c];
+	do{
+		line_length=common_next_line(log, client_data->recv_buffer, &(client_data->recv_offset), &bytes);
+		if(line_length>=0){
+			if(line_length>=SMTP_MAX_LINE_LENGTH-2){
+				logprintf(log, LOG_WARNING, "Line too long, ignoring\n");
+				client_send(log, client, "500 Line too long\r\n");
+				//client_line(log, client, database, path_pool);
+				//FIXME might handle this more sensibly
 			}
-			
-			i=-1;
-			bytes=c;
-
-			//recv_offset points to the end of the last read, so 0 now
-			client_data->recv_offset=0;
-			
-			logprintf(log, LOG_DEBUG, "recv_offset is now %d, first byte %02X, %d bytes\n", client_data->recv_offset, client_data->recv_buffer[0], bytes);
+			else{
+				client_line(log, client, database, path_pool);
+			}
 		}
 	}
-
-	//update recv_offset with unprocessed bytes
-	client_data->recv_offset+=bytes;
+	while(line_length>=0);
+	
 	#ifndef CMAIL_NO_TLS
 	}
 	while(client->tls_mode == TLS_ONLY && gnutls_record_check_pending(client->tls_session));
