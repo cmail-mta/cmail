@@ -188,10 +188,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 		#endif
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
 		client_close(log, client, database);
-		return 0;
 		#ifndef CMAIL_NO_TLS
 		}
 		#endif
+		return 0;
 	}
 
 	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
