@@ -1,5 +1,11 @@
 Build prerequisites
 
+cmail-mta
+	libadns1-dev	
+	libgnutls28-dev		When compiling without CMAIL_NO_TLS
+	libnettle-dev		(Comes with libgnutls)
+	libsqlite3-dev
+
 cmail-msa
 	libgnutls28-dev		When compiling without CMAIL_NO_TLS
 	libnettle-dev		(Comes with libgnutls)
