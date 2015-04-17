@@ -21,7 +21,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 		client_send(log, client, "+OK Start TLS negotiation\r\n");
 
 		client->tls_mode=TLS_NEGOTIATE;
-		return tls_initclient(log, client, listener_data->tls_priorities, listener_data->tls_cert);
+		return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
 

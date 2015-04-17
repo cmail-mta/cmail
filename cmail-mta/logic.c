@@ -7,9 +7,10 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 	};
 
 	CONNECTION conn = {
-		.fd = -1,
 		.aux_data = &conn_data
 	};
+
+	connection_reset(&conn);
 
 	adns_state resolver=NULL;
 	adns_answer* resolver_answer=NULL;
@@ -45,7 +46,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
 
 		if(resolver_answer->nrrs<=0){
-			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to REMOTE strategy\n", host);
+			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to HANDOFF strategy\n", host);
 			
 			//free resolver data
 			free(resolver_answer);
@@ -79,11 +80,14 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 			#endif
 
 			conn.fd=network_connect(log, mail_remote, settings.port_list[port].port);
+			//TODO only reconnect if port or remote have changed
 
 			if(conn.fd>0){
 				//negotiate smtp
-				if(protocol_negotiate(log, settings, &conn, settings.port_list[port])<0){
+				if(protocol_negotiate(log, settings, mail_remote, &conn, settings.port_list[port])<0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
+					//FIXME might want to gracefully close smtp here
+					connection_reset(&conn);
 					continue;	
 				}
 				

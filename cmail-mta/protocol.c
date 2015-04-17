@@ -1,24 +1,65 @@
-int protocol_negotiate(LOGGER log, MTA_SETTINGS settings, CONNECTION* conn, REMOTE_PORT port){
+int protocol_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
 	fd_set readfds;
 	struct timeval tv;
 	int status;
 	char recv_buffer[SMTP_MAX_LINE_LENGTH];
 	unsigned recv_offset=0;
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+
+	if(conn_data->state==STATE_NEW){
+		//initialize first-time data
+		#ifndef CMAIL_NO_TLS
+		tls_init_clientpeer(log, conn, remote);
+
+		if(port.tls_mode==TLS_ONLY){
+			//perform handshake immediately
+			do{
+				status=gnutls_handshake(conn->tls_session);
+				if(status){
+					if(gnutls_error_is_fatal(status)){
+						logprintf(log, LOG_WARNING, "Handshake failed: %s\n", gnutls_strerror(status));
+						return -1;
+					}
+					logprintf(log, LOG_WARNING, "Handshake nonfatal: %s\n", gnutls_strerror(status));
+				}
+			}
+			while(status && !gnutls_error_is_fatal(status));
+			conn->tls_mode=TLS_ONLY;
+		}
+		#endif
+	}
 	
 	do{
-		tv.tv_sec=SMTP_220_TIMEOUT;
+		tv.tv_sec=CMAIL_SELECT_INTERVAL;
 		tv.tv_usec=0;
 
 		FD_ZERO(&readfds);
 		FD_SET(conn->fd, &readfds);
 
 		status=select(conn->fd+1, &readfds, NULL, NULL, &tv);
-		
-		if(FD_ISSET(conn->fd, &readfds)){
-			//TODO read with/without TLS
+		if(status<0){
+			logprintf(log, LOG_ERROR, "select failed: %s", strerror(errno));
+			return -1;
 		}
+
+		if(status==0){
+			//TODO check timeout
+		}
+		
+		#ifndef CMAIL_NO_TLS
+		if(FD_ISSET(conn->fd, &readfds) || gnutls_record_check_pending(conn->tls_session)){
+		#else
+		if(FD_ISSET(conn->fd, &readfds)){
+		#endif
+			//read from peer
+
+		}
+
+		//TODO check if desired state has been reached
 	}
 	while(!abort_signaled);
+
+	return -1;
 }
 
 int protocol_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_statement, CONNECTION* conn){

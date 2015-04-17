@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <adns.h>
+#include <time.h>
 
 #include "../lib/common.h"
 #include "smtplimits.h"
@@ -22,6 +23,7 @@
 #include "../lib/signal.c"
 #include "../lib/privileges.c"
 #include "../lib/config.c"
+#include "../lib/tls.c"
 #include "../lib/database.c"
 #include "../lib/daemonize.c"
 #include "../lib/network.c"
@@ -79,15 +81,26 @@ typedef struct /*_CONFIGURATION_AGGREG*/ {
 	MTA_SETTINGS settings;
 } CONFIGURATION;
 
-typedef struct /*_CLIENT_CONN*/ {
-	#ifndef CMAIL_NO_TLS
-	gnutls_session_t tls_session;
-	#endif
+typedef enum /*_SMTPCLIENT_STATE*/ {
+	STATE_NEW,
+	STATE_EHLO,
+	STATE_HELO,
+	STATE_IDLE,
+	STATE_RECIPIENTS,
+	STATE_DATA
+} SMTPSTATE;
+
+typedef struct /*_SMTPCLIENT_CONN*/ {
+	SMTPSTATE state;
+	time_t last_action;
+	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
+	ssize_t recv_offset;
 } CONNDATA;
 
 #include "args.c"
 #include "database.c"
 #include "config.c"
 #include "mail.c"
+#include "connection.c"
 #include "protocol.c"
 #include "logic.c"

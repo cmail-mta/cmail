@@ -61,7 +61,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			tls_mode=TLS_NEGOTIATE;
 		}
 
-		if(tls_initserver(config->log, &settings, tls_certfile, tls_keyfile, tls_priorities)<0){
+		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_priorities)<0){
 			return -1;
 		}
 	}

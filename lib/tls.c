@@ -1,6 +1,17 @@
 #ifndef CMAIL_NO_TLS
 
-int tls_initclient(LOGGER log, CONNECTION* client, gnutls_priority_t tls_priorities, gnutls_certificate_credentials_t tls_cert){
+int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote){
+	//TODO error check this section
+	gnutls_init(&(conn->tls_session), GNUTLS_CLIENT);
+	gnutls_session_set_ptr(conn->tls_session, (void*)remote);
+	gnutls_server_name_set(conn->tls_session, GNUTLS_NAME_DNS, remote, strlen(remote));
+	gnutls_set_default_priority(conn->tls_session); //FIXME this should probably be configurable
+	gnutls_transport_set_int(conn->tls_session, conn->fd);
+	gnutls_handshake_set_timeout(conn->tls_session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+	return 0;
+}
+
+int tls_init_serverpeer(LOGGER log, CONNECTION* client, gnutls_priority_t tls_priorities, gnutls_certificate_credentials_t tls_cert){
 	int status;
 
 	status=gnutls_init(&(client->tls_session), GNUTLS_SERVER);
@@ -27,9 +38,10 @@ int tls_initclient(LOGGER log, CONNECTION* client, gnutls_priority_t tls_priorit
 	return 0;
 }
 
-int tls_initserver(LOGGER log, LISTENER* listener, char* cert, char* key, char* priorities){
+#ifdef CMAIL_HAVE_LISTENER_TYPE
+int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, char* priorities){
 		logprintf(log, LOG_DEBUG, "Initializing TLS priorities\n");
-		if(gnutls_priority_init(&(listener->tls_priorities), (priorities)?priorities:"PERFORMANCE:%SERVER_PRECEDENCE", NULL)){
+		if(gnutls_priority_init(&(listener->tls_priorities), (priorities)?priorities:"NORMAL", NULL)){
 			logprintf(log, LOG_ERROR, "Failed to initialize TLS priorities\n");
 			return -1;
 		}
@@ -53,6 +65,7 @@ int tls_initserver(LOGGER log, LISTENER* listener, char* cert, char* key, char* 
 		gnutls_certificate_set_dh_params(listener->tls_cert, listener->tls_dhparams);
 		return 0;
 }
+#endif
 
 
 #endif

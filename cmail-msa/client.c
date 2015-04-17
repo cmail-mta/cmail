@@ -138,7 +138,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	if(listener->tls_mode==TLS_ONLY){
 		logprintf(log, LOG_INFO, "Listen socket is TLSONLY, waiting for negotiation...\n");
 		clients->conns[client_slot].tls_mode=TLS_NEGOTIATE;
-		return tls_initclient(log, &(clients->conns[client_slot]), listener_data->tls_priorities, listener_data->tls_cert);
+		return tls_init_serverpeer(log, &(clients->conns[client_slot]), listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
 

@@ -234,7 +234,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		client_send(log, client, "220 Go ahead\r\n");
 		
 		client->tls_mode=TLS_NEGOTIATE;
-		return tls_initclient(log, client, listener_data->tls_priorities, listener_data->tls_cert);
+		return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
 
