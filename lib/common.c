@@ -18,7 +18,7 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 
 		for(i=0;i<new_bytes;i++){
 			//logprintf(log, LOG_DEBUG, "Moving character %02X from position %d to %d\n", client_data->recv_buffer[client_data->recv_offset+i+1+c], client_data->recv_offset+i+1+c, c);
-			buffer[i]=buffer[new_bytes+i];
+			buffer[i]=buffer[append_offset+i];
 		}
 		
 		append_offset=0;
