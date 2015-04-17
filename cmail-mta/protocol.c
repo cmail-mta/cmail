@@ -9,22 +9,24 @@ int protocol_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTI
 	if(conn_data->state==STATE_NEW){
 		//initialize first-time data
 		#ifndef CMAIL_NO_TLS
-		tls_init_clientpeer(log, conn, remote);
-
-		if(port.tls_mode==TLS_ONLY){
-			//perform handshake immediately
-			do{
-				status=gnutls_handshake(conn->tls_session);
-				if(status){
-					if(gnutls_error_is_fatal(status)){
-						logprintf(log, LOG_WARNING, "Handshake failed: %s\n", gnutls_strerror(status));
-						return -1;
+		if(conn->tls_mode==TLS_NONE){
+			tls_init_clientpeer(log, conn, remote);
+	
+			if(port.tls_mode==TLS_ONLY){
+				//perform handshake immediately
+				do{
+					status=gnutls_handshake(conn->tls_session);
+					if(status){
+						if(gnutls_error_is_fatal(status)){
+							logprintf(log, LOG_WARNING, "Handshake failed: %s\n", gnutls_strerror(status));
+							return -1;
+						}
+						logprintf(log, LOG_WARNING, "Handshake nonfatal: %s\n", gnutls_strerror(status));
 					}
-					logprintf(log, LOG_WARNING, "Handshake nonfatal: %s\n", gnutls_strerror(status));
 				}
+				while(status && !gnutls_error_is_fatal(status));
+				conn->tls_mode=TLS_ONLY;
 			}
-			while(status && !gnutls_error_is_fatal(status));
-			conn->tls_mode=TLS_ONLY;
 		}
 		#endif
 	}
@@ -52,6 +54,7 @@ int protocol_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTI
 		if(FD_ISSET(conn->fd, &readfds)){
 		#endif
 			//read from peer
+			logprintf(log, LOG_DEBUG, "Data ready\n");
 
 		}
 

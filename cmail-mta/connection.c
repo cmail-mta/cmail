@@ -1,4 +1,4 @@
-int connection_reset(CONNECTION* conn){
+int connection_reset(CONNECTION* conn, bool initialize){
 	CONNDATA empty_data = {
 		.state = STATE_NEW,
 		.last_action = time(NULL),
@@ -16,16 +16,18 @@ int connection_reset(CONNECTION* conn){
 
 	CONNDATA* conn_data;
 
-	#ifndef CMAIL_NO_TLS
-	//shut down the tls session
-	if(conn->tls_mode!=TLS_NONE){
-		gnutls_bye(conn->tls_session, GNUTLS_SHUT_RDWR);
-	}
-	gnutls_deinit(conn->tls_session);
-	#endif
+	if(!initialize){
+		#ifndef CMAIL_NO_TLS
+		//shut down the tls session
+		if(conn->tls_mode!=TLS_NONE){
+			gnutls_bye(conn->tls_session, GNUTLS_SHUT_RDWR);
+		}
+		gnutls_deinit(conn->tls_session);
+		#endif
 
-	if(conn->fd>0){
-		close(conn->fd);
+		if(conn->fd>0){
+			close(conn->fd);
+		}
 	}
 
 	*conn=empty_conn;

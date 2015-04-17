@@ -10,7 +10,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 		.aux_data = &conn_data
 	};
 
-	connection_reset(&conn);
+	connection_reset(&conn, true);
 
 	adns_state resolver=NULL;
 	adns_answer* resolver_answer=NULL;
@@ -87,7 +87,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 				if(protocol_negotiate(log, settings, mail_remote, &conn, settings.port_list[port])<0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
-					connection_reset(&conn);
+					connection_reset(&conn, false);
 					continue;	
 				}
 				
