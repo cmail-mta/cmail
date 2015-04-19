@@ -84,7 +84,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 
 			if(conn.fd>0){
 				//negotiate smtp
-				if(protocol_negotiate(log, settings, mail_remote, &conn, settings.port_list[port])<0){
+				if(smtp_negotiate(log, settings, mail_remote, &conn, settings.port_list[port])<0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(&conn, false);
@@ -92,7 +92,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 				}
 				
 				//connected, run the delivery loop
-				delivered_mails=protocol_deliver_loop(log, database, data_statement, &conn);
+				delivered_mails=smtp_deliver_loop(log, database, data_statement, &conn);
 				if(delivered_mails<0){
 					logprintf(log, LOG_WARNING, "Failed to deliver mail\n");
 					//failed to deliver != no mx reachable

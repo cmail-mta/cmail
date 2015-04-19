@@ -1,1 +1,2 @@
 support immediate queue handling with sighup
+all outer loops should terminate with abort_signaled

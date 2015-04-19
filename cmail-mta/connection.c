@@ -1,9 +1,16 @@
 int connection_reset(CONNECTION* conn, bool initialize){
 	CONNDATA empty_data = {
 		.state = STATE_NEW,
+		.extensions_supported = false,
 		.last_action = time(NULL),
 		.recv_buffer = "",
-		.recv_offset = 0
+		.recv_offset = 0,
+		.reply = {
+			.code = 0,
+			.multiline = false,
+			.buffer_length = 0,
+			.response_text = NULL
+		}
 	};
 
 	CONNECTION empty_conn = {

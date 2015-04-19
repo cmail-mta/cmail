@@ -90,12 +90,22 @@ typedef enum /*_SMTPCLIENT_STATE*/ {
 	STATE_DATA
 } SMTPSTATE;
 
+typedef struct /*_SMTP_REPLY*/ {
+	unsigned code;
+	bool multiline;
+	char* response_text;
+	unsigned buffer_length;
+} SMTPREPLY;
+
 typedef struct /*_SMTPCLIENT_CONN*/ {
 	SMTPSTATE state;
+	bool extensions_supported;
 	time_t last_action;
 	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
 	ssize_t recv_offset;
+	SMTPREPLY reply;
 } CONNDATA;
+
 
 #include "args.c"
 #include "database.c"
@@ -103,4 +113,5 @@ typedef struct /*_SMTPCLIENT_CONN*/ {
 #include "mail.c"
 #include "connection.c"
 #include "protocol.c"
+#include "smtp.c"
 #include "logic.c"
