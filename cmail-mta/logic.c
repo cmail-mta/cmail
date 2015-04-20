@@ -106,6 +106,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 		i++;
 	}
 	while(i<mx_count);
+	
 
 	if(delivered_mails<0){
 		//TODO handle "no mxes reachable" -> increase retry count for all mails
@@ -117,6 +118,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 		adns_finish(resolver);
 	}
 
+	connection_reset(&conn, false);
 	logprintf(log, LOG_INFO, "Mail delivery for %s done\n", host);
 	return delivered_mails;
 }
