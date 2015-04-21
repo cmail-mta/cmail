@@ -19,7 +19,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 	fd_set readfds;
 	struct timeval tv;
 	time_t read_begin=time(NULL);
-	int i;
+	int i, c;
 
 	protocol_reply_reset(log, &(conn_data->reply));
 	
@@ -116,6 +116,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 			}
 
 			logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, conn_data->recv_offset);
+			logprintf(log, LOG_ALL_IO, ">> %.*s", bytes, conn_data->recv_buffer+conn_data->recv_offset);
 
 			//scan for terminator
 			for(i=0;i<bytes-1;i++){
@@ -128,6 +129,9 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 
 				if(conn_data->recv_buffer[conn_data->recv_offset+i] == '\r'
 					&& conn_data->recv_buffer[conn_data->recv_offset+i+1] == '\n'){
+					
+					conn_data->recv_buffer[conn_data->recv_offset+i]=0;
+					logprintf(log, LOG_DEBUG, "Input buffer sentence %s\n", conn_data->recv_buffer);
 					
 					current_multiline=false;
 
@@ -152,14 +156,22 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 					//copy message into reply structure
 					//TODO
 
-					//TODO copyback if at end
+					//copyback
+					i+=2;
+					for(c=0;i+c<bytes-1;c++){
+						conn_data->recv_buffer[c]=conn_data->recv_buffer[i+c];
+					}
+
+					bytes-=i;
+					conn_data->recv_offset=0;
+					i=-1;
 
 					//continue if not at end
 					if(!current_multiline){
-						//kill buffer contents
-						conn_data->recv_offset=0;
 						return 0;
 					}
+
+					logprintf(log, LOG_DEBUG, "Current sentence is multiline response, continuing read\n");
 				}
 			}
 		}

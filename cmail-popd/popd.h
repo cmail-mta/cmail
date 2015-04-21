@@ -7,7 +7,6 @@
 #include "../lib/common.h"
 #define VERSION "cmail-popd 0.1"
 #define CMAIL_MAX_CONCURRENT_CLIENTS 128
-#define STATIC_SEND_BUFFER_LENGTH 1024
 
 #define CMAIL_HAVE_LISTENER_TYPE
 

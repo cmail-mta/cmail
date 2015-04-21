@@ -1,8 +1,36 @@
-int smtp_greet(LOGGER log, CONNECTION* conn){
-	//protocol_ehlo
-		//await 250
-	//if fail, protocol_helo
-	//if fail, disconnect
+int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+
+	//try esmtp
+	client_send(log, conn, "EHLO %s\r\n", settings.helo_announce);
+	
+	//await 250
+	if(protocol_read(log, conn, SMTP_220_TIMEOUT)<0){ //FIXME the rfc does not define a timeout for this
+		logprintf(log, LOG_ERROR, "Failed to read EHLO response\n");
+		return -1;
+	}
+
+	if(conn_data->reply.code==250){
+		logprintf(log, LOG_DEBUG, "Negotiated ESMTP\n");
+		conn_data->extensions_supported=true;
+		return 0;
+	}
+
+	logprintf(log, LOG_INFO, "EHLO failed with %d, trying HELO\n", conn_data->reply.code);
+	client_send(log, conn, "HELO %s\r\n", settings.helo_announce);
+
+	//await 250
+	if(protocol_read(log, conn, SMTP_220_TIMEOUT)<0){ //FIXME the rfc does not define a timeout for this
+		logprintf(log, LOG_ERROR, "Failed to read HELO response\n");
+		return -1;
+	}
+
+	if(conn_data->reply.code==250){
+		logprintf(log, LOG_DEBUG, "Negotiated SMTP\n");
+		return 0;
+	}
+
+	logprintf(log, LOG_WARNING, "Could not negotiate any protocol, HELO response was %d\n", conn_data->reply.code);
 	return -1;
 }
 
@@ -51,7 +79,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	}
 	
 	//negotiate smtp
-	if(smtp_greet(log, conn)<0){
+	if(smtp_greet(log, conn, settings)<0){
 		logprintf(log, LOG_WARNING, "Failed to negotiate SMTP/ESMTP\n");
 		return -1;
 	}

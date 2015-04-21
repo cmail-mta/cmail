@@ -27,6 +27,7 @@
 #include "../lib/database.c"
 #include "../lib/daemonize.c"
 #include "../lib/network.c"
+#include "../lib/client.c"
 
 typedef enum /*_DELIVERY_MODE*/ {
 	DELIVER_DOMAIN,

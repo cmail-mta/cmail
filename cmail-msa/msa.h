@@ -11,7 +11,6 @@
 
 #include "../lib/common.h"
 #define VERSION 			"cmail-msa 0.1"
-#define STATIC_SEND_BUFFER_LENGTH	1024
 
 #define CMAIL_HAVE_LISTENER_TYPE
 

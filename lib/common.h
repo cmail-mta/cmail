@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #define MAX_CFGLINE 2048
+#define STATIC_SEND_BUFFER_LENGTH	1024
 
 char* common_strdup(char* input){
 	char* duplicate=NULL;
