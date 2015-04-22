@@ -1,5 +1,24 @@
 #ifndef CMAIL_NO_TLS
 
+int tls_handshake(LOGGER log, CONNECTION* conn){
+	int status;
+	
+	do{
+		status=gnutls_handshake(conn->tls_session);
+		if(status){
+			if(gnutls_error_is_fatal(status)){
+				logprintf(log, LOG_WARNING, "Handshake failed: %s\n", gnutls_strerror(status));
+				return -1;
+			}
+			logprintf(log, LOG_WARNING, "Handshake nonfatal: %s\n", gnutls_strerror(status));
+		}
+	}
+	while(status && !gnutls_error_is_fatal(status));
+	
+	conn->tls_mode=TLS_ONLY;
+	return 0;
+}
+
 int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote){
 	//TODO error check this section
 	gnutls_init(&(conn->tls_session), GNUTLS_CLIENT);

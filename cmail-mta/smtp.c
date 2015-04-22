@@ -4,42 +4,57 @@ int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
 	//try esmtp
 	client_send(log, conn, "EHLO %s\r\n", settings.helo_announce);
 	
-	//await 250
-	if(protocol_read(log, conn, SMTP_220_TIMEOUT)<0){ //FIXME the rfc does not define a timeout for this
-		logprintf(log, LOG_ERROR, "Failed to read EHLO response\n");
-		return -1;
+	//await answer
+	switch(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){
+		case 0:
+			logprintf(log, LOG_DEBUG, "Negotiated ESMTP\n");
+			conn_data->extensions_supported=true;
+			return 0;
+		
+		case -1:
+			logprintf(log, LOG_ERROR, "Failed to read EHLO response\n");
+			return -1;
+		default:
+			break;
 	}
-
-	if(conn_data->reply.code==250){
-		logprintf(log, LOG_DEBUG, "Negotiated ESMTP\n");
-		conn_data->extensions_supported=true;
-		return 0;
-	}
-
+	
 	logprintf(log, LOG_INFO, "EHLO failed with %d, trying HELO\n", conn_data->reply.code);
 	client_send(log, conn, "HELO %s\r\n", settings.helo_announce);
-
-	//await 250
-	if(protocol_read(log, conn, SMTP_220_TIMEOUT)<0){ //FIXME the rfc does not define a timeout for this
-		logprintf(log, LOG_ERROR, "Failed to read HELO response\n");
+	
+	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){ //FIXME the rfc does not define a timeout for this
+		logprintf(log, LOG_WARNING, "Could not negotiate any protocol, HELO response was %d\n", conn_data->reply.code);
 		return -1;
 	}
 
-	if(conn_data->reply.code==250){
-		logprintf(log, LOG_DEBUG, "Negotiated SMTP\n");
-		return 0;
-	}
-
-	logprintf(log, LOG_WARNING, "Could not negotiate any protocol, HELO response was %d\n", conn_data->reply.code);
-	return -1;
+	logprintf(log, LOG_INFO, "Negotiated SMTP\n");
+	return 0;
 }
 
 int smtp_starttls(LOGGER log, CONNECTION* conn){
-	return -1;
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	
+	if(!conn_data->extensions_supported){
+		logprintf(log, LOG_ERROR, "Extensions not supported, not negotiating TLS\n");
+		return -1;
+	}
+	
+	client_send(log, conn, "STARTTLS\r\n");
+
+	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 220)){ //FIXME the rfc does not define a timeout for this
+		logprintf(log, LOG_WARNING, "Could not start TLS negotiation, response was %d\n", conn_data->reply.code);
+		return -1;
+	}
+
+	//perform handshake
+	if(tls_handshake(log, conn)<0){
+		logprintf(log, LOG_ERROR, "Failed to negotiate TLS\n");
+		return -1;
+	}
+	
+	return 0;
 }
 
 int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
-	int status;
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 
 	if(conn_data->state==STATE_NEW){
@@ -50,18 +65,10 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	
 			if(port.tls_mode==TLS_ONLY){
 				//perform handshake immediately
-				do{
-					status=gnutls_handshake(conn->tls_session);
-					if(status){
-						if(gnutls_error_is_fatal(status)){
-							logprintf(log, LOG_WARNING, "Handshake failed: %s\n", gnutls_strerror(status));
-							return -1;
-						}
-						logprintf(log, LOG_WARNING, "Handshake nonfatal: %s\n", gnutls_strerror(status));
-					}
+				if(tls_handshake(log, conn)<0){
+					logprintf(log, LOG_ERROR, "Failed to negotiate TLS with TLSONLY remote\n");
+					return -1;
 				}
-				while(status && !gnutls_error_is_fatal(status));
-				conn->tls_mode=TLS_ONLY;
 			}
 		}
 		#endif
@@ -84,6 +91,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 		return -1;
 	}
 
+	#ifndef CMAIL_NO_TLS
 	if(port.tls_mode==TLS_NEGOTIATE){
 		//if requested, proto_starttls
 		if(smtp_starttls(log, conn)<0){
@@ -91,6 +99,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 			return -1;
 		}
 	}
+	#endif
 
 	return 0;
 }

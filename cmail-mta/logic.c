@@ -98,6 +98,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 					//failed to deliver != no mx reachable
 					delivered_mails=0;
 				}
+				//FIXME might want to continue if not all mail could be delivered
 				i=mx_count; //break the outer loop
 				break;
 			}

@@ -190,3 +190,17 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 }
 
 
+int protocol_expect(LOGGER log, CONNECTION* conn, unsigned timeout, unsigned code){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	if(protocol_read(log, conn, timeout)<0){
+		logprintf(log, LOG_ERROR, "Failed to read response\n");
+		return -1;
+	}
+
+	if(conn_data->reply.code==code){
+		logprintf(log, LOG_DEBUG, "Response code matched %d\n", code);
+		return 0;
+	}
+
+	return 1;
+}
