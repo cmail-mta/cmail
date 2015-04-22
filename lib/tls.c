@@ -20,13 +20,30 @@ int tls_handshake(LOGGER log, CONNECTION* conn){
 }
 
 int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote){
-	//TODO error check this section
-	gnutls_init(&(conn->tls_session), GNUTLS_CLIENT);
-	gnutls_session_set_ptr(conn->tls_session, (void*)remote);
-	gnutls_server_name_set(conn->tls_session, GNUTLS_NAME_DNS, remote, strlen(remote));
-	gnutls_set_default_priority(conn->tls_session); //FIXME this should probably be configurable
-	gnutls_transport_set_int(conn->tls_session, conn->fd);
+	int status;
+
+	status=gnutls_init(&(conn->tls_session), GNUTLS_CLIENT);
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to initialize TLS session for client: %s\n", gnutls_strerror(status));
+		return -1;
+	}
+
+	status=gnutls_server_name_set(conn->tls_session, GNUTLS_NAME_DNS, remote, strlen(remote));
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to update TLS server name: %s\n", gnutls_strerror(status));
+		return -1;
+	}
+	
+	status=gnutls_set_default_priority(conn->tls_session); //FIXME this should probably be configurable
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to update client TLS priorities: %s\n", gnutls_strerror(status));
+		return -1;
+	}
+
 	gnutls_handshake_set_timeout(conn->tls_session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+	gnutls_transport_set_int(conn->tls_session, conn->fd);
+	gnutls_session_set_ptr(conn->tls_session, (void*)remote);
+	
 	return 0;
 }
 
@@ -51,7 +68,6 @@ int tls_init_serverpeer(LOGGER log, CONNECTION* client, gnutls_priority_t tls_pr
 	}
 
 	gnutls_certificate_server_set_request(client->tls_session, GNUTLS_CERT_IGNORE);
-	
 	gnutls_transport_set_int(client->tls_session, client->fd);
 
 	return 0;
