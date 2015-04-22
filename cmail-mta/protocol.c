@@ -117,6 +117,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 
 			logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, conn_data->recv_offset);
 			logprintf(log, LOG_ALL_IO, ">> %.*s", bytes, conn_data->recv_buffer+conn_data->recv_offset);
+			//log_dump_buffer(log, LOG_ALL_IO, conn_data->recv_buffer, conn_data->recv_offset+bytes);
 
 			//scan for terminator
 			for(i=0;i<bytes-1;i++){
@@ -156,15 +157,22 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 					//copy message into reply structure
 					//TODO
 
+					//logprintf(log, LOG_DEBUG, "Before copyback\n");
+					//log_dump_buffer(log, LOG_ALL_IO, conn_data->recv_buffer, conn_data->recv_offset+bytes);
+
 					//copyback
 					i+=2;
-					for(c=0;i+c<bytes-1;c++){
+					for(c=0;i+c<bytes;c++){
 						conn_data->recv_buffer[c]=conn_data->recv_buffer[i+c];
 					}
-
+					conn_data->recv_buffer[c]=0;
+					
 					bytes-=i;
 					conn_data->recv_offset=0;
 					i=-1;
+
+					//logprintf(log, LOG_DEBUG, "Copyback done, %d bytes left\n", bytes);
+					//log_dump_buffer(log, LOG_ALL_IO, conn_data->recv_buffer, bytes);
 
 					//continue if not at end
 					if(!current_multiline){
