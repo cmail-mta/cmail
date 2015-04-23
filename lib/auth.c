@@ -60,6 +60,7 @@ int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, 
 	return BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE);
 }
 
+#ifdef CMAIL_HAVE_DATABASE_TYPE
 int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	int status, rv=-1;
 	char* user_salt;
@@ -119,3 +120,4 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	
 	return rv;
 }
+#endif

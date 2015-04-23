@@ -78,11 +78,8 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 					break;
 				}
 				break;
-			case SQLITE_ERROR:
-				rv=-1;
-				break;
 			default:
-				logprintf(log, LOG_WARNING, "Uncaught attach response code %d\n", status);
+				logprintf(log, LOG_WARNING, "Uncaught attach response code %d: %s\n", status, sqlite3_errmsg(database->conn));
 				rv=1;
 				break;
 		}
