@@ -1,4 +1,6 @@
 #include <stdarg.h>
+#include <stdint.h>
+#include <ctype.h>
 
 typedef struct /*_LOGGER*/ {
 	FILE* stream;

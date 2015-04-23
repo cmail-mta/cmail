@@ -1,3 +1,18 @@
+sqlite3* database_open(LOGGER log, const char* filename, int flags) {
+
+	sqlite3* db = NULL;
+	int status;
+
+	status = sqlite3_open_v2(filename, &db, flags, NULL);
+
+	if (status != SQLITE_OK) {
+		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
+		return NULL;
+	}
+
+	return db;
+}
+
 sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 	int status;
 	sqlite3_stmt* target=NULL;
