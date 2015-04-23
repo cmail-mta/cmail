@@ -14,12 +14,13 @@ int tls_handshake(LOGGER log, CONNECTION* conn){
 		}
 	}
 	while(status && !gnutls_error_is_fatal(status));
+	logprintf(log, LOG_INFO, "TLS Handshake succeeded\n");
 	
 	conn->tls_mode=TLS_ONLY;
 	return 0;
 }
 
-int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote){
+int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote, gnutls_certificate_credentials_t credentials){
 	int status;
 
 	status=gnutls_init(&(conn->tls_session), GNUTLS_CLIENT);
@@ -31,6 +32,12 @@ int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote){
 	status=gnutls_server_name_set(conn->tls_session, GNUTLS_NAME_DNS, remote, strlen(remote));
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to update TLS server name: %s\n", gnutls_strerror(status));
+		return -1;
+	}
+
+	status=gnutls_credentials_set(conn->tls_session, GNUTLS_CRD_CERTIFICATE, credentials);
+	if(status){
+		logprintf(log, LOG_WARNING, "Failed to update TLS credentials: %s\n", gnutls_strerror(status));
 		return -1;
 	}
 	

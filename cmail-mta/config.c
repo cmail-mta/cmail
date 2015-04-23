@@ -46,6 +46,13 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 	return -1;
 }
 
+#ifndef CMAIL_NO_TLS
+int config_trustfile(CONFIGURATION* config, char* directive, char* params){
+	gnutls_certificate_set_x509_trust_file(config->settings.tls_credentials, params, GNUTLS_X509_FMT_PEM);
+	return 0;
+}
+#endif
+
 int config_logger(CONFIGURATION* config, char* directive, char* params){
 	FILE* log_file;
 
@@ -190,10 +197,16 @@ int config_line(void* config_data, char* line){
 		return 0;
 	}
 
-	else if(!strncmp(line, "tlspadding", 10)){
+	else if(!strncmp(line, "tls_padding", 11)){
 		config->settings.tls_padding=strtoul(line+parameter, NULL, 10);
 		return 0;
 	}
+
+	#ifndef CMAIL_NO_TLS
+	else if(!strncmp(line, "tls_trustfile", 13)){
+		return config_trustfile(config, line, line+parameter);
+	}
+	#endif
 
 	else if(!strncmp(line, "ratelimit", 9)){
 		config->settings.rate_limit=strtoul(line+parameter, NULL, 10);
@@ -214,6 +227,10 @@ void config_free(CONFIGURATION* config){
 	if(config->settings.port_list){
 		free(config->settings.port_list);
 	}
+
+	#ifndef CMAIL_NO_TLS
+	gnutls_certificate_free_credentials(config->settings.tls_credentials);
+	#endif
 
 	if(config->log.stream!=stderr){
 		fclose(config->log.stream);

@@ -61,7 +61,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 		//initialize first-time data
 		#ifndef CMAIL_NO_TLS
 		if(conn->tls_mode==TLS_NONE){
-			tls_init_clientpeer(log, conn, remote);
+			tls_init_clientpeer(log, conn, remote, settings.tls_credentials);
 	
 			if(port.tls_mode==TLS_ONLY){
 				//perform handshake immediately

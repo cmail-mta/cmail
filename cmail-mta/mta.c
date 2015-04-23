@@ -61,6 +61,11 @@ int main(int argc, char** argv){
 		fprintf(stderr, "Failed to initialize GnuTLS\n");
 		exit(EXIT_FAILURE);
 	}
+	if(gnutls_certificate_allocate_credentials(&(config.settings.tls_credentials))){
+		fprintf(stderr, "Failed to initialize GnuTLS credentials\n");
+		TLSSUPPORT(gnutls_global_deinit());
+		exit(EXIT_FAILURE);
+	}
 	#endif
 
 	//read config file
