@@ -1,18 +1,3 @@
-sqlite3* database_open(LOGGER log, const char* filename, int flags) {
-
-	sqlite3* db = NULL;
-	int status;
-
-	status = sqlite3_open_v2(filename, &db, flags, NULL);
-
-	if (status != SQLITE_OK) {
-		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
-		return NULL;
-	}
-
-	return db;
-}
-
 sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 	int status;
 	sqlite3_stmt* target=NULL;
@@ -28,6 +13,37 @@ sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 	}
 
 	return NULL;
+}
+
+sqlite3* database_open(LOGGER log, const char* filename, int flags) {
+
+	sqlite3* db = NULL;
+	int status;
+
+	status = sqlite3_open_v2(filename, &db, flags, NULL);
+
+	if (status != SQLITE_OK) {
+		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		return NULL;
+	}
+
+	sqlite3_stmt* stmt = database_prepare(log, db, "PRAGMA foreign_keys = ON");
+	if (!stmt) {
+		sqlite3_close(db);
+		return NULL;
+	}
+
+	if (sqlite3_step(stmt) != SQLITE_DONE) {
+		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		return NULL;
+	}
+
+	sqlite3_finalize(stmt);
+
+	return db;
 }
 
 int database_schema_version(LOGGER log, sqlite3* conn){
