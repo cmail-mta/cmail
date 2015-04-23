@@ -1,6 +1,5 @@
 int connection_reset(CONNECTION* conn, bool initialize){
 	CONNDATA empty_data = {
-		.state = STATE_NEW,
 		.extensions_supported = false,
 		.last_action = time(NULL),
 		.recv_buffer = "",

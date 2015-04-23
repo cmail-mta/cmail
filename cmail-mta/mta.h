@@ -85,15 +85,6 @@ typedef struct /*_CONFIGURATION_AGGREG*/ {
 	MTA_SETTINGS settings;
 } CONFIGURATION;
 
-typedef enum /*_SMTPCLIENT_STATE*/ {
-	STATE_NEW,
-	STATE_EHLO,
-	STATE_HELO,
-	STATE_IDLE,
-	STATE_RECIPIENTS,
-	STATE_DATA
-} SMTPSTATE;
-
 typedef struct /*_SMTP_REPLY*/ {
 	unsigned code;
 	bool multiline;
@@ -102,7 +93,6 @@ typedef struct /*_SMTP_REPLY*/ {
 } SMTPREPLY;
 
 typedef struct /*_SMTPCLIENT_CONN*/ {
-	SMTPSTATE state;
 	bool extensions_supported;
 	time_t last_action;
 	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];

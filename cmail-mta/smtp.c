@@ -57,7 +57,7 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 
-	if(conn_data->state==STATE_NEW){
+	//if(conn_data->state==STATE_NEW){
 		//initialize first-time data
 		#ifndef CMAIL_NO_TLS
 		if(conn->tls_mode==TLS_NONE){
@@ -72,7 +72,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 			}
 		}
 		#endif
-	}
+	//}
 	
 	//await 220
 	if(protocol_read(log, conn, SMTP_220_TIMEOUT)<0){
