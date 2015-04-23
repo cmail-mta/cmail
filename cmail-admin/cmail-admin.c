@@ -47,6 +47,30 @@ void gen_salt(char* salt, unsigned n) {
 	base16_encode_update((uint8_t*) salt, n, salt_arr);
 }
 
+int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
+
+	unsigned n = 4;
+	char salt[BASE16_ENCODE_LENGTH(n) +1];
+	char hashed[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE) +1];
+	char auth[sizeof(salt) + sizeof(hashed) +1];
+
+	memset(salt, 0, sizeof(salt));
+	memset(auth, 0, sizeof(auth));
+
+	if (password) {
+		gen_salt(salt, n);
+		if (auth_hash(hashed, sizeof(hashed), salt, sizeof(salt), password, strlen(password)) < 0) {
+			logprintf(log, LOG_ERROR, "Error hashing password\n");
+			return 21;
+		}
+		snprintf(auth, sizeof(auth), "%s:%s", salt, hashed);
+		return sqlite_set_password(log, db, user, auth);
+	} else {
+		return sqlite_set_password(log, db, user, NULL);
+	}
+		
+}
+
 int add_user(LOGGER log, sqlite3* db, const char* user, char* password) {
 
 	unsigned n = 4;
@@ -63,6 +87,7 @@ int add_user(LOGGER log, sqlite3* db, const char* user, char* password) {
 		gen_salt(salt, n);
 		if (auth_hash(hashed, sizeof(hashed), salt, sizeof(salt), password, strlen(password)) < 0) {
 			logprintf(log, LOG_ERROR, "Error hashing password\n");
+			return 21;
 		}
 		snprintf(auth, sizeof(auth), "%s:%s", salt, hashed);
 		logprintf(log, LOG_INFO, "authdata: %s\n", auth);
@@ -95,7 +120,7 @@ int main(int argc, char* argv[]) {
 		.conn = NULL
 	};
 
-	int i;
+	int i, status;
 
 	char* dbpath = "/var/cmail/master.db3";
 	char* password = NULL;
@@ -111,6 +136,21 @@ int main(int argc, char* argv[]) {
 			return 0;
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
+		} else if (i + 2 < argc && (!strcmp(argv[i], "set") && !strcmp(argv[i + 1], "password"))) {
+			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+
+			if (!database.conn) {
+				return 10;
+			}
+
+			if (i + 3 < argc) {
+				password = argv[i + 3];
+			}
+
+			int status = set_password(log, database.conn, argv[i + 2], password);
+			sqlite3_close(database.conn);
+			return status;
+
 		} else if (i + 1 < argc && !strcmp(argv[i], "add")) {
 			if (i + 2 < argc) {
 				password = argv[i + 2];
@@ -121,7 +161,7 @@ int main(int argc, char* argv[]) {
 				return 10;
 			}
 
-			int status = add_user(log, database.conn, argv[i + 1], password);
+			status = add_user(log, database.conn, argv[i + 1], password);
 
 			sqlite3_close(database.conn);
 			return status;
@@ -132,9 +172,14 @@ int main(int argc, char* argv[]) {
 				return 10;
 			}
 
-			sqlite_delete_user(log, database.conn, argv[i + 1]);
+			status = sqlite_delete_user(log, database.conn, argv[i + 1]);
+			sqlite3_close(database.conn);
+			return status;
 		}
 	}
+
+	printf("Invalid or no arguments.\n");
+	usage();
 
 	return 0;
 }
