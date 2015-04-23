@@ -9,6 +9,7 @@
 #define CMAIL_MAX_CONCURRENT_CLIENTS 128
 
 #define CMAIL_HAVE_LISTENER_TYPE
+#define CMAIL_HAVE_DATABASE_TYPE
 
 #include "../lib/logger.h"
 #include "../lib/signal.h"

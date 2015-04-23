@@ -13,6 +13,7 @@
 #define VERSION 			"cmail-msa 0.1"
 
 #define CMAIL_HAVE_LISTENER_TYPE
+#define CMAIL_HAVE_DATABASE_TYPE
 
 #include "smtplimits.h"
 
