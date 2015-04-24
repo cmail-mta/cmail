@@ -4,23 +4,23 @@
 #include <sqlite3.h>
 #include <time.h>
 
-#include "cmail-admin.h"
+#include "cmail-admin-user.h"
 
 // logger support
-#include "../lib/logger.h"
-#include "../lib/logger.c"
+#include "../../lib/logger.h"
+#include "../../lib/logger.c"
 
 // database suff
-#include "../lib/database.h"
-#include "../lib/database.c"
+#include "../../lib/database.h"
+#include "../../lib/database.c"
 
 // common stuff
-#include "../lib/common.h"
-#include "../lib/common.c"
+#include "../../lib/common.h"
+#include "../../lib/common.c"
 
 // for auth stuff
-#include "../lib/auth.h"
-#include "../lib/auth.c"
+#include "../../lib/auth.h"
+#include "../../lib/auth.c"
 
 #include "getpass.c"
 #include "user.c"
@@ -173,6 +173,19 @@ int main(int argc, char* argv[]) {
 			}
 
 			status = sqlite_delete_user(log, database.conn, argv[i + 1]);
+			sqlite3_close(database.conn);
+			return status;
+		} else if (!strcmp(argv[i], "list")) {
+			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
+
+			if (!database.conn) {
+				return 10;
+			}
+			if (i + 1 < argc) {
+				status = sqlite_get(log, database.conn, argv[i + 1]);
+			} else {
+				status = sqlite_get_all(log, database.conn);
+			}
 			sqlite3_close(database.conn);
 			return status;
 		}

@@ -2,10 +2,9 @@
 CFLAGS=-Wall -g
 LDLIBS=-lsqlite3 -lnettle
 
-all: 
-	cd user && make all
+all: cmail-admin-user
 
-	mv user/cmail-admin-user .
+cmail-admin: cmail-admin-user.c
 
 clean:
 	rm cmail-admin-user
