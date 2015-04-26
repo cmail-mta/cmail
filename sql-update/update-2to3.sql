@@ -10,4 +10,3 @@ BEGIN TRANSACTION;
 	-- database changes --
 	ALTER TABLE users ADD COLUMN user_database TEXT;
 COMMIT;
-

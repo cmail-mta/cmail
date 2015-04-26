@@ -32,7 +32,7 @@ int auth_method_plain(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
 	int length, i, rv;
 	char* user=NULL;
 	char* pass=NULL;
-	
+
 	if(!auth_data->parameter){
 		return 1;
 	}

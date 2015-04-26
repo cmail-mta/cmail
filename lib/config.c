@@ -12,7 +12,7 @@ int config_parse(LOGGER log, void* config_data, char* conf_file){
 	while(fgets(line_buffer, MAX_CFGLINE, conf_stream)!=NULL){
 		//preprocess line
 		line_data=line_buffer;
-		
+
 		//remove trailing characters
 		for(offset=strlen(line_data)-1;offset>=0&&!(isalnum(line_data[offset])||ispunct(line_data[offset]));offset--){
 			line_data[offset]=0;
@@ -39,7 +39,7 @@ int config_parse(LOGGER log, void* config_data, char* conf_file){
 			}
 		}
 	}
-	
+
 	if(errno!=0){
 		logprintf(log, LOG_ERROR, "Error while reading configuration file: %s\n", strerror(errno));
 		fclose(conf_stream);

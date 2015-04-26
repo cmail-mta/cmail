@@ -22,7 +22,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 	}
 
 	logprintf(log, LOG_INFO, "Entering mail delivery procedure for host %s in mode %s\n", host, (mode==DELIVER_DOMAIN)?"domain":"handoff");
-	
+
 	//prepare mail data query
 	if(sqlite3_bind_text(data_statement, 1, host, -1, SQLITE_STATIC)!=SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
@@ -47,11 +47,11 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 
 		if(resolver_answer->nrrs<=0){
 			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to HANDOFF strategy\n", host);
-			
+
 			//free resolver data
 			free(resolver_answer);
 			adns_finish(resolver);
-			
+
 			mode=DELIVER_HANDOFF;
 			//TODO report error type
 		}
@@ -71,7 +71,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 			mail_remote=resolver_answer->rrs.inthostaddr[i].ha.host;
 		}
 		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", i, mail_remote);
-		
+
 		for(port=0;settings.port_list[port].port;port++){
 			#ifndef CMAIL_NO_TLS
 			logprintf(log, LOG_INFO, "Trying port %d TLS mode %s\n", settings.port_list[port].port, tls_modestring(settings.port_list[port].tls_mode));
@@ -88,9 +88,9 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(&conn, false);
-					continue;	
+					continue;
 				}
-				
+
 				//connected, run the delivery loop
 				delivered_mails=smtp_deliver_loop(log, database, data_statement, &conn);
 				if(delivered_mails<0){
@@ -107,13 +107,13 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 		i++;
 	}
 	while(i<mx_count);
-	
+
 
 	if(delivered_mails<0){
 		//TODO handle "no mxes reachable" -> increase retry count for all mails
 		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", host);
 	}
-	
+
 	if(mode==DELIVER_DOMAIN){
 		free(resolver_answer);
 		adns_finish(resolver);
@@ -140,14 +140,14 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 				case SQLITE_ROW:
 					mail_mode=DELIVER_HANDOFF;
 					mail_remote=(char*)sqlite3_column_text(database->query_outbound_hosts, 0);
-					
+
 					if(!mail_remote){
 						mail_mode=DELIVER_DOMAIN;
 						mail_remote=(char*)sqlite3_column_text(database->query_outbound_hosts, 1);
 					}
 					//handle outbound mail for single host
 					logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", mail_remote, (mail_mode==DELIVER_DOMAIN)?"domain":"handoff");
-					
+
 					//TODO implement multi-threading here
 					status=logic_loop_proto(log, database, settings, mail_remote, mail_mode);
 
@@ -165,14 +165,14 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 			}
 		}
 		while(status==SQLITE_ROW);
-	
+
 		sqlite3_reset(database->query_outbound_hosts);
-	
+
 		//TODO check for mails over the retry limit
 		sleep(settings.check_interval);
 	}
 	while(!abort_signaled);
-	
+
 	logprintf(log, LOG_INFO, "Core loop exiting cleanly\n");
 	return 0;
 }

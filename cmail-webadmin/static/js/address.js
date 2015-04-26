@@ -6,7 +6,7 @@ cmail.address = {
 		var addresses = JSON.parse(xhr.response).addresses;
 
 		return addresses[0];
-	}, 
+	},
 	get_all: function() {
 		var self = this;
 

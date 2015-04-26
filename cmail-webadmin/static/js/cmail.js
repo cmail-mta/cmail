@@ -1,6 +1,6 @@
 var cmail = {
 	/**
-	 * all routers 
+	 * all routers
 	 */
 	inrouter: [
 		"store",
@@ -46,7 +46,7 @@ var cmail = {
 		],
 	init: function() {
 		this.module.get();
-		
+
 		// fill router checkboxes
 		this.fill_router();
 
@@ -60,7 +60,7 @@ var cmail = {
 		// handle tab change
 		this.switch_hash();
 		window.addEventListener("hashchange", function() {
-			self.switch_hash();	
+			self.switch_hash();
 		}, false);
 	},
 	switch_hash: function() {
@@ -96,7 +96,7 @@ var cmail = {
 			inrouter.appendChild(gui.createOption(val, val));
 		});
 
-		// fill outrouter 
+		// fill outrouter
 		this.outrouter.forEach(function(val) {
 			outrouter.appendChild(gui.createOption(val, val));
 		});

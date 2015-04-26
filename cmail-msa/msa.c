@@ -13,7 +13,7 @@ int usage(char* filename){
 int main(int argc, char** argv){
 	ARGUMENTS args = {
 		.config_file = NULL,
-		.drop_privileges = true, 
+		.drop_privileges = true,
 		.detach = true
 	};
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv){
 		exit(EXIT_FAILURE);
 	}
 	#endif
-	
+
 	//read config file
 	if(config_parse(config.log, &config, args.config_file)<0){
 		arguments_free(&args);
@@ -94,14 +94,14 @@ int main(int argc, char** argv){
 	else{
 		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));
 	}
-	
+
 	//detach from console (or dont)
 	if(args.detach && config.log.stream!=stderr){
 		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
-		
+
 		//flush the stream so we do not get everything twice
 		fflush(config.log.stream);
-		
+
 		switch(daemonize(config.log)){
 			case 0:
 				break;
@@ -120,10 +120,10 @@ int main(int argc, char** argv){
 	else{
 		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Because the log output stream is stderr)":""));
 	}
-	
+
 	//enter main processing loop
 	core_loop(config.log, config.listeners, &(config.database));
-	
+
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");
 	arguments_free(&args);

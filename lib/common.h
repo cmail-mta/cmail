@@ -10,6 +10,6 @@ char* common_strdup(char* input){
 	if(!duplicate){
 		return NULL;
 	}
-	
+
 	return strncpy(duplicate, input, length);
 }

@@ -2,7 +2,7 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 
 	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
-	
+
 	switch(client_data->state){
 		case STATE_AUTH:
 			return state_authorization(log, client, database);
@@ -11,7 +11,7 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 		case STATE_UPDATE:
 			return state_update(log, client, database);
 	}
-	
+
 	return 0;
 }
 
@@ -41,9 +41,9 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
 		return 1;
 	}
-	
+
 	client_slot=connpool_add(clients, accept(listener->fd, NULL, NULL));
-	
+
 	if(client_slot<0){
 		logprintf(log, LOG_ERROR, "Failed to pool client socket\n");
 		return -1;
@@ -72,7 +72,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	//initialise / reset client data structure
 	actual_data=(CLIENT*)clients->conns[client_slot].aux_data;
 	*actual_data = empty_data;
-	
+
 	#ifndef CMAIL_NO_TLS
 	//if on tlsonly port, immediately wait for negotiation
 	if(listener->tls_mode==TLS_ONLY){
@@ -81,14 +81,14 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		return tls_init_serverpeer(log, &(clients->conns[client_slot]), listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
-	
+
 	client_send(log, &(clients->conns[client_slot]), "+OK %s POP3 ready\r\n", listener_data->announce_domain);
 	return 0;
 }
 
 int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	
+
 	#ifndef CMAIL_NO_TLS
 	//shut down the tls session
 	if(client->tls_mode!=TLS_NONE){
@@ -104,10 +104,10 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	//reset client data
 	maildrop_release(log, database, &(client_data->maildrop), client_data->auth.user);
 	auth_reset(&(client_data->auth));
-	
+
 	//return the conpool slot
 	client->fd=-1;
-	
+
 	return 0;
 }
 
@@ -117,12 +117,12 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	ssize_t left, bytes, line_length;
 
 	//TODO handle client timeout
-	
+
 	#ifndef CMAIL_NO_TLS
 	do{
 	#endif
 	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
-		
+
 	if(left<2){
 		//unterminated line
 		//FIXME this might be kind of a harsh response
@@ -171,7 +171,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 		}
 		#endif
 	}
-	
+
 	//client disconnect / handshake success
 	else if(bytes==0){
 		#ifndef CMAIL_NO_TLS
@@ -195,7 +195,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	}
 
 	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
-	
+
 	do{
 		line_length=common_next_line(log, client_data->recv_buffer, &(client_data->recv_offset), &bytes);
 		if(line_length>=0){
@@ -211,12 +211,11 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 		}
 	}
 	while(line_length>=0);
-	
+
 	#ifndef CMAIL_NO_TLS
 	}
 	while(client->tls_mode == TLS_ONLY && gnutls_record_check_pending(client->tls_session));
 	#endif
-	
+
 	return 0;
 }
-

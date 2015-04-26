@@ -8,7 +8,7 @@ var cmail = {
 		"write",
 		],
 	init: function() {
-		
+
 		this.mail.get_all();
 
 		var self = this;

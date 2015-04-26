@@ -5,7 +5,7 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 	logprintf(log, LOG_DEBUG, "Client requested capability listing\n");
 
 	client_send(log, client, "+OK Capability listing\r\n");
-	
+
 	//allow tls-only auth
 	#ifndef CMAIL_NO_TLS
 	if(client->tls_mode == TLS_ONLY || !listener_data->tls_require){
@@ -34,12 +34,12 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 int pop_stat(LOGGER log, CONNECTION* client, DATABASE* database){
 	unsigned maildrop_bytes=0, i;
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	
+
 	//calculate maildrop size
 	for(i=0;i<client_data->maildrop.count;i++){
 		maildrop_bytes+=client_data->maildrop.mails[i].mail_size;
 	}
-	
+
 	client_send(log, client, "+OK %d %d\r\n", client_data->maildrop.count, maildrop_bytes);
 	return 0;
 }
@@ -167,7 +167,7 @@ int pop_retr(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 
 int pop_quit(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	
+
 	if(client_data->state==STATE_TRANSACTION){
 		//update the maildrop
 		if(maildrop_update(log, database, &(client_data->maildrop))<0){

@@ -24,4 +24,3 @@ void log_dump_buffer(LOGGER log, unsigned level, void* buffer, size_t bytes){
 
 	logprintf(log, level, "\n");
 }
-

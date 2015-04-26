@@ -33,11 +33,11 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_data->state=STATE_IDLE;
 
 		client_send(log, client, "250-%s ahoyhoy\r\n", listener_data->announce_domain);
-		
+
 		//TODO hook plugins here
-		
+
 		//send hardcoded esmtp options
-		client_send(log, client, "250-SIZE %d\r\n", listener_data->max_size); 
+		client_send(log, client, "250-SIZE %d\r\n", listener_data->max_size);
 		client_send(log, client, "250-8BITMIME\r\n"); //FIXME this might imply more processing than planned
 		client_send(log, client, "250-SMTPUTF8\r\n"); //RFC 6531
 		switch(listener_data->auth_offer){
@@ -64,7 +64,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_send(log, client, "250 XYZZY\r\n"); //RFC 5321 2.2.2
 		return 0;
 	}
-	
+
 	if(!strncasecmp(client_data->recv_buffer, "helo ", 5)){
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->listener->tls_mode){
@@ -90,10 +90,10 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_send(log, client, "250 %s ahoyhoy\r\n", listener_data->announce_domain);
 		return 0;
 	}
-	
+
 	logprintf(log, LOG_INFO, "Command not recognized in state NEW: %s\n", client_data->recv_buffer);
 	client_send(log, client, "500 Unknown command\r\n");
-	return -1;		
+	return -1;
 }
 
 int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
@@ -139,7 +139,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			return 0;
 		}
 	}
-	
+
 	//FIXME refactor this part
 	//catch (unprefixed) data parameters
 	switch(client_data->auth.method){
@@ -154,7 +154,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				auth_reset(&(client_data->auth));
 				return -1;
 			}
-			
+
 			//evaluate
 			switch(auth_status(log, database, &(client_data->auth))){
 				case 1:
@@ -168,7 +168,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				case 0:
 					logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->auth.user);
 					client_send(log, client, "235 Authenticated\r\n");
-				
+
 					#ifndef CMAIL_NO_TLS
 					switch(client_data->listener->tls_mode){
 						case TLS_ONLY:
@@ -191,7 +191,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			client_data->state=STATE_IDLE;
 			break;
 	}
-	
+
 	return 0;
 }
 
@@ -230,9 +230,9 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_INFO, "Client wants to negotiate TLS\n");
 		mail_reset(&(client_data->current_mail));
 		client_data->state=STATE_NEW;
-		
+
 		client_send(log, client, "220 Go ahead\r\n");
-		
+
 		client->tls_mode=TLS_NEGOTIATE;
 		return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
@@ -260,7 +260,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 					client_send(log, client, "503 Already authenticated\r\n");
 					return 0;
 				}
-				//continue	
+				//continue
 				break;
 		}
 
@@ -401,7 +401,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 				//reject by router decision
 				client_send(log, client, "551 User does not accept mail\r\n");
 				pathpool_return(current_path);
-				return 0;	
+				return 0;
 			default:
 				client_send(log, client, "451 Path rejected\r\n");
 				pathpool_return(current_path);
@@ -427,7 +427,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		client_send(log, client, "250 Accepted\r\n");
 		return 0;
 	}
-	
+
 	if(!strncasecmp(client_data->recv_buffer, "quit", 4)){
 		logprintf(log, LOG_INFO, "Client quit\n");
 		client_send(log, client, "221 OK Bye\r\n");
@@ -439,7 +439,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		client_send(log, client, "250 OK\r\n");
 		return 0;
 	}
-	
+
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
 		client_data->state=STATE_IDLE;
 		mail_reset(&(client_data->current_mail));
@@ -462,7 +462,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			return -1;
 		}
 		client_data->state=STATE_DATA;
-		
+
 		//write received: header
 		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain)<0){
 			logprintf(log, LOG_WARNING, "Failed to write received header\n");
@@ -481,7 +481,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 
 int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	
+
 	if(client_data->recv_buffer[0]=='.'){
 		if(client_data->recv_buffer[1]){
 			logprintf(log, LOG_INFO, "Data line with leading dot, fixing\n");

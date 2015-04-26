@@ -42,7 +42,7 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 			logprintf(config->log, LOG_ERROR, "Failed to open %s as master databases\n", params);
 
 	}
-	
+
 	return -1;
 }
 
@@ -110,7 +110,7 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 				#else
 				logprintf(config->log, LOG_DEBUG, "Adding port %d in position %d\n", new_port.port, num_ports);
 				#endif
-				
+
 				config->settings.port_list=realloc(config->settings.port_list, (num_ports+1)*sizeof(REMOTE_PORT));
 				if(!config->settings.port_list){
 					logprintf(config->log, LOG_ERROR, "Failed to allocate memory for port list\n");
@@ -219,7 +219,7 @@ int config_line(void* config_data, char* line){
 
 void config_free(CONFIGURATION* config){
 	database_free(config->log, &(config->database));
-	
+
 	if(config->settings.helo_announce){
 		free(config->settings.helo_announce);
 	}

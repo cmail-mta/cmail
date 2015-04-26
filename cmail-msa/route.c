@@ -106,9 +106,9 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 					//try to refresh the user database set
 					database_refresh(log, database);
 					user_db=database_userdb(log, database, route.argument);
-				
+
 					if(!user_db){
-						//as last resort, store to master db	
+						//as last resort, store to master db
 						logprintf(log, LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->resolved_user);
 						rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 					}
@@ -153,12 +153,12 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 		else{
 			//TODO call plugins for other routers
 		}
-		
+
 		if(rv>0){
 			logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
 		}
 	}
-	
+
 	route_free(&route);
 	return rv;
 }
@@ -166,14 +166,14 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 int route_outbound(LOGGER log, DATABASE* database, char* user, MAILPATH* reverse_path){
 	int rv=0;
 	MAILROUTE route=route_query(log, database, false, user);
-	
+
 	//fail any path if the authenticated user has no router table entry
 	if(!route.router){
 		return -1;
 	}
 
 	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument?route.argument:"none");
-	
+
 	if(!strcmp(route.router, "reject")){
 		rv=-1;
 	}

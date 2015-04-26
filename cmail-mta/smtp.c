@@ -3,24 +3,24 @@ int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
 
 	//try esmtp
 	client_send(log, conn, "EHLO %s\r\n", settings.helo_announce);
-	
+
 	//await answer
 	switch(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){
 		case 0:
 			logprintf(log, LOG_DEBUG, "Negotiated ESMTP\n");
 			conn_data->extensions_supported=true;
 			return 0;
-		
+
 		case -1:
 			logprintf(log, LOG_ERROR, "Failed to read EHLO response\n");
 			return -1;
 		default:
 			break;
 	}
-	
+
 	logprintf(log, LOG_INFO, "EHLO failed with %d, trying HELO\n", conn_data->reply.code);
 	client_send(log, conn, "HELO %s\r\n", settings.helo_announce);
-	
+
 	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){ //FIXME the rfc does not define a timeout for this
 		logprintf(log, LOG_WARNING, "Could not negotiate any protocol, HELO response was %d\n", conn_data->reply.code);
 		return -1;
@@ -32,12 +32,12 @@ int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
 
 int smtp_starttls(LOGGER log, CONNECTION* conn){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
-	
+
 	if(!conn_data->extensions_supported){
 		logprintf(log, LOG_ERROR, "Extensions not supported, not negotiating TLS\n");
 		return -1;
 	}
-	
+
 	client_send(log, conn, "STARTTLS\r\n");
 
 	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 220)){ //FIXME the rfc does not define a timeout for this
@@ -50,7 +50,7 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 		logprintf(log, LOG_ERROR, "Failed to negotiate TLS\n");
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -62,7 +62,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 		#ifndef CMAIL_NO_TLS
 		if(conn->tls_mode==TLS_NONE){
 			tls_init_clientpeer(log, conn, remote, settings.tls_credentials);
-	
+
 			if(port.tls_mode==TLS_ONLY){
 				//perform handshake immediately
 				if(tls_handshake(log, conn)<0){
@@ -73,18 +73,18 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 		}
 		#endif
 	//}
-	
+
 	//await 220
 	if(protocol_read(log, conn, SMTP_220_TIMEOUT)<0){
 		logprintf(log, LOG_ERROR, "Initial SMTP response failed or not properly formatted\n");
 		return -1;
 	}
-	
+
 	if(conn_data->reply.code!=220){
 		logprintf(log, LOG_WARNING, "Server replied with %d: %s\n", conn_data->reply.code, conn_data->reply.response_text);
 		return -1;
 	}
-	
+
 	//negotiate smtp
 	if(smtp_greet(log, conn, settings)<0){
 		logprintf(log, LOG_WARNING, "Failed to negotiate SMTP/ESMTP\n");
@@ -115,7 +115,7 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_stateme
 		.length = 0,
 		.data = NULL
 	};
-	
+
 	do{
 		status=sqlite3_step(data_statement);
 		switch(status){

@@ -107,13 +107,13 @@
 		public function isActive($username) {
 
 			$obj = array("msa_user" => $username);
-			
+
 			return (count($this->get($obj, false)) > 0);
 		}
 
 		/**
 		 * Returns all msa entries
-		 * @return list of all msa entries in database 
+		 * @return list of all msa entries in database
 		 */
 		public function getAll($write = true) {
 
@@ -140,7 +140,7 @@
 
 		public function transfer($in, $out) {
 
-			//TODO: transfer	
+			//TODO: transfer
 		}
 
 		public function updateUserDatabase($msa, $transfer = false) {
@@ -168,7 +168,7 @@
 				":user_database" => $msa["msa_inroute"],
 				":user_name" => $path
 			);
-			
+
 			$status = $this->db->insert($sql, [$params]);
 
 			return isset($status);
@@ -187,19 +187,19 @@
 		 */
 		public function add($msa) {
 
-                        if (!isset($msa["msa_user"]) || empty($msa["msa_user"])) {
-                                $this->output->add("status", "Username is not set.");
-                                return false;
-                        }
+			if (!isset($msa["msa_user"]) || empty($msa["msa_user"])) {
+				$this->output->add("status", "Username is not set.");
+				return false;
+			}
 
-                        if (!isset($msa["msa_inrouter"]) || empty($msa["msa_inrouter"])) {
-                                $this->output->add("status", "User inrouter is not set.");
-                                return false;
-                        }
+			if (!isset($msa["msa_inrouter"]) || empty($msa["msa_inrouter"])) {
+				$this->output->add("status", "User inrouter is not set.");
+				return false;
+			}
 
-                        if (!isset($msa["msa_outrouter"]) || empty($msa["msa_outrouter"])) {
-                                $this->output->add("status", "User outrouter is not set.");
-                                return false;
+			if (!isset($msa["msa_outrouter"]) || empty($msa["msa_outrouter"])) {
+				$this->output->add("status", "User outrouter is not set.");
+				return false;
 			}
 
 			$auth = Auth::getInstance($this->db, $this->output);
@@ -216,26 +216,26 @@
 				}
 			}
 
-                        $sql = "INSERT INTO msa(msa_user, msa_inrouter, msa_inroute, msa_outrouter, msa_outroute)"
-                                . "VALUES (:msa_user, :msa_inrouter, :msa_inroute, :msa_outrouter, :msa_outroute)";
+			$sql = "INSERT INTO msa(msa_user, msa_inrouter, msa_inroute, msa_outrouter, msa_outroute)"
+				. "VALUES (:msa_user, :msa_inrouter, :msa_inroute, :msa_outrouter, :msa_outroute)";
 
-                        $params = array(
-                                ":msa_user" => $msa["msa_user"],
-                                ":msa_inrouter" => $msa["msa_inrouter"],
-                                ":msa_inroute" => $msa["msa_inroute"],
-                                ":msa_outrouter" => $msa["msa_outrouter"],
-                                ":msa_outroute" => $msa["msa_outroute"]
+			$params = array(
+				":msa_user" => $msa["msa_user"],
+				":msa_inrouter" => $msa["msa_inrouter"],
+				":msa_inroute" => $msa["msa_inroute"],
+				":msa_outrouter" => $msa["msa_outrouter"],
+				":msa_outroute" => $msa["msa_outroute"]
 			);
 
-                        $id = $this->db->insert($sql, array($params));
-			
-                        if (isset($id) && !empty($id)) {
-                                $this->output->add("msa", $id);
-                                return true;
-                        } else {
-                                $this->output->add("msa", -1);
-                                return false;
-                        }
+			$id = $this->db->insert($sql, array($params));
+
+			if (isset($id) && !empty($id)) {
+				$this->output->add("msa", $id);
+				return true;
+			} else {
+				$this->output->add("msa", -1);
+				return false;
+			}
 		}
 
 		/**

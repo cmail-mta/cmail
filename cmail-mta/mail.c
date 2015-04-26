@@ -16,7 +16,7 @@ int mail_free(MAIL* mail){
 		.length = 0,
 		.data = NULL
 	};
-	
+
 	if(mail->ids){
 		free(mail->ids);
 	}

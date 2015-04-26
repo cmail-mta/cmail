@@ -1,6 +1,6 @@
 ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned bytes){
 	int status;
-	
+
 	#ifndef CMAIL_NO_TLS
 	switch(client->tls_mode){
 		case TLS_NONE:
@@ -17,7 +17,7 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
 				return -1;
 			}
-			
+
 			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
 			return 0;
 		case TLS_ONLY:
@@ -27,7 +27,7 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 	#else
 	return recv(client->fd, buffer, bytes, 0);
 	#endif
-	
+
 	logprintf(log, LOG_ERROR, "Network read with invalid TLSMODE\n");
 	return -2;
 }

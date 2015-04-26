@@ -39,7 +39,7 @@ class DB {
 		}
 
 		$this->query("PRAGMA foreign_keys = ON", array(), null);
-		$this->query("PRAGMA busy_timeout = 1000", array(), null);	
+		$this->query("PRAGMA busy_timeout = 1000", array(), null);
 
 		$this->output->addDebugMessage("db", "connect call");
 		return true;

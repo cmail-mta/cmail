@@ -2,7 +2,7 @@
 
 int tls_handshake(LOGGER log, CONNECTION* conn){
 	int status;
-	
+
 	do{
 		status=gnutls_handshake(conn->tls_session);
 		if(status){
@@ -15,7 +15,7 @@ int tls_handshake(LOGGER log, CONNECTION* conn){
 	}
 	while(status && !gnutls_error_is_fatal(status));
 	logprintf(log, LOG_INFO, "TLS Handshake succeeded\n");
-	
+
 	conn->tls_mode=TLS_ONLY;
 	return 0;
 }
@@ -40,7 +40,7 @@ int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote, gnutls_certi
 		logprintf(log, LOG_WARNING, "Failed to update TLS credentials: %s\n", gnutls_strerror(status));
 		return -1;
 	}
-	
+
 	status=gnutls_set_default_priority(conn->tls_session); //FIXME this should probably be configurable
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to update client TLS priorities: %s\n", gnutls_strerror(status));
@@ -50,7 +50,7 @@ int tls_init_clientpeer(LOGGER log, CONNECTION* conn, char* remote, gnutls_certi
 	gnutls_handshake_set_timeout(conn->tls_session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
 	gnutls_transport_set_int(conn->tls_session, conn->fd);
 	gnutls_session_set_ptr(conn->tls_session, (void*)remote);
-	
+
 	return 0;
 }
 
@@ -93,7 +93,7 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 			logprintf(log, LOG_ERROR, "Failed to allocate storage for TLS cert structure\n");
 			return -1;
 		}
-		
+
 		logprintf(log, LOG_DEBUG, "Initializing TLS certificate\n");
 		if(gnutls_certificate_set_x509_key_file(listener->tls_cert, cert, key, GNUTLS_X509_FMT_PEM)){
 			logprintf(log, LOG_ERROR, "Failed to find key or certificate files\n");

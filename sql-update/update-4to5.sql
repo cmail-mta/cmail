@@ -40,4 +40,3 @@ BEGIN TRANSACTION;
 	INSERT INTO api_access (api_user, api_right) SELECT user_name as api_user, 'admin' AS api_right FROM users;
 
 COMMIT;
-

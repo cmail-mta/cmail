@@ -99,13 +99,13 @@ int main(int argc, char** argv){
 		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));
 	}
 
-	//detach from console 
+	//detach from console
 	if(args.daemonize && config.log.stream!=stderr){
 		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
-		
+
 		//flush the stream so we do not get everything twice
 		fflush(config.log.stream);
-		
+
 		switch(daemonize(config.log)){
 			case 0:
 				break;
@@ -124,7 +124,7 @@ int main(int argc, char** argv){
 	else{
 		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize?" (Because the log output stream is stderr)":""));
 	}
-	
+
 	//run core loop
 	if(args.delivery_domain){
 		logic_loop_proto(config.log, &(config.database), config.settings, args.delivery_domain, args.delivery_mode);

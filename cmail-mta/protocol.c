@@ -22,7 +22,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 	int i, c;
 
 	protocol_reply_reset(log, &(conn_data->reply));
-	
+
 	do{
 		tv.tv_sec=CMAIL_SELECT_INTERVAL;
 		tv.tv_usec=0;
@@ -43,7 +43,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 				return -1;
 			}
 		}
-		
+
 		#ifndef CMAIL_NO_TLS
 		if(FD_ISSET(conn->fd, &readfds) || gnutls_record_check_pending(conn->tls_session)){
 		#else
@@ -57,7 +57,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 				logprintf(log, LOG_ERROR, "Received response line with %d bytes, bailing out\n", conn_data->recv_offset);
 				return -1;
 			}
-	
+
 			bytes=network_read(log, conn, conn_data->recv_buffer+conn_data->recv_offset, left);
 
 			//failed to read from socket
@@ -96,7 +96,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 				}
 				#endif
 			}
-	
+
 			//client disconnect / handshake success
 			else if(bytes==0){
 				#ifndef CMAIL_NO_TLS
@@ -122,7 +122,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 			//scan for terminator
 			for(i=0;i<bytes-1;i++){
 				//check for leading status code
-				if(conn_data->recv_offset+i<3 
+				if(conn_data->recv_offset+i<3
 					&& !isdigit(conn_data->recv_buffer[conn_data->recv_offset+i])){
 					logprintf(log, LOG_WARNING, "Response does not begin with status code, not a valid SMTP reply\n");
 					return -1;
@@ -130,10 +130,10 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 
 				if(conn_data->recv_buffer[conn_data->recv_offset+i] == '\r'
 					&& conn_data->recv_buffer[conn_data->recv_offset+i+1] == '\n'){
-					
+
 					conn_data->recv_buffer[conn_data->recv_offset+i]=0;
 					logprintf(log, LOG_DEBUG, "Input buffer sentence %s\n", conn_data->recv_buffer);
-					
+
 					current_multiline=false;
 
 					//crude length check
@@ -166,7 +166,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 						conn_data->recv_buffer[c]=conn_data->recv_buffer[i+c];
 					}
 					conn_data->recv_buffer[c]=0;
-					
+
 					bytes-=i;
 					conn_data->recv_offset=0;
 					i=-1;

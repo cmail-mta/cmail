@@ -52,7 +52,7 @@ class Output {
 	 * @param type $function problem function
 	 * @param type $message message (use an array with 3 entries ("id", <code>, <message>))
 	 */
-	public function addDebugMessage($function, $message, $error=false) {	
+	public function addDebugMessage($function, $message, $error=false) {
 
 		if (isset($error) && $error) {
 			$this->setErrorFlag();

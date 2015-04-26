@@ -8,7 +8,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
 	char* QUERY_DETACH_DB="DETACH DATABASE ?;";
-	
+
 	//check the database schema version
 	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
 		logprintf(log, LOG_ERROR, "The database schema is at another version than required for this build\n");
@@ -21,7 +21,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	database->list_master=database_prepare(log, database->conn, LIST_MAILS_MASTER);
 	database->fetch_master=database_prepare(log, database->conn, FETCH_MAIL_MASTER);
 	database->delete_master=database_prepare(log, database->conn, DELETE_MAIL_MASTER);
-	
+
 	database->db_attach=database_prepare(log, database->conn, QUERY_ATTACH_DB);
 	database->db_detach=database_prepare(log, database->conn, QUERY_DETACH_DB);
 
@@ -50,7 +50,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 void database_free(LOGGER log, DATABASE* database){
 	//FIXME check for SQLITE_BUSY here
-	
+
 	if(database->conn){
 		sqlite3_finalize(database->query_authdata);
 		sqlite3_finalize(database->query_userdatabase);

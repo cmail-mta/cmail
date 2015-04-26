@@ -21,7 +21,7 @@ int connpool_add(CONNPOOL* pool, int fd){
 		if(!pool->conns){
 			return -127;
 		}
-		
+
 		pool->conns[0]=new_connection;
 		pool->count=1;
 		return 0;
@@ -96,12 +96,12 @@ void connpool_free(CONNPOOL* pool){
 			if(pool->conns[i].fd>=0){
 				close(pool->conns[i].fd);
 			}
-			
+
 			if(pool->conns[i].aux_data){
 				free(pool->conns[i].aux_data);
 			}
 		}
-	
+
 		free(pool->conns);
 		pool->conns=NULL;
 	}

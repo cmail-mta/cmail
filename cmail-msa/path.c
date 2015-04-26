@@ -112,7 +112,7 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, bool forward_pa
 	else{
 		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
 	}
-	
+
 	sqlite3_reset(database->query_addresses);
 	sqlite3_clear_bindings(database->query_addresses);
 	return rv;
