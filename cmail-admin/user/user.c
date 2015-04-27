@@ -1,7 +1,7 @@
 int sqlite_get(LOGGER log, sqlite3* db, const char* username) {
 
 
-	char* sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login FROM users WHERE user_name = ?";
+	char* sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login FROM users WHERE user_name LIKE ?";
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 

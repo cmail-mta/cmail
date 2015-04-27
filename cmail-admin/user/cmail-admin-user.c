@@ -107,6 +107,7 @@ void usage() {
 	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
 	printf("\t--help, -h\t\t shows this help\n");
 	printf("\tadd <username> [<pw>] adds an user, if not given script asks for pw\n");
+	printf("\tlist [<username>] list all users or if defined only users like <username>\n");
 }
 
 int main(int argc, char* argv[]) {
