@@ -26,21 +26,21 @@ class MailParser {
 			default:
 				$decoded = $str;
 				error_log("No valid encoding");
-				break;	
+				break;
 		}
 
 		return mb_convert_encoding($decoded, "UTF-8", $split[0]);
 
 	}
 	private function replaceEncodedWords($line) {
-			
+
 		$index = strpos($line, "=?");
 		if ($index === FALSE) {
 			return $line;
 		}
 
 		$index_end = strpos($line, "?=");
-	
+
 		if ($index_end === FALSE) {
 			return $line;
 		}
@@ -53,7 +53,7 @@ class MailParser {
 		$count = 0;
 
 		// if long encoded long word
-		
+
 		while ($end[$count] == " ") {
 
 			$count++;
@@ -79,7 +79,7 @@ class MailParser {
 			if ($line == "") {
 				break;
 			}
-			
+
 			if ($line[0] == " " || $line[0] == "\t") {
 				$unfolded[$count] .= substr($line, 1);	
 			} else {
@@ -139,7 +139,7 @@ class MailParser {
 
 
 
-		$this->body = $raw;	
+		$this->body = $raw;
 	}
 
 	function parseMultipartUnsignedBody($ct, $raw) {
@@ -148,7 +148,7 @@ class MailParser {
 
 	function parseTextPlainBody($ct, $raw) {
 		//TODO: implement encoding check
-		
+
 		$this->body = $raw;
 	}
 
@@ -204,7 +204,7 @@ class MailParser {
 	}
 
 	public function getHeader($header) {
-		
+
 		foreach ($this->headers as $tag => $value) {
 
 			if (strtolower($tag) === $header) {

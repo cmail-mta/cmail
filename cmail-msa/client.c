@@ -82,9 +82,9 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
 		return 1;
 	}
-	
+
 	client_slot=connpool_add(clients, accept(listener->fd, NULL, NULL));
-	
+
 	if(client_slot<0){
 		logprintf(log, LOG_ERROR, "Failed to pool client socket\n");
 		return -1;
@@ -116,7 +116,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	//initialise / reset client data structure
 	actual_data=(CLIENT*)clients->conns[client_slot].aux_data;
 	*actual_data = empty_data;
-	
+
 	if(client_resolve(log, &(clients->conns[client_slot]))<0){
 		logprintf(log, LOG_WARNING, "Peer resolution failed\n");
 		//FIXME this might be bigger than we think
@@ -129,7 +129,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			//dont fail here, its not critical
 		}
 	}
-	
+
 	actual_data->current_mail.submitter=actual_data->peer_name;
 	logprintf(log, LOG_DEBUG, "Initialized client data to peername %s, submitter %s\n", actual_data->peer_name, actual_data->current_mail.submitter);
 
@@ -166,10 +166,10 @@ int client_close(CONNECTION* client){
 
 	//reset authentication
 	auth_reset(&(client_data->auth));
-	
+
 	//return the conpool slot
 	client->fd=-1;
-	
+
 	return 0;
 }
 
@@ -179,7 +179,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	ssize_t left, bytes, line_length;
 
 	//TODO handle client timeout
-	
+
 	#ifndef CMAIL_NO_TLS
 	do{
 	#endif
@@ -193,7 +193,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		client_close(client);
 		return 0;
 	}
-	
+
 	bytes=network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
 
 	//failed to read from socket
@@ -233,7 +233,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		}
 		#endif
 	}
-	
+
 	//client disconnect / handshake success
 	else if(bytes==0){
 		#ifndef CMAIL_NO_TLS
@@ -273,12 +273,11 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		}
 	}
 	while(line_length>=0);
-	
+
 	#ifndef CMAIL_NO_TLS
 	}
 	while(client->tls_mode == TLS_ONLY && gnutls_record_check_pending(client->tls_session));
 	#endif
-	
+
 	return 0;
 }
-

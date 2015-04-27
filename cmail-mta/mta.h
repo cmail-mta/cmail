@@ -73,6 +73,9 @@ typedef struct /*_MTA_SETTINGS*/ {
 	unsigned mail_retries;
 	unsigned retry_interval;
 	unsigned tls_padding;
+	#ifndef CMAIL_NO_TLS
+	gnutls_certificate_credentials_t tls_credentials;
+	#endif
 } MTA_SETTINGS;
 
 typedef struct /*_CONFIGURATION_AGGREG*/ {
@@ -82,15 +85,6 @@ typedef struct /*_CONFIGURATION_AGGREG*/ {
 	MTA_SETTINGS settings;
 } CONFIGURATION;
 
-typedef enum /*_SMTPCLIENT_STATE*/ {
-	STATE_NEW,
-	STATE_EHLO,
-	STATE_HELO,
-	STATE_IDLE,
-	STATE_RECIPIENTS,
-	STATE_DATA
-} SMTPSTATE;
-
 typedef struct /*_SMTP_REPLY*/ {
 	unsigned code;
 	bool multiline;
@@ -99,7 +93,6 @@ typedef struct /*_SMTP_REPLY*/ {
 } SMTPREPLY;
 
 typedef struct /*_SMTPCLIENT_CONN*/ {
-	SMTPSTATE state;
 	bool extensions_supported;
 	time_t last_action;
 	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];

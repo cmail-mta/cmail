@@ -114,7 +114,7 @@
 		public function get($obj, $write = true) {
 
 			if (!isset($obj["pop_user"]) || empty($obj["pop_user"])) {
-				
+
 				//getall
 				return $this->getAll();
 			}
@@ -127,7 +127,7 @@
 
 
 			$auth = Auth::getInstance($this->db, $this->output);
-			
+
 			if (!$auth->hasDelegatedUser($username) && ($auth->getUser() !== $username)) {
 				$this->output->add("status", "Not allowed.");
 				return false;

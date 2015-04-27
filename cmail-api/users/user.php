@@ -33,7 +33,7 @@
 		public function __construct($c) {
 			$this->c = $c;
 			$this->db = $c->getDB();
-			$this->output = $c->getOutput();	
+			$this->output = $c->getOutput();
 		}
 
 		/**
@@ -101,7 +101,7 @@
 		 */
 		public function get($obj, $write = true) {
 
-			$auth = Auth::getInstance($this->db, $this->output);	
+			$auth = Auth::getInstance($this->db, $this->output);
 
 			if ($auth->hasRight("admin")) {
 				if (!isset($obj["username"])) {
@@ -146,7 +146,7 @@
 		private function getByUser($username, $write = true) {
 
 			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login FROM users WHERE user_name = :user_name";
-		
+
 			$params = array(":user_name" => $username);
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
@@ -356,7 +356,7 @@
 
 			if (is_null($salt)) {
 				$salt = uniqid(mt_rand(), true);
-				
+
 				$hash = $salt . ":" . hash("sha256", $salt . $password);
 				return $hash;
 			} else {
@@ -365,12 +365,12 @@
 		}
 
 		public function addDelegate($obj, $delegated = false) {
-			
+
 			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
 				$this->output->add("status", "User is not set.");
 				return false;
 			}
-			
+
 			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
 				$this->output->add("status", "Delegated user is not set.");
 				return false;
@@ -396,7 +396,7 @@
 				$this->output->add("status", "User is not set.");
 				return false;
 			}
-			
+
 			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
 				$this->output->add("status", "Delegated user is not set.");
 				return false;
@@ -494,8 +494,8 @@
 
 			if (isset($user["user_authdata"]) && !empty($user["user_authdata"]) && $user["user_authdata"] !== "") {
 
-				$user["user_authdata"] = $this->create_password_hash(null, $user["user_authdata"]);	
-				
+				$user["user_authdata"] = $this->create_password_hash(null, $user["user_authdata"]);
+
 			} else {
 				$user["user_authdata"] = null;
 			}
@@ -509,7 +509,7 @@
 			);
 
 			$this->db->beginTransaction();
-			
+
 			$id = $this->db->insert($sql, array($params));
 
 
@@ -554,7 +554,7 @@
 		public function set_password($user) {
 
 			$auth = Auth::getInstance($this->db, $this->output);
-			
+
 			$test = false;
 			if (!isset($user["user_name"]) || empty($user["user_name"])) {
 				$this->output->add("status", "Username is not set.");
@@ -566,7 +566,7 @@
 			} else if ($auth->hasRight("delegate") && $auth->hasDelegatedUser($user["user_name"])) {
 				$test = true;
 			} else if ($auth->getUser() === $user["user_name"]) {
-				$test = true;	
+				$test = true;
 			}
 
 			if (!$test) {
@@ -619,7 +619,7 @@
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
-			
+
 			$sql = "DELETE FROM users WHERE user_name = :username";
 
 			$params = array(":username" => $obj["user_name"]);

@@ -49,7 +49,7 @@ cmail.mail = {
 				if (mail["mail_read"] == 1) {
 					buttonName = "Unread";
 				}
-				
+
 				options.appendChild(gui.createButton(buttonName, self.toggleread, [mail], self));
 				tr.appendChild(options);
 

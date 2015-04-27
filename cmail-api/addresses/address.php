@@ -26,7 +26,7 @@
 		 */
 		public function __construct($c) {
 			$this->c = $c;
-			$this->output = $c->getOutput();	
+			$this->output = $c->getOutput();
 		}
 
 		/**
@@ -210,7 +210,7 @@
 
 		public function getByExpression($expression, $write = true) {
 
-			$auth = $this->c->getAuth();	
+			$auth = $this->c->getAuth();
 			if ($auth->hasRight("delegate")) {
 				$sql = "select * from addresses 
 					WHERE (address_expression LIKE 
@@ -313,13 +313,13 @@
 			);
 
 			if (!isset($address["address_order"]) || $address["address_order"] == "") {
-				
+
 				$sql = "INSERT INTO addresses(address_expression, address_user) VALUES (:address_exp, :username)";
 			} else {
 				$params[":order"] = $address["address_order"];
 				$sql = "INSERT INTO addresses(address_expression, address_order, address_user) VALUES (:address_exp, :order, :username)";
 			}
-			
+
 			$id = $this->c->getDB()->insert($sql, array($params));
 
 			if (is_null($id)) {
@@ -358,7 +358,7 @@
 				$this->output->add("status", "No right to update this to address");
 				return false;
 			}
-			
+
 			$sql = "UPDATE addresses SET address_order = :order, address_user = :username WHERE address_expression = :address_exp";
 
 			$params = array(
@@ -379,14 +379,14 @@
 		}
 
 		public function delete($obj) {
-			
+
 			if (!isset($obj["address_expression"])) {
 				$this->output->add("status", "We need an address expression.");
 				return false;
 			}
 
 			$auth = $this->getAuth();
-			
+
 			$test = false;
 			if ($auth->hasRight("admin")) {
 				$test = true;
@@ -398,7 +398,7 @@
 				$this->output->add("status", "No access.");
 				return false;
 			}
-			
+
 			$sql = "DELETE FROM addresses WHERE address_expression = :expression";
 
 			$params = array(
@@ -455,7 +455,7 @@
 				$this->output->add("status", "Both addresses needs an order number");
 				return false;
 			}
-	
+
 			$auth = $this->c->getAuth();
 			$test = false;
 			if ($auth->hasRight("admin")) {
@@ -490,7 +490,7 @@
 
 
 			$this->output->add("status", "ok");
-			return true;	
+			return true;
 		}
 
 		/**
@@ -602,7 +602,7 @@
 								$finished = true;
 								$steps[] = "invalid routing, loop in aliases (user " . $user . ")";
 								break;
-							}	
+							}
 						}
 
 						if (!$finished) {

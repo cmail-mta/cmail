@@ -51,10 +51,10 @@ int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, 
 	}
 
 	sha256_init(&hash_context);
-	
+
 	sha256_update(&hash_context, salt_bytes, (uint8_t*)salt);
 	sha256_update(&hash_context, pass_bytes, (uint8_t*)pass);
-	
+
 	sha256_digest(&hash_context, SHA256_DIGEST_SIZE, digest);
 	base16_encode_update((uint8_t*)hash, SHA256_DIGEST_SIZE, digest);
 	return BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE);
@@ -66,7 +66,7 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	char* user_salt;
 	char* stored_hash;
 	char digest_b16[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE)+1];
-	
+
 	if(!user || !password){
 		return -1;
 	}
@@ -114,10 +114,10 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 			logprintf(log, LOG_INFO, "Unhandled return value from auth data query: %d (%s)\n", status, sqlite3_errmsg(database->conn));
 			break;
 	}
-	
+
 	sqlite3_reset(database->query_authdata);
 	sqlite3_clear_bindings(database->query_authdata);
-	
+
 	return rv;
 }
 #endif

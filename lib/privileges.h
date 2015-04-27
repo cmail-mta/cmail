@@ -6,6 +6,6 @@
 #include <grp.h>
 
 typedef struct /*_PRIVILEGE_COMPOSITE*/ {
-	int uid; 
+	int uid;
 	int gid;
 } USER_PRIVS;

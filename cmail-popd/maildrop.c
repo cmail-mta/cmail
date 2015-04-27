@@ -61,7 +61,7 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 
 int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 	int status;
-	
+
 	//atomically modify maildrop lock, bail out if it fails	
 	if(sqlite3_bind_int(database->update_lock, 1, lock?1:0) != SQLITE_OK
 			|| sqlite3_bind_text(database->update_lock, 2, user_name, -1, SQLITE_STATIC) !=SQLITE_OK
@@ -88,7 +88,7 @@ int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 
 	sqlite3_reset(database->update_lock);
 	sqlite3_clear_bindings(database->update_lock);
-	
+
 	return status;
 }
 
@@ -175,7 +175,7 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 
 	sqlite3_reset(database->query_userdatabase);
 	sqlite3_clear_bindings(database->query_userdatabase);
-	
+
 	free(list_user);
 	free(fetch_user);
 	free(delete_user);
@@ -197,7 +197,7 @@ int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 		logprintf(log, LOG_WARNING, "Failed to read master maildrop for user %s\n", user_name);
 		status=-1;
 	}
-	
+
 	switch(maildrop_user_attach(log, database, maildrop, user_name)){
 		case 1:
 			logprintf(log, LOG_INFO, "User %s does not have a user database\n", user_name);
@@ -264,7 +264,7 @@ int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop){
 			}
 		}
 	}
-	
+
 	return status;
 }
 
@@ -284,7 +284,7 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 			logprintf(log, LOG_WARNING, "Failed to unlock maildrop for user %s\n", user_name);
 		}
 	}
-	
+
 	//free user statements
 	if(maildrop->list_user){
 		sqlite3_finalize(maildrop->list_user);
@@ -320,6 +320,6 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	}
 
 	*maildrop=empty_maildrop;
-	
+
 	return status;
 }

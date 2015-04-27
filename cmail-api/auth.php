@@ -114,7 +114,7 @@ class Auth {
 		if (!$this->isAuthorized()) {
 			return array();
 		}
-		
+
 		$sql = "SELECT api_delegate FROM api_user_delegates WHERE api_user = :api_user";
 
 		$params = array(
@@ -146,7 +146,7 @@ class Auth {
 		if (!$this->isAuthorized()) {
 			return array();
 		}
-		
+
 		$sql = "SELECT api_expression FROM api_address_delegates WHERE api_user = :api_user";
 
 		$params = array(
@@ -191,18 +191,18 @@ class Auth {
 	 */
 	function auth($auth) {
 
-		$this->output->add("session", isset($_SERVER['auth']));	
+		$this->output->add("session", isset($_SERVER['auth']));
 
 		if (isset($auth["logout"])) {
 			return false;
 		}
-		
+
 		if ($this->authorized) {
-			
+
 			$this->output->add("rights", $this->rights);
 			return true;
 		}
-		
+
 		$auth = array();
 		if (!isset($_SERVER["PHP_AUTH_USER"]) || empty($_SERVER["PHP_AUTH_USER"])) {
 			return false;
@@ -231,7 +231,7 @@ class Auth {
 
 		if (count($user) < 1) {
 			$this->output->add("status", "Username not found.");
-			return false;	
+			return false;
 		}
 
 		$user = $user[0];

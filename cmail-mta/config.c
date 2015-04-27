@@ -42,9 +42,16 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 			logprintf(config->log, LOG_ERROR, "Failed to open %s as master databases\n", params);
 
 	}
-	
+
 	return -1;
 }
+
+#ifndef CMAIL_NO_TLS
+int config_trustfile(CONFIGURATION* config, char* directive, char* params){
+	gnutls_certificate_set_x509_trust_file(config->settings.tls_credentials, params, GNUTLS_X509_FMT_PEM);
+	return 0;
+}
+#endif
 
 int config_logger(CONFIGURATION* config, char* directive, char* params){
 	FILE* log_file;
@@ -103,7 +110,7 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 				#else
 				logprintf(config->log, LOG_DEBUG, "Adding port %d in position %d\n", new_port.port, num_ports);
 				#endif
-				
+
 				config->settings.port_list=realloc(config->settings.port_list, (num_ports+1)*sizeof(REMOTE_PORT));
 				if(!config->settings.port_list){
 					logprintf(config->log, LOG_ERROR, "Failed to allocate memory for port list\n");
@@ -190,10 +197,16 @@ int config_line(void* config_data, char* line){
 		return 0;
 	}
 
-	else if(!strncmp(line, "tlspadding", 10)){
+	else if(!strncmp(line, "tls_padding", 11)){
 		config->settings.tls_padding=strtoul(line+parameter, NULL, 10);
 		return 0;
 	}
+
+	#ifndef CMAIL_NO_TLS
+	else if(!strncmp(line, "tls_trustfile", 13)){
+		return config_trustfile(config, line, line+parameter);
+	}
+	#endif
 
 	else if(!strncmp(line, "ratelimit", 9)){
 		config->settings.rate_limit=strtoul(line+parameter, NULL, 10);
@@ -206,7 +219,7 @@ int config_line(void* config_data, char* line){
 
 void config_free(CONFIGURATION* config){
 	database_free(config->log, &(config->database));
-	
+
 	if(config->settings.helo_announce){
 		free(config->settings.helo_announce);
 	}
@@ -214,6 +227,10 @@ void config_free(CONFIGURATION* config){
 	if(config->settings.port_list){
 		free(config->settings.port_list);
 	}
+
+	#ifndef CMAIL_NO_TLS
+	gnutls_certificate_free_credentials(config->settings.tls_credentials);
+	#endif
 
 	if(config->log.stream!=stderr){
 		fclose(config->log.stream);

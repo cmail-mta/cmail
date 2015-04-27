@@ -63,7 +63,7 @@ cmail.user = {
 			var options = gui.create("td");
 			options.appendChild(gui.createButton("edit", self.show_form, [user.user_name], self));
 			options.appendChild(gui.createButton("delete", self.delete, [user.user_name], self));
-			tr.appendChild(options);	
+			tr.appendChild(options);
 			userlist.appendChild(tr);
 
 			list[user.user_name] = user.user_name;

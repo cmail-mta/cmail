@@ -8,7 +8,7 @@
 		TLS_NEGOTIATE,		//Listener: STARTTLS enabled, Client: Handshake in progress
 		TLS_NONE		//Listener: No TLS, Client: No TLS session active
 	} TLSMODE;
-	
+
 	char* tls_modestring(TLSMODE mode){
 		switch(mode){
 			case TLS_NONE:

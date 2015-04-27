@@ -105,7 +105,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		}
 		return 0;
 	}
-	
+
 	logprintf(config->log, LOG_ERROR, "Failed to store listen socket\n");
 	return -1;
 }
@@ -154,7 +154,7 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 			logprintf(config->log, LOG_ERROR, "Failed to open %s as master databases\n", params);
 
 	}
-	
+
 	return -1;
 }
 
@@ -222,7 +222,7 @@ void config_free(CONFIGURATION* config){
 
 	for(i=0;i<config->listeners.count;i++){
 		listener_data=(LISTENER*)config->listeners.conns[i].aux_data;
-		
+
 		#ifndef CMAIL_NO_TLS
 		if(config->listeners.conns[i].tls_mode!=TLS_NONE){
 			gnutls_certificate_free_credentials(listener_data->tls_cert);

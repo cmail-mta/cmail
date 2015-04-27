@@ -130,12 +130,12 @@
 		}
 
 		public function addUser($obj, $delegated = false) {
-			
+
 			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
 				$this->output->add("status", "User is not set.");
 				return false;
 			}
-			
+
 			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
 				$this->output->add("status", "Delegated user is not set.");
 				return false;
@@ -161,7 +161,7 @@
 				$this->output->add("status", "User is not set.");
 				return false;
 			}
-			
+
 			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
 				$this->output->add("status", "Delegated user is not set.");
 				return false;

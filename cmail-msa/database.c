@@ -14,7 +14,7 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 		}
 	}
 
-	//create/reuse entry in user storage structure	
+	//create/reuse entry in user storage structure
 	for(slot=0;database->mail_storage.users[slot];slot++){
 		if(!database->mail_storage.users[slot]->file_name){
 			break;
@@ -102,7 +102,7 @@ int database_detach(LOGGER log, DATABASE* database, sqlite3_stmt* detach, USER_D
 		.file_name = NULL,
 		.conn_handle = NULL
 	};
-	
+
 	if(detach){
 		if(sqlite3_bind_text(detach, 1, db->conn_handle, -1, SQLITE_STATIC)==SQLITE_OK){
 			status=sqlite3_step(detach);
@@ -129,7 +129,7 @@ int database_detach(LOGGER log, DATABASE* database, sqlite3_stmt* detach, USER_D
 		sqlite3_reset(detach);
 		sqlite3_clear_bindings(detach);
 	}
-	
+
 	sqlite3_finalize(db->mailbox);
 	free(db->file_name);
 	free(db->conn_handle);
@@ -159,15 +159,15 @@ USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
 int database_refresh(LOGGER log, DATABASE* database){
 	int status, rv=0;
 	unsigned i;
-	
+
 	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
 	char* QUERY_DETACH_DB="DETACH DATABASE ?;";
 	char* QUERY_USER_DATABASES="SELECT MIN(user_name), user_database FROM main.users WHERE user_database NOT NULL GROUP BY user_database;";
-	
+
 	sqlite3_stmt* attach_db=database_prepare(log, database->conn, QUERY_ATTACH_DB);
 	sqlite3_stmt* detach_db=database_prepare(log, database->conn, QUERY_DETACH_DB);
 	sqlite3_stmt* select_dbs=database_prepare(log, database->conn, QUERY_USER_DATABASES);
-	
+
 	if(!attach_db||!detach_db||!select_dbs){
 		logprintf(log, LOG_ERROR, "Failed to prepare user storage management statements\n");
 		return -1;
@@ -178,7 +178,7 @@ int database_refresh(LOGGER log, DATABASE* database){
 			database->mail_storage.users[i]->active=false;
 		}
 	}
-	
+
 	do{
 		//fetch user database
 		status=sqlite3_step(select_dbs);
@@ -236,7 +236,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata FROM main.users WHERE user_name = ?;";
-	
+
 	//check the database schema version
 	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
 		logprintf(log, LOG_ERROR, "The database schema is at another version than required for this build\n");
@@ -295,7 +295,7 @@ void database_free(LOGGER log, DATABASE* database){
 			}
 			free(database->mail_storage.users);
 		}
-		
+
 		sqlite3_close(database->conn);
 		database->conn=NULL;
 	}

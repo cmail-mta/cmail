@@ -23,12 +23,12 @@ cmail.delegates = {
 				var tr = gui.create("tr");
 				tr.appendChild(gui.createColumn(user.api_user));
 				tr.appendChild(gui.createColumn(user.api_delegate));
-				
+
 				var options = gui.create("td");
 				var deleteButton = gui.createButton("delete", self.delete_user, [user], self);
 				deleteButton.classList.add("admin");
 				options.appendChild(deleteButton);
-				
+
 				tr.appendChild(options);
 				userslist.appendChild(tr);
 			});
@@ -37,17 +37,17 @@ cmail.delegates = {
 				var tr = gui.create("tr");
 				tr.appendChild(gui.createColumn(address.api_user));
 				tr.appendChild(gui.createColumn(address.api_expression));
-				
+
 				var options = gui.create("td");
 				var deleteButton = gui.createButton("delete", self.delete_address, [address], self);
 				deleteButton.classList.add("admin");
 				options.appendChild(deleteButton);
-				
+
 				tr.appendChild(options);
 				addresseslist.appendChild(tr);
 			});
 		});
-	
+
 	},
 	add_user: function() {
 		var self = this;

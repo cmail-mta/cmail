@@ -1,7 +1,7 @@
 int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
-	
+
 	if(!strncasecmp(client_data->recv_buffer, "capa", 4)){
 		return pop_capa(log, client, database);
 	}
@@ -94,7 +94,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	
+
 	if(!strncasecmp(client_data->recv_buffer, "capa", 4)){
 		return pop_capa(log, client, database);
 	}
@@ -114,7 +114,7 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 	if(!strncasecmp(client_data->recv_buffer, "list", 4)){
 		return pop_list(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
 	}
-	
+
 	if(!strncasecmp(client_data->recv_buffer, "retr", 4)){
 		return pop_retr(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
 	}

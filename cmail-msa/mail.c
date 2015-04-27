@@ -12,7 +12,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	snprintf(mail->message_id, CMAIL_MESSAGEID_MAX, "%X%X.%X-%s", (unsigned)time_spec.tv_sec, (unsigned)time_spec.tv_nsec, rand(), mail->submitter);
 	logprintf(log, LOG_INFO, "Generated message ID %s\n", mail->message_id);
 
-	//iterate over recipients	
+	//iterate over recipients
 	for(i=0;mail->forward_paths[i];i++){
 		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->resolved_user?(mail->forward_paths[i]->resolved_user):"outbound");
 		if(mail->forward_paths[i]->resolved_user){
@@ -46,7 +46,7 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
 	logprintf(log, LOG_INFO, "Outbound router for connected user %s is %s (%s)\n", user, route.router, route.argument?route.argument:"none");
 
 	if(!strcmp(route.router, "drop")){
-		//done.	
+		//done.
 	}
 	else if(!strcmp(route.router, "handoff")){
 		if(route.argument){
@@ -100,7 +100,7 @@ int mail_line(LOGGER log, MAIL* mail, char* line){
 
 int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 	char buffer[(SMTP_HEADER_LINE_MAX*4)+1];
-	
+
 	unsigned mark=0, i, off=0;
 	int bytes=0;
 	time_t unix_time=time(NULL);
@@ -136,14 +136,14 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 			mail_line(log, mail, buffer+off);
 			//un-terminate
 			buffer[mark]='\t';
-		
+
 			off=mark;
 			if(buffer[i]==0){
 				break;
-			}	
+			}
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -192,7 +192,7 @@ int mail_reset(MAIL* mail){
 
 int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path){
 	int status;
-	
+
 	if(sqlite3_bind_text(stmt, 1, current_path->resolved_user, -1, SQLITE_STATIC)!=SQLITE_OK
 		|| sqlite3_bind_text(stmt, 2, mail->message_id, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_text(stmt, 3, current_path->path, -1, SQLITE_STATIC)!=SQLITE_OK
@@ -205,7 +205,7 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 		sqlite3_clear_bindings(stmt);
 		return -1;
 	}
-	
+
 	status=sqlite3_step(stmt);
 	switch(status){
 		case SQLITE_DONE:
@@ -215,7 +215,7 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
 			status=1;
 	}
-	
+
 	sqlite3_reset(stmt);
 	sqlite3_clear_bindings(stmt);
 	return status;
@@ -244,7 +244,7 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
 			status=1;
 	}
-	
+
 	sqlite3_reset(stmt);
 	sqlite3_clear_bindings(stmt);
 	return status;

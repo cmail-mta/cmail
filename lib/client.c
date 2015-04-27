@@ -11,7 +11,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 	}
 
 	logprintf(log, LOG_DEBUG, "Sending %d raw bytes\n", bytes);
-	
+
 	do{
 		bytes_left=bytes-bytes_sent;
 		if(bytes_left>MAX_SEND_CHUNK){
@@ -60,7 +60,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 		}
 	}
 	while(bytes_sent<bytes);
-	
+
 	logprintf(log, LOG_ALL_IO, "<< %.*s", bytes, data);
 	logprintf(log, LOG_DEBUG, "Sent %d bytes of %d\n", bytes_sent, bytes);
 
@@ -78,7 +78,7 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	va_copy(copy, args);
 	//check if the buffer was long enough, if not, allocate a new one
 	bytes=vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
-	
+
 	if(bytes>=STATIC_SEND_BUFFER_LENGTH){
 		dynamic_send_buffer=calloc(bytes+2, sizeof(char));
 		if(!dynamic_send_buffer){

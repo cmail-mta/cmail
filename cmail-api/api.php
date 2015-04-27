@@ -47,7 +47,7 @@ function main($module_name) {
 	global $modulelist, $dbpath;
 	// init
 	if(!session_start()) {
-		die();	
+		die();
 	}
 	$output = Output::getInstance();
 	$db = new DB($dbpath, $output);
@@ -103,7 +103,7 @@ function main($module_name) {
 				$modules[] = $name;
 			}
 
-			$output->add("modules", $modules); 
+			$output->add("modules", $modules);
 		}
 	} else {
 		$module = getModuleInstance($module_name, $c);

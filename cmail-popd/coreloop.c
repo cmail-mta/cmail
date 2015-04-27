@@ -52,7 +52,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 				client_process(log, &(clients.conns[i]), database);
 			}
 		}
-		
+
 		//check listen fds
 		for(i=0;i<listeners.count;i++){
 			if(listeners.conns[i].fd>0 && FD_ISSET(listeners.conns[i].fd, &readfds)){

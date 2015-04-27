@@ -10,4 +10,3 @@ BEGIN TRANSACTION;
 	-- database changes --
 	ALTER TABLE mailbox ADD COLUMN mail_ident TEXT;
 COMMIT;
-

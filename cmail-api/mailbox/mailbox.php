@@ -56,7 +56,6 @@
 		}
 
 		public function isActive($username) {
-			
 			return count($this->get(array("mail_user" => $username), false)) > 0;
 		}
 
@@ -99,7 +98,7 @@
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 			if (!is_null($this->userdb)) {
 				$out2 = $this->userdb->query($sql, params, DB::F_ARRAY);
-				
+
 				foreach($out2 as $mail) {
 					$mail["mail_sourcedb"] = "user";
 					$out[] = $mail;
@@ -113,7 +112,7 @@
 			$mails = array();
 			foreach($out as $mail) {
 				$mailBody = $mail["mail_data"];
-				
+
 				$parser = new MailParser($mailBody);
 				$mail["mail_subject"] = $parser->getHeader("subject");
 				$mail["mail_from"] = $parser->getHeader("from");
@@ -146,7 +145,7 @@
 			} else {
 				$source = $obj["mail_sourcedb"];
 			}
-			
+
 			$sql = "DELETE FROM mailbox WHERE mail_id = :mail_id";
 
 			$params = array(
@@ -235,12 +234,12 @@
 						return false;
 					 } else {
 						$source = "master";
-						$this->db->insert($sql_read, [$params]);	
+						$this->db->insert($sql_read, [$params]);
 					 }
 				} else {
 
 					$source = "user";
-					$this->userdb->insert($sql_read, [$params]);	
+					$this->userdb->insert($sql_read, [$params]);
 				}
 
 			} else {
@@ -251,7 +250,7 @@
 					return false;
 				}
 				$source = "master";
-				$this->db->insert($sql_read, [$params]);	
+				$this->db->insert($sql_read, [$params]);
 			}
 
 			$out = $out[0];
