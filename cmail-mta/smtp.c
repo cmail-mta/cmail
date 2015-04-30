@@ -109,9 +109,6 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_stateme
 	unsigned delivered_mails=0;
 	MAIL current_mail = {
 		.ids = NULL,
-		.remote = NULL,
-		.mailhost = NULL,
-		.recipients = NULL,
 		.length = 0,
 		.data = NULL
 	};

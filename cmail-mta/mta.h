@@ -36,9 +36,6 @@ typedef enum /*_DELIVERY_MODE*/ {
 
 typedef struct /*_OUTBOUND_MAIL*/ {
 	int* ids;
-	char* remote;
-	char* mailhost;
-	char** recipients;
 	int length;
 	char* data;
 } MAIL;

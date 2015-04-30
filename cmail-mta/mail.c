@@ -1,5 +1,44 @@
 int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt){
-	return -1;
+	int entries=1;
+	unsigned i;
+	char* id_list=(char*)sqlite3_column_text(stmt, 0);
+	
+	for(i=0;i<strlen(id_list);i++){
+		if(id_list[i]==','){
+			entries++;
+		}
+	}
+
+	logprintf(log, LOG_DEBUG, "%d id list entries in %s\n", entries, id_list);
+
+	mail->ids=calloc(entries+1, sizeof(int));
+	if(!mail->ids){
+		logprintf(log, LOG_ERROR, "Failed to allocate memory for ID list\n");
+		return -1;
+	}
+	mail->ids[entries]=-1;
+
+	i=0;
+	do{
+
+		mail->ids[i]=strtoul(id_list, &id_list, 10);
+		logprintf(log, LOG_DEBUG, "Updated entry %d to id %d, nextptr is at %s\n", i, mail->ids[i], id_list);
+		i++;
+		id_list++;
+	}
+	while(i<entries);
+
+	mail->length=sqlite3_column_int(stmt, 1);
+	logprintf(log, LOG_DEBUG, "%d bytes of mail data\n", mail->length);
+
+	//read maildata
+	mail->data=common_strdup((char*)sqlite3_column_text(stmt, 2));
+	if(!mail->data){
+		logprintf(log, LOG_ERROR, "Failed to allocate memory for mail data\n");
+		return -1;
+	}
+
+	return 0;
 }
 
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail){
@@ -7,12 +46,8 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail){
 }
 
 int mail_free(MAIL* mail){
-	unsigned i;
 	MAIL empty_mail = {
 		.ids = NULL,
-		.remote = NULL,
-		.mailhost = NULL,
-		.recipients = NULL,
 		.length = 0,
 		.data = NULL
 	};
@@ -21,19 +56,8 @@ int mail_free(MAIL* mail){
 		free(mail->ids);
 	}
 
-	if(mail->remote){
-		free(mail->remote);
-	}
-
-	if(mail->mailhost){
-		free(mail->mailhost);
-	}
-
-	if(mail->recipients){
-		for(i=0;mail->recipients[i];i++){
-			free(mail->recipients[i]);
-		}
-		free(mail->recipients);
+	if(mail->data){
+		free(mail->data);
 	}
 
 	*mail=empty_mail;
