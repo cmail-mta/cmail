@@ -24,6 +24,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 	protocol_reply_reset(log, &(conn_data->reply));
 
 	do{
+		//FIXME have this dynamically updated to time left in the read timeout
 		tv.tv_sec=CMAIL_SELECT_INTERVAL;
 		tv.tv_usec=0;
 
