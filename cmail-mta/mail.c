@@ -9,30 +9,35 @@ int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt){
 		}
 	}
 
-	logprintf(log, LOG_DEBUG, "%d id list entries in %s\n", entries, id_list);
+	mail->envelopefrom=common_strdup((char*)sqlite3_column_text(stmt, 1));
+	if(!mail->envelopefrom){
+		logprintf(log, LOG_ERROR, "Failed to allocate memory for envelope sender\n");
+		return -1;
+	}
 
-	mail->ids=calloc(entries+1, sizeof(int));
-	if(!mail->ids){
+	logprintf(log, LOG_DEBUG, "%d id list entries in %s\n", entries, id_list);
+	mail->recipients=entries;
+	mail->rcpt=calloc(entries, sizeof(MAIL_RCPT));
+	if(!mail->rcpt){
 		logprintf(log, LOG_ERROR, "Failed to allocate memory for ID list\n");
 		return -1;
 	}
-	mail->ids[entries]=-1;
 
 	i=0;
 	do{
-
-		mail->ids[i]=strtoul(id_list, &id_list, 10);
-		logprintf(log, LOG_DEBUG, "Updated entry %d to id %d, nextptr is at %s\n", i, mail->ids[i], id_list);
+		mail->rcpt[i].dbid=strtoul(id_list, &id_list, 10);
+		mail->rcpt[i].status=RCPT_READY;
+		logprintf(log, LOG_DEBUG, "Updated entry %d to id %d\n", i, mail->rcpt[i].dbid);
 		i++;
-		id_list++;
+		id_list++; //skip separating comma
 	}
 	while(i<entries);
 
-	mail->length=sqlite3_column_int(stmt, 1);
+	mail->length=sqlite3_column_int(stmt, 2);
 	logprintf(log, LOG_DEBUG, "%d bytes of mail data\n", mail->length);
 
 	//read maildata
-	mail->data=common_strdup((char*)sqlite3_column_text(stmt, 2));
+	mail->data=common_strdup((char*)sqlite3_column_text(stmt, 3));
 	if(!mail->data){
 		logprintf(log, LOG_ERROR, "Failed to allocate memory for mail data\n");
 		return -1;
@@ -41,19 +46,66 @@ int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt){
 	return 0;
 }
 
-int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail){
-	return -1;
+int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
+	unsigned i;
+	
+	if(smtp_initiate(log, conn, mail)<0){
+		logprintf(log, LOG_WARNING, "Failed to initiate mail transaction\n");
+		//TODO mark mails not sent
+		return -1;
+	}
+
+	for(i=0;i<mail->recipients;i++){
+		sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid);
+		switch(sqlite3_step(database->query_rcpt)){
+			case SQLITE_DONE:
+				logprintf(log, LOG_WARNING, "dbid %d does not exist anymore\n", mail->rcpt[i].dbid);
+				mail->rcpt[i].status=RCPT_FAIL_PERMANENT;
+				break;
+			case SQLITE_ROW:
+				switch(smtp_rcpt(log, conn, (char*)sqlite3_column_text(database->query_rcpt, 0))){
+					case -1:
+						logprintf(log, LOG_INFO, "Recipient %d: %s failed permanently\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0));
+						mail->rcpt[i].status=RCPT_FAIL_PERMANENT;
+						break;
+					case 0:
+						logprintf(log, LOG_INFO, "Recipient %d: %s accepted\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0));
+						mail->rcpt[i].status=RCPT_OK;
+						break;
+					case 1:
+						logprintf(log, LOG_INFO, "Recipient %d: %s failed temporarily\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0));
+						mail->rcpt[i].status=RCPT_FAIL_TEMPORARY;
+						break;
+				}
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Mail recipient query failed, database status: %s\n", sqlite3_errmsg(database->conn));
+				//FIXME return -1;
+				break;
+		}
+
+		sqlite3_reset(database->query_rcpt);
+		sqlite3_clear_bindings(database->query_rcpt);
+	}
+
+	return 0;
 }
 
 int mail_free(MAIL* mail){
 	MAIL empty_mail = {
-		.ids = NULL,
+		.recipients = 0,
+		.rcpt = NULL,
+		.envelopefrom = NULL,
 		.length = 0,
 		.data = NULL
 	};
 
-	if(mail->ids){
-		free(mail->ids);
+	if(mail->rcpt){
+		free(mail->rcpt);
+	}
+
+	if(mail->envelopefrom){
+		free(mail->envelopefrom);
 	}
 
 	if(mail->data){

@@ -9,7 +9,7 @@
 #include "../cmail-msa/smtplimits.h"
 
 #define VERSION "cmail-mta 0.1"
-#define CMAIL_MTA_INTERVAL 10
+#define CMAIL_HAVE_DATABASE_TYPE
 
 #include "../lib/logger.h"
 #include "../lib/signal.h"
@@ -34,8 +34,22 @@ typedef enum /*_DELIVERY_MODE*/ {
 	DELIVER_HANDOFF
 } DELIVERY_MODE;
 
+typedef enum /*_MAIL_STATUS*/ {
+	RCPT_READY,
+	RCPT_OK,
+	RCPT_FAIL_TEMPORARY,
+	RCPT_FAIL_PERMANENT
+} RCPTSTATUS;
+
+typedef struct /*_RCPT_ENTRY*/ {
+	int dbid;
+	RCPTSTATUS status;
+} MAIL_RCPT;
+
 typedef struct /*_OUTBOUND_MAIL*/ {
-	int* ids;
+	int recipients;
+	MAIL_RCPT* rcpt;
+	char* envelopefrom;
 	int length;
 	char* data;
 } MAIL;
@@ -45,6 +59,7 @@ typedef struct /*_DATABASE_CONN*/ {
 	sqlite3_stmt* query_outbound_hosts;
 	sqlite3_stmt* query_remote;
 	sqlite3_stmt* query_domain;
+	sqlite3_stmt* query_rcpt;
 } DATABASE;
 
 typedef struct /*_ARGUMENT_COLLECTION*/ {
@@ -97,12 +112,16 @@ typedef struct /*_SMTPCLIENT_CONN*/ {
 	SMTPREPLY reply;
 } CONNDATA;
 
+//Prototypes where needed
+int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt);
+int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn);
+int mail_free(MAIL* mail);
 
 #include "args.c"
 #include "database.c"
 #include "config.c"
-#include "mail.c"
 #include "connection.c"
 #include "protocol.c"
 #include "smtp.c"
 #include "logic.c"
+#include "mail.c"
