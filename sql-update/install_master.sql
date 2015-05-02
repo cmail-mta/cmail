@@ -89,6 +89,30 @@ BEGIN TRANSACTION;
 						DEFAULT ( 0 )
 	);
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '4');
+	CREATE TABLE api_access (
+		api_user 		TEXT	NOT NULL
+						REFERENCES users ( user_name ) 	ON DELETE CASCADE
+										ON UPDATE CASCADE,
+		api_right		TEXT	NOT NULL,
+		CONSTRAINT api_user_right UNIQUE ( api_user, api_right ) ON CONFLICT FAIL
+	);
 
+	CREATE TABLE api_address_delegates (
+		api_user		TEXT	NOT NULL
+						REFERENCES users ( user_name ) 	ON DELETE CASCADE
+										ON UPDATE CASCADE,
+		api_expression		TEXT	NOT NULL,
+		CONSTRAINT api_user_expression UNIQUE ( api_user, api_expression ) ON CONFLICT FAIL
+	);
+
+	CREATE TABLE api_user_delegates (
+		api_user		TEXT	NOT NULL
+						REFERENCES users ( user_name ) 	ON DELETE CASCADE
+										ON UPDATE CASCADE,
+		api_delegate		TEXT	NOT NULL
+						REFERENCES users ( user_name ) 	ON DELETE CASCADE
+										ON UPDATE CASCADE,
+		CONSTRAINT api_user_delegate UNIQUE ( api_user, api_delegate ) ON CONFLICT FAIL
+	);
+INSERT INTO meta (key, value) VALUES ('schema_version', '5');
 COMMIT;
