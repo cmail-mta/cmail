@@ -88,7 +88,28 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 		sqlite3_clear_bindings(database->query_rcpt);
 	}
 
-	return 0;
+	switch(smtp_data(log, conn, mail->data)){
+		case -1:
+			//set all recipients to permanent fail
+			logprintf(log, LOG_WARNING, "Mail rejected\n");
+			for(i=0;i<mail->recipients;i++){
+				mail->rcpt[i].status=RCPT_FAIL_PERMANENT;
+			}
+			return -1;
+		case 1:
+			//set all recipients to temp fail
+			for(i=0;i<mail->recipients;i++){
+				mail->rcpt[i].status=RCPT_FAIL_TEMPORARY;
+			}
+			logprintf(log, LOG_WARNING, "Mail not accepted, deferring\n");
+			return -1;
+		case 0:
+			logprintf(log, LOG_INFO, "Mail accepted\n");
+			smtp_rset(log, conn);
+			return 0;
+	}
+
+	return -1;
 }
 
 int mail_free(MAIL* mail){

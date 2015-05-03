@@ -83,7 +83,7 @@ int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){
 
 	if(protocol_read(log, conn, SMTP_RCPT_TIMEOUT)<0){
 		logprintf(log, LOG_ERROR, "Failed to read response to recipient\n");
-		return -1;
+		return 1;
 	}
 
 	if(conn_data->reply.code==250){
@@ -92,11 +92,73 @@ int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){
 
 	logprintf(log, LOG_WARNING, "Recipient response code %d\n", conn_data->reply.code);
 
-	if(conn_data->reply.code >= 400 && conn_data->reply.code <= 500){
+	if(conn_data->reply.code >= 400 && conn_data->reply.code <= 499){
 		return 1;
 	}
 
 	return -1;
+}
+
+int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	char* mail_bytestuff;
+	
+	//Calling contract: retn 0 -> accepted, 1 -> fail temp, -1 -> fail perm
+	client_send(log, conn, "DATA\r\n");
+
+	if(protocol_expect(log, conn, SMTP_DATA_TIMEOUT, 354)){
+		//FIXME might wanna test for other responses here
+		logprintf(log, LOG_WARNING, "Data initiation failed, response was %d\n", conn_data->reply.code);
+		return -1;
+	}
+	
+	if(mail_data[0]=='.'){
+		client_send(log, conn, ".");
+	}
+	do{
+		mail_bytestuff=strstr(mail_data, "\r\n.");
+		if(mail_bytestuff){
+			client_send_raw(log, conn, mail_data, mail_bytestuff-mail_data);
+			client_send(log, conn, "\r\n..");
+			mail_data=mail_bytestuff+3;
+		}
+		else{
+			//logprintf(log, LOG_DEBUG, "Sending %d bytes message data\n", strlen(mail_data));
+			client_send_raw(log, conn, mail_data, strlen(mail_data));
+		}
+	}
+	while(mail_bytestuff);
+	
+	client_send(log, conn, "\r\n.\r\n");
+	
+	if(protocol_read(log, conn, SMTP_DATA_TERMINATION_TIMEOUT)<0){
+		logprintf(log, LOG_ERROR, "Failed to read data terminator response\n");
+		return 1;
+	}
+
+	if(conn_data->reply.code==250){
+		logprintf(log, LOG_INFO, "Mail accepted\n");
+		return 0;
+	}
+
+	logprintf(log, LOG_WARNING, "Data terminator response code %d\n", conn_data->reply.code);
+
+	if(conn_data->reply.code >= 400 && conn_data->reply.code <= 499){
+		return 1;
+	}
+
+	return -1;
+}
+
+int smtp_rset(LOGGER log, CONNECTION* conn){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	client_send(log, conn, "RSET\r\n");
+
+	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){ //FIXME the rfc does not define a timeout for this
+		logprintf(log, LOG_WARNING, "Could not reset connection, response was %d\n", conn_data->reply.code);
+		return -1;
+	}
+	return 0;
 }
 
 int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
