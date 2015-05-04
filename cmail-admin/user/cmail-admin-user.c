@@ -4,7 +4,7 @@
 #include <sqlite3.h>
 #include <time.h>
 
-#include "cmail-admin-user.h"
+#include "../cmail-admin.h"
 
 // logger support
 #include "../../lib/logger.h"
