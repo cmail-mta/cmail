@@ -156,7 +156,16 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 					conn_data->reply.multiline=(conn_data->reply.multiline|current_multiline);
 
 					//copy message into reply structure
-					//TODO
+					//this allocates 4 bytes too much, but meh
+					if(conn_data->reply.buffer_length<=strlen(conn_data->recv_buffer)){
+						conn_data->reply.response_text=realloc(conn_data->reply.response_text, (strlen(conn_data->recv_buffer)+1)*sizeof(char));
+						if(!conn_data->reply.response_text){
+							logprintf(log, LOG_ERROR, "Failed to allocate memory for response message\n");
+							return -1;
+						}
+					}
+					//FIXME this should probably concatenate on multi-line responses
+					strncpy(conn_data->reply.response_text, conn_data->recv_buffer+4, strlen(conn_data->recv_buffer+4));
 
 					//logprintf(log, LOG_DEBUG, "Before copyback\n");
 					//log_dump_buffer(log, LOG_ALL_IO, conn_data->recv_buffer, conn_data->recv_offset+bytes);

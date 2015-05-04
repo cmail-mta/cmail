@@ -49,14 +49,13 @@ int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt){
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 	unsigned i;
 	
-	if(smtp_initiate(log, conn, mail)<0){
+	if(smtp_initiate(log, conn, mail)){
 		logprintf(log, LOG_WARNING, "Failed to initiate mail transaction\n");
-		//TODO mark mails not sent
 		return -1;
 	}
 
 	for(i=0;i<mail->recipients;i++){
-		sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid);
+		sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid); //FIXME error check this
 		switch(sqlite3_step(database->query_rcpt)){
 			case SQLITE_DONE:
 				logprintf(log, LOG_WARNING, "dbid %d does not exist anymore\n", mail->rcpt[i].dbid);

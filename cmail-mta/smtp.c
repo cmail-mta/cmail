@@ -219,9 +219,9 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	return 0;
 }
 
-int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_statement, CONNECTION* conn){
+int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement, CONNECTION* conn){
 	int status;
-	unsigned delivered_mails=0;
+	unsigned transactions=0, mails_delivered=0, i;
 	MAIL current_mail = {
 		.recipients = 0,
 		.rcpt = NULL,
@@ -231,31 +231,59 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_stateme
 	};
 
 	do{
-		status=sqlite3_step(data_statement);
+		status=sqlite3_step(tx_statement);
 		switch(status){
 			case SQLITE_ROW:
 				//handle outbound mail
-				if(mail_dbread(log, &current_mail, data_statement)<0){
-					logprintf(log, LOG_ERROR, "Failed to handle mail with IDlist %s, database status %s\n", (char*)sqlite3_column_text(data_statement, 0), sqlite3_errmsg(database->conn));
+				if(mail_dbread(log, &current_mail, tx_statement)<0){
+					logprintf(log, LOG_ERROR, "Failed to handle mail with IDlist %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
 				}
 				else{
 					if(mail_dispatch(log, database, &current_mail, conn)<0){
-						logprintf(log, LOG_WARNING, "Failed to dispatch mail with IDlist %s\n", (char*)sqlite3_column_text(data_statement, 0));
+						logprintf(log, LOG_WARNING, "Failed to dispatch mail with IDlist %s\n", (char*)sqlite3_column_text(tx_statement, 0));
 					}
-					//TODO handle failcount increase and bounces
-					delivered_mails++;
+
+					//handle failcount increase and bounces
+					for(i=0;i<current_mail.recipients;i++){
+						switch(current_mail.rcpt[i].status){
+							case RCPT_OK:
+								//delivery done, remove from database
+								//TODO error check these
+								sqlite3_bind_int(database->delete_mail, 1, current_mail.rcpt[i].dbid);
+								if(sqlite3_step(database->delete_mail)!=SQLITE_DONE){
+									logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", current_mail.rcpt[i].dbid, sqlite3_errmsg(database->conn));
+								}
+								sqlite3_reset(database->delete_mail);
+								sqlite3_clear_bindings(database->delete_mail);
+								mails_delivered++;
+								break;
+							case RCPT_FAIL_TEMPORARY:
+								//TODO increase failcount, bounce if necessary
+								break;
+							case RCPT_FAIL_PERMANENT:
+								//TODO bounce immediately
+								break;
+							case RCPT_READY:
+								logprintf(log, LOG_WARNING, "Recipient %d not touched by dispatch loop\n", i);
+								//TODO this happens if the peer rejects the MAIL command
+								//increase failcount, insert reason
+								break;
+						}
+					}
 				}
+				transactions++;
+
 				mail_free(&current_mail);
 				break;
 			case SQLITE_DONE:
-				logprintf(log, LOG_INFO, "Iteration done, handled %d mails\n", delivered_mails);
+				logprintf(log, LOG_INFO, "Iteration done, handled %d mails in %d transactions\n", mails_delivered, transactions);
 				break;
 		}
 	}
 	while(status==SQLITE_ROW);
 
-	sqlite3_reset(data_statement);
-	sqlite3_clear_bindings(data_statement);
+	sqlite3_reset(tx_statement);
+	sqlite3_clear_bindings(tx_statement);
 
-	return delivered_mails;
+	return transactions;
 }

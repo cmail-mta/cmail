@@ -27,7 +27,14 @@ int main(int argc, char** argv){
 			.query_outbound_hosts = NULL,
 			.query_remote = NULL,
 			.query_domain = NULL,
-			.query_rcpt = NULL
+			.query_rcpt = NULL,
+
+			.query_bounce_candidates = NULL,
+			.query_bounce_reasons = NULL,
+			.insert_bounce = NULL,
+			.insert_bounce_reason = NULL,
+			.delete_mail = NULL,
+			.update_failcount = NULL
 		},
 		.log = {
 			.stream = stderr,
