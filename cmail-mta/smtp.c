@@ -54,6 +54,113 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 	return 0;
 }
 
+int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	if(!mail->envelopefrom){
+		logprintf(log, LOG_ERROR, "Mail did not have valid envelope sender\n");
+		return -1;
+	}
+
+	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom);
+	if(protocol_read(log, conn, SMTP_MAIL_TIMEOUT)<0){
+		logprintf(log, LOG_ERROR, "Failed to read response to mail initiation\n");
+		return -1;
+	}
+
+	if(conn_data->reply.code==250){
+		return 0;
+	}
+
+	logprintf(log, LOG_WARNING, "Mail initiation response code %d\n", conn_data->reply.code);
+	return -1;
+}
+
+int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){
+	//Calling contract: retn 0 -> accepted, 1 -> fail temp, -1 -> fail perm
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+
+	client_send(log, conn, "RCPT TO:<%s>\r\n", path);
+
+	if(protocol_read(log, conn, SMTP_RCPT_TIMEOUT)<0){
+		logprintf(log, LOG_ERROR, "Failed to read response to recipient\n");
+		return 1;
+	}
+
+	if(conn_data->reply.code==250){
+		return 0;
+	}
+
+	logprintf(log, LOG_WARNING, "Recipient response code %d\n", conn_data->reply.code);
+
+	if(conn_data->reply.code >= 400 && conn_data->reply.code <= 499){
+		return 1;
+	}
+
+	return -1;
+}
+
+int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	char* mail_bytestuff;
+	
+	//Calling contract: retn 0 -> accepted, 1 -> fail temp, -1 -> fail perm
+	client_send(log, conn, "DATA\r\n");
+
+	if(protocol_expect(log, conn, SMTP_DATA_TIMEOUT, 354)){
+		//FIXME might wanna test for other responses here
+		logprintf(log, LOG_WARNING, "Data initiation failed, response was %d\n", conn_data->reply.code);
+		return -1;
+	}
+	
+	if(mail_data[0]=='.'){
+		client_send(log, conn, ".");
+	}
+	do{
+		mail_bytestuff=strstr(mail_data, "\r\n.");
+		if(mail_bytestuff){
+			client_send_raw(log, conn, mail_data, mail_bytestuff-mail_data);
+			client_send(log, conn, "\r\n..");
+			mail_data=mail_bytestuff+3;
+		}
+		else{
+			//logprintf(log, LOG_DEBUG, "Sending %d bytes message data\n", strlen(mail_data));
+			client_send_raw(log, conn, mail_data, strlen(mail_data));
+		}
+	}
+	while(mail_bytestuff);
+	
+	client_send(log, conn, "\r\n.\r\n");
+	
+	if(protocol_read(log, conn, SMTP_DATA_TERMINATION_TIMEOUT)<0){
+		logprintf(log, LOG_ERROR, "Failed to read data terminator response\n");
+		return 1;
+	}
+
+	if(conn_data->reply.code==250){
+		logprintf(log, LOG_INFO, "Mail accepted\n");
+		return 0;
+	}
+
+	logprintf(log, LOG_WARNING, "Data terminator response code %d\n", conn_data->reply.code);
+
+	if(conn_data->reply.code >= 400 && conn_data->reply.code <= 499){
+		return 1;
+	}
+
+	return -1;
+}
+
+int smtp_rset(LOGGER log, CONNECTION* conn){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	client_send(log, conn, "RSET\r\n");
+
+	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){ //FIXME the rfc does not define a timeout for this
+		logprintf(log, LOG_WARNING, "Could not reset connection, response was %d\n", conn_data->reply.code);
+		return -1;
+	}
+	return 0;
+}
+
 int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 
@@ -92,14 +199,22 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	}
 
 	#ifndef CMAIL_NO_TLS
-	if(port.tls_mode==TLS_NEGOTIATE){
+	if(port.tls_mode==TLS_NEGOTIATE && conn->tls_mode==TLS_NONE){
 		//if requested, proto_starttls
 		if(smtp_starttls(log, conn)<0){
 			logprintf(log, LOG_ERROR, "Failed to negotiate TLS layer\n");
 			return -1;
 		}
+		
+		//perform greeting again
+		if(smtp_greet(log, conn, settings)<0){
+			logprintf(log, LOG_WARNING, "Failed to negotiate SMTPS/ESMTPS\n");
+			return -1;
+		}
 	}
 	#endif
+
+	//TODO do tls padding
 
 	return 0;
 }
@@ -108,10 +223,9 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_stateme
 	int status;
 	unsigned delivered_mails=0;
 	MAIL current_mail = {
-		.ids = NULL,
-		.remote = NULL,
-		.mailhost = NULL,
-		.recipients = NULL,
+		.recipients = 0,
+		.rcpt = NULL,
+		.envelopefrom = NULL,
 		.length = 0,
 		.data = NULL
 	};
@@ -125,9 +239,10 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* data_stateme
 					logprintf(log, LOG_ERROR, "Failed to handle mail with IDlist %s, database status %s\n", (char*)sqlite3_column_text(data_statement, 0), sqlite3_errmsg(database->conn));
 				}
 				else{
-					if(mail_dispatch(log, database, &current_mail)<0){
+					if(mail_dispatch(log, database, &current_mail, conn)<0){
 						logprintf(log, LOG_WARNING, "Failed to dispatch mail with IDlist %s\n", (char*)sqlite3_column_text(data_statement, 0));
 					}
+					//TODO handle failcount increase and bounces
 					delivered_mails++;
 				}
 				mail_free(&current_mail);

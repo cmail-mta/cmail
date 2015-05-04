@@ -26,7 +26,8 @@ int main(int argc, char** argv){
 			.conn = NULL,
 			.query_outbound_hosts = NULL,
 			.query_remote = NULL,
-			.query_domain = NULL
+			.query_domain = NULL,
+			.query_rcpt = NULL
 		},
 		.log = {
 			.stream = stderr,
