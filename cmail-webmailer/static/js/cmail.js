@@ -19,6 +19,11 @@ var cmail = {
 			self.switch_hash();	
 		}, false);
 	},
+	logout: function() {
+                ajax.asyncGet(cmail.api_url + "?logout", function(xhr) {
+                        cmail.set_status(JSON.parse(xhr.response).status);
+                });
+        },
 	switch_hash: function(hash) {
 		if (!hash) { 
 			hash = window.location.hash;

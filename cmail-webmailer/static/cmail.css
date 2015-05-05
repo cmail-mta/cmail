@@ -134,3 +134,10 @@ label {
 .align_left {
 	text-align: left;
 }
+
+.left_corner {
+
+	position: absolute;
+	left: 0;
+	top: 0;
+}

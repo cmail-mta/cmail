@@ -11,6 +11,12 @@
 	</head>
 	<body onload="cmail.init();">
 		<div id="headmenu">
+			<span class="left_corner">
+				<a class="item" href="" onclick="cmail.logout()">Logout</a>
+				<span>Logged in: </span>
+				<span id="auth_user"></span>
+			</span>
+			
 			<a class="item" href="#read">Read</a>
 			<a class="item" href="#write">Write</a>
 
