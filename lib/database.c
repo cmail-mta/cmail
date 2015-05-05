@@ -1,3 +1,50 @@
+void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
+	//mostly copied from sqlite-src/func.c
+	
+	int nHaystack;
+	int nNeedle;
+	int N = 1;
+
+	const unsigned char* hay;
+	const unsigned char* needle;
+	bool text=false;
+
+	if(sqlite3_value_type(argv[0])==SQLITE_NULL
+		|| sqlite3_value_type(argv[1])==SQLITE_NULL){
+		//bail out
+		return;
+	}
+
+	nHaystack = sqlite3_value_bytes(argv[0]);
+	nNeedle = sqlite3_value_bytes(argv[1]);
+	
+	if(sqlite3_value_type(argv[0])==SQLITE_BLOB
+		&& sqlite3_value_type(argv[1])==SQLITE_BLOB){
+
+		hay=sqlite3_value_blob(argv[0]);
+		needle=sqlite3_value_blob(argv[1]);
+  	}
+	else{
+		hay=sqlite3_value_text(argv[0]);
+		needle=sqlite3_value_text(argv[1]);
+		text=true;
+	}
+	
+	while(nNeedle<=nHaystack && memcmp(hay, needle, nNeedle)!=0 ){
+		N++;
+		do{
+			nHaystack--;
+			hay++;
+		}
+		while(text&&(hay[0]&0xc0)==0x80);
+	}
+  
+	if(nNeedle>nHaystack){
+		N=0;
+	}
+	sqlite3_result_int(context, N);
+}
+
 sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 	int status;
 	sqlite3_stmt* target=NULL;
