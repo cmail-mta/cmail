@@ -385,7 +385,7 @@
 				return false;
 			}
 
-			$auth = $this->getAuth();
+			$auth = $this->c->getAuth();
 
 			$test = false;
 			if ($auth->hasRight("admin")) {
