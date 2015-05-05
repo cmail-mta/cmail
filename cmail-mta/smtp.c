@@ -227,7 +227,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	#endif
 
 	//do tls padding
-	if(settings.tls_padding){
+	if(settings.tls_padding && conn->tls_mode==TLS_ONLY){
 		i=rand()%settings.tls_padding;
 		for(;i>0;i--){
 			if(rand()%2){
