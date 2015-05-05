@@ -158,6 +158,8 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 						mails_delivered+=status;
 					}
 
+					status=SQLITE_ROW;
+
 					break;
 				case SQLITE_DONE:
 					logprintf(log, LOG_INFO, "Interval done, delivered %d mails\n", mails_delivered);
