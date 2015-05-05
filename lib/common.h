@@ -11,5 +11,5 @@ char* common_strdup(char* input){
 		return NULL;
 	}
 
-	return strncpy(duplicate, input, length);
+	return strncpy(duplicate, input, length); //this is ok because the memory is calloc'd
 }

@@ -40,6 +40,13 @@ int connection_reset(CONNECTION* conn, bool initialize){
 
 	if(conn->aux_data){
 		conn_data=(CONNDATA*)conn->aux_data;
+
+		if(!initialize){
+			if(conn_data->reply.response_text){
+				free(conn_data->reply.response_text);
+			}
+		}
+
 		*conn_data=empty_data;
 	}
 

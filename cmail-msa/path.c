@@ -97,7 +97,7 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, bool forward_pa
 					break;
 				}
 
-				strncpy(path->resolved_user, (char*)sqlite3_column_text(database->query_addresses, 0), sqlite3_column_bytes(database->query_addresses, 0));
+				strncpy(path->resolved_user, (char*)sqlite3_column_text(database->query_addresses, 0), sqlite3_column_bytes(database->query_addresses, 0)); //this is ok because the memory is calloc'd
 				rv=0;
 				break;
 			case SQLITE_DONE:

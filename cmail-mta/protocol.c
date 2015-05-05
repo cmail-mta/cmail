@@ -165,7 +165,7 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 						}
 					}
 					//FIXME this should probably concatenate on multi-line responses
-					strncpy(conn_data->reply.response_text, conn_data->recv_buffer+4, strlen(conn_data->recv_buffer+4));
+					strncpy(conn_data->reply.response_text, conn_data->recv_buffer, strlen(conn_data->recv_buffer)+1);
 
 					//logprintf(log, LOG_DEBUG, "Before copyback\n");
 					//log_dump_buffer(log, LOG_ALL_IO, conn_data->recv_buffer, conn_data->recv_offset+bytes);

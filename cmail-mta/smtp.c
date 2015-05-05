@@ -245,6 +245,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement, CONNECTION* conn){
 	int status;
 	unsigned transactions=0, mails_delivered=0, i;
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 	MAIL current_mail = {
 		.recipients = 0,
 		.rcpt = NULL,
@@ -285,15 +286,13 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement
 								mails_delivered++;
 								break;
 							case RCPT_FAIL_TEMPORARY:
-								//TODO increase failcount, bounce if necessary
-								break;
 							case RCPT_FAIL_PERMANENT:
-								//TODO bounce immediately
+								//handled by bouncehandler
 								break;
 							case RCPT_READY:
 								logprintf(log, LOG_WARNING, "Recipient %d not touched by dispatch loop\n", i);
-								//TODO this happens if the peer rejects the MAIL command
-								//increase failcount, insert reason
+								//this happens if the peer rejects the MAIL command
+								mail_failure(log, database, current_mail.rcpt[i].dbid, conn_data->reply.response_text, false);
 								break;
 						}
 					}
