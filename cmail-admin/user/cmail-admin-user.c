@@ -59,7 +59,7 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 
 	if (password) {
 		gen_salt(salt, n);
-		if (auth_hash(hashed, sizeof(hashed), salt, sizeof(salt), password, strlen(password)) < 0) {
+		if (auth_hash(hashed, sizeof(hashed), salt, strlen(salt), password, strlen(password)) < 0) {
 			logprintf(log, LOG_ERROR, "Error hashing password\n");
 			return 21;
 		}
