@@ -34,16 +34,9 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 		return -1;
 	}
 
-	switch(sqlite3_open_v2(params, &(config->database.conn), SQLITE_OPEN_READWRITE, NULL)){
-		case SQLITE_OK:
-			logprintf(config->log, LOG_DEBUG, "Attached %s as master database\n", params);
-			return 0;
-		default:
-			logprintf(config->log, LOG_ERROR, "Failed to open %s as master databases\n", params);
+	config->database.conn=database_open(config->log, params, SQLITE_OPEN_READWRITE);
 
-	}
-
-	return -1;
+	return (config->database.conn)?0:-1;
 }
 
 #ifndef CMAIL_NO_TLS

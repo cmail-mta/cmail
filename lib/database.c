@@ -85,6 +85,13 @@ sqlite3* database_open(LOGGER log, const char* filename, int flags){
 			return NULL;
 	}
 
+	if(sqlite3_create_function(db, "instr", 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, database_instr, NULL, NULL)!=SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to register instr() with sqlite: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		return NULL;
+		return NULL;
+	}
+
 	return db;
 }
 
