@@ -54,7 +54,6 @@ function main($module_name) {
 
 	$API_VERSION = 5;
 
-
 	// db connection
 	if (!$db->connect()) {
 		header("HTTP/1.0 500 Database Error!");
@@ -87,13 +86,19 @@ function main($module_name) {
 
 	$auth = Auth::getInstance($db, $output);
 	$c = new Controller($db, $output, $auth);
+
 	if (!$auth->auth($obj["auth"])) {
+		$output->add("login", false);
 		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials)\"");
 		header("HTTP/1.0 401 Unauthorized");
 
 		$output->write();
 		die();
 	}
+
+	$output->add("login", true);
+	$output->add("auth_user", $auth->getUser());
+
 	if (is_null($module_name)) {
 
 		if (isset($_GET["get_modules"])) {

@@ -85,3 +85,9 @@ label {
 .separator {
 	clear: both;
 }
+
+.left_corner {
+	position: absolute;
+	left: 0;
+	top: 0;
+}

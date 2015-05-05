@@ -193,7 +193,10 @@ class Auth {
 
 		$this->output->add("session", isset($_SERVER['auth']));
 
-		if (isset($auth["logout"])) {
+		if (isset($_GET["logout"])) {
+			session_destroy();
+			session_regenerate_id(true);
+			$this->output->add("status", "Successfully logged out.");
 			return false;
 		}
 

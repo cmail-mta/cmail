@@ -22,7 +22,16 @@ var cmail = {
 	module: {
 		get: function() {
 			ajax.asyncGet(cmail.api_url + "?get_modules", function(xhr) {
-				cmail.modules = JSON.parse(xhr.response).modules;
+				
+				var resp = JSON.parse(xhr.response);
+				if (resp.status != "ok") {
+					cmail.set_status(resp.status);
+					if (resp.status != "warning") {
+						return;
+					}
+				}
+				cmail.modules = resp.modules;
+				gui.elem("auth_user").textContent = resp["auth_user"];
 				var head = gui.elem("userlist_head");
 				head.innerHTML = "";
 				var tr = gui.create('tr');
@@ -62,6 +71,11 @@ var cmail = {
 		window.addEventListener("hashchange", function() {
 			self.switch_hash();
 		}, false);
+	},
+	logout: function() {
+		ajax.asyncGet(cmail.api_url + "?logout", function(xhr) {
+			cmail.set_status(JSON.parse(xhr.response).status);
+		});
 	},
 	switch_hash: function() {
 		var hash = window.location.hash;
