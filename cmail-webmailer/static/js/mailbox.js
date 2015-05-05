@@ -23,6 +23,8 @@ cmail.mail = {
 				cmail.set_status(mailbox.warning);
 			}
 
+			gui.elem("auth_user").textContent = mailbox["auth_user"];
+
 			var body = gui.elem("mail_list");
 			body.innerHTML = "";
 			mailbox.mails.forEach(function(mail) {
