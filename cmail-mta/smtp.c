@@ -161,7 +161,19 @@ int smtp_rset(LOGGER log, CONNECTION* conn){
 	return 0;
 }
 
+int smtp_noop(LOGGER log, CONNECTION* conn){
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	client_send(log, conn, "NOOP\r\n");
+
+	if(protocol_expect(log, conn, 20, 250)){ //FIXME the rfc does not define a timeout for this
+		logprintf(log, LOG_WARNING, "Could not noop, response was %d\n", conn_data->reply.code);
+		return -1;
+	}
+	return 0;
+}
+
 int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
+	unsigned i;
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 
 	//if(conn_data->state==STATE_NEW){
@@ -214,7 +226,18 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	}
 	#endif
 
-	//TODO do tls padding
+	//do tls padding
+	if(settings.tls_padding){
+		i=rand()%settings.tls_padding;
+		for(;i>0;i--){
+			if(rand()%2){
+				smtp_noop(log, conn);
+			}
+			else{
+				smtp_rset(log, conn);
+			}
+		}
+	}
 
 	return 0;
 }
@@ -236,11 +259,11 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement
 			case SQLITE_ROW:
 				//handle outbound mail
 				if(mail_dbread(log, &current_mail, tx_statement)<0){
-					logprintf(log, LOG_ERROR, "Failed to handle mail with IDlist %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
+					logprintf(log, LOG_ERROR, "Failed to read transaction %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
 				}
 				else{
 					if(mail_dispatch(log, database, &current_mail, conn)<0){
-						logprintf(log, LOG_WARNING, "Failed to dispatch mail with IDlist %s\n", (char*)sqlite3_column_text(tx_statement, 0));
+						logprintf(log, LOG_WARNING, "Failed to dispatch transaction %s\n", (char*)sqlite3_column_text(tx_statement, 0));
 					}
 
 					//handle failcount increase and bounces
@@ -248,13 +271,17 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement
 						switch(current_mail.rcpt[i].status){
 							case RCPT_OK:
 								//delivery done, remove from database
-								//TODO error check these
-								sqlite3_bind_int(database->delete_mail, 1, current_mail.rcpt[i].dbid);
-								if(sqlite3_step(database->delete_mail)!=SQLITE_DONE){
-									logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", current_mail.rcpt[i].dbid, sqlite3_errmsg(database->conn));
+								if(sqlite3_bind_int(database->delete_mail, 1, current_mail.rcpt[i].dbid)!=SQLITE_OK){
+										logprintf(log, LOG_WARNING, "Failed to bind deletion parameter %d: %s\n", current_mail.rcpt[i].dbid, sqlite3_errmsg(database->conn));
+								
 								}
-								sqlite3_reset(database->delete_mail);
-								sqlite3_clear_bindings(database->delete_mail);
+								else{
+									if(sqlite3_step(database->delete_mail)!=SQLITE_DONE){
+										logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", current_mail.rcpt[i].dbid, sqlite3_errmsg(database->conn));
+									}
+									sqlite3_reset(database->delete_mail);
+									sqlite3_clear_bindings(database->delete_mail);
+								}
 								mails_delivered++;
 								break;
 							case RCPT_FAIL_TEMPORARY:
