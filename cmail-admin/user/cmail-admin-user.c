@@ -73,6 +73,20 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 		
 }
 
+int set_asked_password(LOGGER log, sqlite3* db, const char* user) {
+
+	printf("Password: ");
+
+	char pw[MAX_PW_LENGTH];
+	if (ask_password(pw, MAX_PW_LENGTH) < 0) {
+		logprintf(log, LOG_ERROR, "Maximal password size is %d\n", MAX_PW_LENGTH);
+		return 11;
+	}
+
+	printf("\n");
+	return set_password(log, db, user, pw);
+}
+
 int add_user(LOGGER log, sqlite3* db, const char* user) {
 
 	return sqlite_add_user(log, db, user, NULL);
@@ -88,8 +102,9 @@ void usage() {
 	printf("\t--verbosity, -v\t\t\t Set verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\t\t path to master database\n");
 	printf("\t--help, -h\t\t\t shows this help\n");
+	printf("\t--password, -p\t\t ask for password in add\n");
 	printf("commands:\n");
-	printf("\tadd <username>\t\t\t adds an user, (password is set to null)\n");
+	printf("\tadd <username> [<pw>]\t\t adds an user. If -p is set then asked for password.\n");
 	printf("\tset password <user> [<pw>]\t sets the password of the given user (if not given, ask for password\n");
 	printf("\trevoke <user>\t\t\t revokes the access to the given user (sets password to null)\n");
 	printf("\tdelete <user>\t\t\t deletes the given user\n");
@@ -108,6 +123,7 @@ int main(int argc, char* argv[]) {
 	};
 
 	int i, status;
+	unsigned pw_flag = 0;
 
 	char* dbpath = "/var/cmail/master.db3";
 	srand(time(NULL));
@@ -120,6 +136,8 @@ int main(int argc, char* argv[]) {
 		} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
 			usage();
 			return 0;
+		} else if (!strcmp(argv[i], "--password") || !strcmp(argv[i], "-p")) {
+			pw_flag = 1;	
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
 		} else if (i + 2 < argc && (!strcmp(argv[i], "set") && !strcmp(argv[i + 1], "password"))) {
@@ -133,13 +151,7 @@ int main(int argc, char* argv[]) {
 			if (i + 3 < argc) {
 				status = set_password(log, database.conn, argv[i + 2], argv[i + 3]);
 			} else {
-				char pw[MAX_PW_LENGTH];
-				if (ask_password(pw, MAX_PW_LENGTH) < 0) {
-					logprintf(log, LOG_ERROR, "Maximal password size is %d\n", MAX_PW_LENGTH);
-					return 11;
-				}
-
-				status = set_password(log, database.conn, argv[i + 2], pw);
+				status = set_asked_password(log, database.conn, argv[i + 2]);
 			}
 
 			sqlite3_close(database.conn);
@@ -153,6 +165,17 @@ int main(int argc, char* argv[]) {
 			}
 
 			status = add_user(log, database.conn, argv[i + 1]);
+
+			if (status > 0) {
+				sqlite3_close(database.conn);
+				return status;
+			}
+
+			if (i + 2 < argc) {
+				status = set_password(log, database.conn, argv[i + 1], argv[i + 2]);
+			} else if (pw_flag) {
+				status = set_asked_password(log, database.conn, argv[i + 1]);
+			}
 
 			sqlite3_close(database.conn);
 			return status;
