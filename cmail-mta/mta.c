@@ -33,8 +33,7 @@ int main(int argc, char** argv){
 			.query_bounce_reasons = NULL,
 			.insert_bounce = NULL,
 			.insert_bounce_reason = NULL,
-			.delete_mail = NULL,
-			.update_failcount = NULL
+			.delete_mail = NULL
 		},
 		.log = {
 			.stream = stderr,

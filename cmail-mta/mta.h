@@ -66,7 +66,6 @@ typedef struct /*_DATABASE_CONN*/ {
 	sqlite3_stmt* insert_bounce;
 	sqlite3_stmt* insert_bounce_reason;
 	sqlite3_stmt* delete_mail;
-	sqlite3_stmt* update_failcount;
 } DATABASE;
 
 typedef struct /*_ARGUMENT_COLLECTION*/ {
