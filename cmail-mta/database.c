@@ -32,7 +32,17 @@ int database_initialize(LOGGER log, DATABASE* database){
 	database->update_failcount=database_prepare(log, database->conn, UPDATE_MAIL_ATTEMPTS);
 
 	if(!database->query_outbound_hosts || !database->query_domain || !database->query_remote || !database->query_rcpt){
-		logprintf(log, LOG_ERROR, "Failed to create mail query statement\n");
+		logprintf(log, LOG_ERROR, "Failed to compile mail query statements\n");
+		return -1;
+	}
+
+	if(!database->query_bounce_candidates || !database->query_bounce_reasons || !database->insert_bounce || !database->insert_bounce_reason){
+		logprintf(log, LOG_ERROR, "Failed to compile bounce statements\n");
+		return -1;
+	}
+
+	if(!database->delete_mail || !database->update_failcount){
+		logprintf(log, LOG_ERROR, "Failed to compile mail management statements\n");
 		return -1;
 	}
 
