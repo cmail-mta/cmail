@@ -7,9 +7,9 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 	char* QUERY_RECIPIENT_PATH="SELECT mail_envelopeto FROM main.outbox WHERE mail_id=?;";
 	char* QUERY_BOUNCE_CANDIDATES="SELECT mail_id, mail_envelopefrom, mail_submission, mail_attempts, mail_data FROM main.outbox WHERE mail_attempts > ?;";
-	char* QUERY_BOUNCE_REASONS="SELECT 1;"; //TODO
-	char* INSERT_BOUNCE_MESSAGE="SELECT 1;"; //TODO
-	char* INSERT_BOUNCE_REASON="SELECT 1;"; //TODO
+	char* QUERY_BOUNCE_REASONS="SELECT fail_time, fail_message FROM main.faillog WHERE fail_mail = ?;";
+	char* INSERT_BOUNCE_MESSAGE="INSERT INTO main.outbox (mail_envelopefrom, mail_envelopeto, mail_data) VALUES (?, ?, ?);";
+	char* INSERT_BOUNCE_REASON="INSERT INTO main.faillog (fail_mail, fail_message) VALUES (?, ?);";
 	char* DELETE_OUTBOUND_MAIL="DELETE FROM main.outbox WHERE mail_id=?;";
 	char* UPDATE_MAIL_ATTEMPTS="UPDATE main.outbox SET mail_attempts=mail_attempts+1, mail_lastattempt=strftime('%s', 'now') WHERE mail_id=?;";
 

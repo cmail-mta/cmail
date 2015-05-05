@@ -73,9 +73,6 @@ BEGIN TRANSACTION;
 		mail_submission		INTEGER	NOT NULL
 						DEFAULT ( strftime ( '%s', 'now' ) ),
 		mail_submitter		TEXT,
-		mail_attempts		INTEGER	NOT NULL
-						DEFAULT ( 0 ),
-		mail_lastattempt	INTEGER,
 		mail_data		TEXT
 	);
 
