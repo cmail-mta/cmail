@@ -85,10 +85,11 @@ int add_user(LOGGER log, sqlite3* db, const char* user, char* password) {
 
 	if (password) {
 		gen_salt(salt, n);
-		if (auth_hash(hashed, sizeof(hashed), salt, sizeof(salt), password, strlen(password)) < 0) {
+		if (auth_hash(hashed, sizeof(hashed), salt, strlen(salt), password, strlen(password)) < 0) {
 			logprintf(log, LOG_ERROR, "Error hashing password\n");
 			return 21;
 		}
+		logprintf(log, LOG_DEBUG, "auth_hash: Salt %s (Length %d) Password %s (Length %d) Hash %s\n", salt, strlen(salt), password, strlen(password), hashed);
 		snprintf(auth, sizeof(auth), "%s:%s", salt, hashed);
 		logprintf(log, LOG_INFO, "authdata: %s\n", auth);
 
