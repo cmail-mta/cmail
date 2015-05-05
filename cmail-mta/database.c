@@ -6,7 +6,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_OUTBOUND_MAIL_BY_REMOTE="SELECT GROUP_CONCAT(mail_id) AS mail_idlist, mail_envelopefrom, LENGTH(mail_data) AS mail_size, mail_data FROM main.outbox WHERE mail_remote=? GROUP BY mail_data, mail_envelopefrom;";
 
 	char* QUERY_RECIPIENT_PATH="SELECT mail_envelopeto FROM main.outbox WHERE mail_id=?;";
-	char* QUERY_BOUNCE_CANDIDATES="SELECT mail_id, mail_envelopefrom, mail_submission, mail_attempts, mail_data FROM main.outbox WHERE mail_attempts > ?;";
+	char* QUERY_BOUNCE_CANDIDATES="SELECT mail_id, mail_envelopefrom, mail_submission, COUNT(*) AS failures, SUM(fail_fatal) AS fatal, mail_data FROM main.outbox JOIN main.faillog ON fail_mail=mail_id GROUP BY mail_id;";
 	char* QUERY_BOUNCE_REASONS="SELECT fail_time, fail_message FROM main.faillog WHERE fail_mail = ?;";
 	char* INSERT_BOUNCE_MESSAGE="INSERT INTO main.outbox (mail_envelopefrom, mail_envelopeto, mail_data) VALUES (?, ?, ?);";
 	char* INSERT_BOUNCE_REASON="INSERT INTO main.faillog (fail_mail, fail_message, fail_fatal) VALUES (?, ?, ?);";
