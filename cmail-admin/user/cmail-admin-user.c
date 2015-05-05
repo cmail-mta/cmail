@@ -25,6 +25,8 @@
 #include "getpass.c"
 #include "user.c"
 
+#define MAX_PW_LENGTH 256
+
 void gen_salt(char* salt, unsigned n) {
 
 	unsigned i, j, counter = 0;
@@ -71,44 +73,42 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 		
 }
 
-int add_user(LOGGER log, sqlite3* db, const char* user, char* password) {
+int set_asked_password(LOGGER log, sqlite3* db, const char* user) {
 
-	unsigned n = 4;
-	char salt[BASE16_ENCODE_LENGTH(n) + 1];
-	char hashed[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE) + 1];
-	char auth[sizeof(salt) + sizeof(hashed) + 1];
+	printf("Password: ");
 
-	memset(salt, 0, sizeof(salt));
-	memset(auth, 0, sizeof(auth));
-
-	logprintf(log, LOG_INFO, "Username: %s, password: %s\n", user, password);
-
-	if (password) {
-		gen_salt(salt, n);
-		if (auth_hash(hashed, sizeof(hashed), salt, strlen(salt), password, strlen(password)) < 0) {
-			logprintf(log, LOG_ERROR, "Error hashing password\n");
-			return 21;
-		}
-		logprintf(log, LOG_DEBUG, "auth_hash: Salt %s (Length %d) Password %s (Length %d) Hash %s\n", salt, strlen(salt), password, strlen(password), hashed);
-		snprintf(auth, sizeof(auth), "%s:%s", salt, hashed);
-		logprintf(log, LOG_INFO, "authdata: %s\n", auth);
-
-		return sqlite_add_user(log, db, user, auth);
-	} else {
-		return sqlite_add_user(log, db, user, NULL);
+	char pw[MAX_PW_LENGTH];
+	if (ask_password(pw, MAX_PW_LENGTH) < 0) {
+		logprintf(log, LOG_ERROR, "Maximal password size is %d\n", MAX_PW_LENGTH);
+		return 11;
 	}
+
+	printf("\n");
+	return set_password(log, db, user, pw);
+}
+
+int add_user(LOGGER log, sqlite3* db, const char* user) {
+
+	return sqlite_add_user(log, db, user, NULL);
 }
 
 void usage() {
 
 
-	printf("cmail-admin: Administration tool for cmail-mta.\n");
-	printf("usage:\n");
-	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
-	printf("\t--help, -h\t\t shows this help\n");
-	printf("\tadd <username> [<pw>] adds an user, if not given script asks for pw\n");
-	printf("\tlist [<username>] list all users or if defined only users like <username>\n");
+	printf("cmail-admin-user: Administration tool for cmail-mta.\n");
+	printf("usage: cmail-admin-user <options> <commands> <arguments>\n");
+	printf("\n");
+	printf("basic options:\n");
+	printf("\t--verbosity, -v\t\t\t Set verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\t\t path to master database\n");
+	printf("\t--help, -h\t\t\t shows this help\n");
+	printf("\t--password, -p\t\t ask for password in add\n");
+	printf("commands:\n");
+	printf("\tadd <username> [<pw>]\t\t adds an user. If -p is set then asked for password.\n");
+	printf("\tset password <user> [<pw>]\t sets the password of the given user (if not given, ask for password\n");
+	printf("\trevoke <user>\t\t\t revokes the access to the given user (sets password to null)\n");
+	printf("\tdelete <user>\t\t\t deletes the given user\n");
+	printf("\tlist [<username>]\t\t list all users or if defined only users like <username>\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -123,9 +123,9 @@ int main(int argc, char* argv[]) {
 	};
 
 	int i, status;
+	unsigned pw_flag = 0;
 
 	char* dbpath = "/var/cmail/master.db3";
-	char* password = NULL;
 	srand(time(NULL));
 
 	for (i = 1; i < argc; i++) {
@@ -136,6 +136,8 @@ int main(int argc, char* argv[]) {
 		} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
 			usage();
 			return 0;
+		} else if (!strcmp(argv[i], "--password") || !strcmp(argv[i], "-p")) {
+			pw_flag = 1;	
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
 		} else if (i + 2 < argc && (!strcmp(argv[i], "set") && !strcmp(argv[i + 1], "password"))) {
@@ -145,25 +147,35 @@ int main(int argc, char* argv[]) {
 				return 10;
 			}
 
+			int status;
 			if (i + 3 < argc) {
-				password = argv[i + 3];
+				status = set_password(log, database.conn, argv[i + 2], argv[i + 3]);
+			} else {
+				status = set_asked_password(log, database.conn, argv[i + 2]);
 			}
 
-			int status = set_password(log, database.conn, argv[i + 2], password);
 			sqlite3_close(database.conn);
 			return status;
 
 		} else if (i + 1 < argc && !strcmp(argv[i], "add")) {
-			if (i + 2 < argc) {
-				password = argv[i + 2];
-			}
 			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
 			if (!database.conn) {
 				return 10;
 			}
 
-			status = add_user(log, database.conn, argv[i + 1], password);
+			status = add_user(log, database.conn, argv[i + 1]);
+
+			if (status > 0) {
+				sqlite3_close(database.conn);
+				return status;
+			}
+
+			if (i + 2 < argc) {
+				status = set_password(log, database.conn, argv[i + 1], argv[i + 2]);
+			} else if (pw_flag) {
+				status = set_asked_password(log, database.conn, argv[i + 1]);
+			}
 
 			sqlite3_close(database.conn);
 			return status;
@@ -177,6 +189,16 @@ int main(int argc, char* argv[]) {
 			status = sqlite_delete_user(log, database.conn, argv[i + 1]);
 			sqlite3_close(database.conn);
 			return status;
+		} else if (i +1 < argc && !strcmp(argv[i], "revoke")) {
+			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+
+			if (!database.conn) {
+				return 10;
+			}
+
+			status = set_password(log, database.conn, argv[i + 1], NULL);
+			return status;	
+		
 		} else if (!strcmp(argv[i], "list")) {
 			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
 
