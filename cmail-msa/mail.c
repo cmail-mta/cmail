@@ -135,7 +135,7 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 			}
 			mail_line(log, mail, buffer+off);
 			//un-terminate
-			buffer[mark]='\t';
+			buffer[mark]=' ';
 
 			off=mark;
 			if(buffer[i]==0){
