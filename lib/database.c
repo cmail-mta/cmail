@@ -62,33 +62,28 @@ sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 	return NULL;
 }
 
-sqlite3* database_open(LOGGER log, const char* filename, int flags) {
+sqlite3* database_open(LOGGER log, const char* filename, int flags){
+	sqlite3* db=NULL;
 
-	sqlite3* db = NULL;
-	int status;
-
-	status = sqlite3_open_v2(filename, &db, flags, NULL);
-
-	if (status != SQLITE_OK) {
-		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
-		sqlite3_close(db);
-		return NULL;
+	switch(sqlite3_open_v2(filename, &db, flags, NULL)){
+		case SQLITE_OK:
+			logprintf(log, LOG_INFO, "Opened database %s\n", filename);
+			break;
+		default:
+			logprintf(log, LOG_ERROR, "Failed to open database %s: %s\n", filename, sqlite3_errmsg(db));
+			sqlite3_close(db);
+			return NULL;
 	}
 
-	sqlite3_stmt* stmt = database_prepare(log, db, "PRAGMA foreign_keys = ON");
-	if (!stmt) {
-		sqlite3_close(db);
-		return NULL;
+	switch(sqlite3_exec(db, "PRAGMA foreign_keys = ON;", NULL, NULL, NULL)){
+		case SQLITE_OK:
+		case SQLITE_DONE:
+			break;
+		default:
+			logprintf(log, LOG_ERROR, "Failed to enable foreign key support: %s\n", sqlite3_errmsg(db));
+			sqlite3_close(db);
+			return NULL;
 	}
-
-	if (sqlite3_step(stmt) != SQLITE_DONE) {
-		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
-		sqlite3_finalize(stmt);
-		sqlite3_close(db);
-		return NULL;
-	}
-
-	sqlite3_finalize(stmt);
 
 	return db;
 }
