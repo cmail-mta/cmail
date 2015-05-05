@@ -60,6 +60,13 @@ typedef struct /*_DATABASE_CONN*/ {
 	sqlite3_stmt* query_remote;
 	sqlite3_stmt* query_domain;
 	sqlite3_stmt* query_rcpt;
+
+	sqlite3_stmt* query_bounce_candidates;
+	sqlite3_stmt* query_bounce_reasons;
+	sqlite3_stmt* insert_bounce;
+	sqlite3_stmt* insert_bounce_reason;
+	sqlite3_stmt* delete_mail;
+	sqlite3_stmt* update_failcount;
 } DATABASE;
 
 typedef struct /*_ARGUMENT_COLLECTION*/ {
