@@ -1,4 +1,4 @@
-INSTALL_PATH=/usr/local/bin
+PREFIX?=/usr/sbin
 .PHONY: clean install
 
 all:
@@ -14,10 +14,11 @@ all:
 	# mv cmail-imapd/cmail-imapd bin/
 
 install:
-	install -m 0755 bin/cmail-msa $(INSTALL_PATH)
-	install -m 0755 bin/cmail-mta $(INSTALL_PATH)
-	install -m 0755 bin/cmail-popd $(INSTALL_PATH)
-	# install -m 0755 bin/cmail-imapd $(INSTALL_PATH)
+	@printf "Installing to %s\n" "$(PREFIX)"
+	install -m 0755 bin/cmail-msa $(PREFIX)
+	install -m 0755 bin/cmail-mta $(PREFIX)
+	install -m 0755 bin/cmail-popd $(PREFIX)
+	#install -m 0755 bin/cmail-imapd $(PREFIX)
 
 clean:
 	rm bin/*
