@@ -302,7 +302,7 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement
 				mail_free(&current_mail);
 				break;
 			case SQLITE_DONE:
-				logprintf(log, LOG_INFO, "Iteration done, handled %d mails in %d transactions\n", mails_delivered, transactions);
+				logprintf(log, LOG_INFO, "All transactions for this connection done\n", mails_delivered, transactions);
 				break;
 		}
 	}
@@ -311,5 +311,6 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement
 	sqlite3_reset(tx_statement);
 	sqlite3_clear_bindings(tx_statement);
 
+	logprintf(log, LOG_INFO, "Handled %d mails in %d transactions\n", mails_delivered, transactions);
 	return transactions;
 }

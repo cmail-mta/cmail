@@ -77,6 +77,7 @@ int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool f
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 	unsigned i;
+	bool continue_data=false;
 	
 	if(smtp_initiate(log, conn, mail)){
 		logprintf(log, LOG_WARNING, "Failed to initiate mail transaction\n");
@@ -100,6 +101,7 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 					case 0:
 						logprintf(log, LOG_INFO, "Recipient %d: %s accepted\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0));
 						mail->rcpt[i].status=RCPT_OK;
+						continue_data=true;
 						break;
 					case 1:
 						logprintf(log, LOG_INFO, "Recipient %d: %s failed temporarily\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0));
@@ -116,6 +118,11 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 
 		sqlite3_reset(database->query_rcpt);
 		sqlite3_clear_bindings(database->query_rcpt);
+	}
+
+	//bail out in order not to get a 5XX for greylisted recipients
+	if(!continue_data){
+		return -1;
 	}
 
 	switch(smtp_data(log, conn, mail->data)){
