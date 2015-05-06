@@ -107,6 +107,7 @@ int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char
 		i++;
 	}
 	while(i<mx_count);
+	logprintf(log, LOG_INFO, "Finished delivery handling of host %s\n", host);
 
 
 	if(delivered_mails<0){

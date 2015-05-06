@@ -75,7 +75,7 @@ int network_connect(LOGGER log, char* host, uint16_t port){
 	}
 
 	if(error!=0){
-		logprintf(log, LOG_WARNING, "Failed to create connect: %s\n", strerror(errno));
+		logprintf(log, LOG_WARNING, "Failed to connect: %s\n", strerror(errno));
 		return -1;
 	}
 
