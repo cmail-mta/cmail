@@ -17,14 +17,28 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->resolved_user?(mail->forward_paths[i]->resolved_user):"outbound");
 		if(mail->forward_paths[i]->resolved_user){
 			//inbound mail, apply inrouter
-			if(route_inbound(log, database, mail, mail->forward_paths[i])<0){
-				logprintf(log, LOG_WARNING, "Failed to route path %s inbound\n", mail->forward_paths[i]->path);
+			switch(route_inbound(log, database, mail, mail->forward_paths[i])){
+				case 0:
+					break;
+				case 1:
+					logprintf(log, LOG_WARNING, "Failed to store inbound entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
+					return 400;
+				default:
+					logprintf(log, LOG_WARNING, "Failed to route path %d (%s) inbound, rejecting transaction\n", i, mail->forward_paths[i]->path);
+					return 500;
 			}
 		}
 		else{
 			//outbound mail, should have been authenticated so accept it automatically
-			if(mail_store_outbox(log, database->mail_storage.outbox_master, NULL, mail->forward_paths[i]->path, mail)<0){
-				logprintf(log, LOG_WARNING, "Failed to route path %s outbound\n", mail->forward_paths[i]->path);
+			switch(mail_store_outbox(log, database->mail_storage.outbox_master, NULL, mail->forward_paths[i]->path, mail)){
+				case 0:
+					break;
+				case 1:
+					logprintf(log, LOG_WARNING, "Failed to store outbound entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
+					return 400;
+				default:
+					logprintf(log, LOG_WARNING, "Failed to route path %d (%s) outbound, rejecting transaction\n", i, mail->forward_paths[i]->path);
+					return 500;
 			}
 		}
 	}
@@ -53,8 +67,17 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
 			for(i=0;mail->forward_paths[i];i++){
 				//insert into outbound table
 				logprintf(log, LOG_DEBUG, "Handing off path %d: %s\n", i, mail->forward_paths[i]->path);
-				if(mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, mail->forward_paths[i]->path, mail)<0){
-					logprintf(log, LOG_WARNING, "Failed to route %s via handoff\n", mail->forward_paths[i]->path);
+				switch(mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, mail->forward_paths[i]->path, mail)){
+					case 0:
+						break;
+					case 1:
+						logprintf(log, LOG_WARNING, "Failed to store handoff entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
+						route_free(&route);
+						return 400;
+					default:
+						logprintf(log, LOG_WARNING, "Failed to route path %d (%s) via handoff, rejecting transaction\n", i, mail->forward_paths[i]->path);
+						route_free(&route);
+						return 500;
 				}
 			}
 		}
@@ -191,6 +214,7 @@ int mail_reset(MAIL* mail){
 }
 
 int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path){
+	//calling contract: 0 -> ok, -1 -> fail, 1 -> defer
 	int status;
 
 	if(sqlite3_bind_text(stmt, 1, current_path->resolved_user, -1, SQLITE_STATIC)!=SQLITE_OK
@@ -211,6 +235,11 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 		case SQLITE_DONE:
 			status=0;
 			break;
+		case SQLITE_TOOBIG:
+		case SQLITE_CONSTRAINT:
+		case SQLITE_RANGE:
+			status=-1;
+			break;
 		default:
 			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
 			status=1;
@@ -222,6 +251,7 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 }
 
 int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail){
+	//calling contract: 0 -> ok, -1 -> fail, 1 -> defer
 	int status;
 
 	if(sqlite3_bind_text(stmt, 1, mail_remote, -1, SQLITE_STATIC)!=SQLITE_OK
@@ -240,9 +270,15 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 		case SQLITE_DONE:
 			status=0;
 			break;
+		case SQLITE_TOOBIG:
+		case SQLITE_CONSTRAINT:
+		case SQLITE_RANGE:
+			status=-1;
+			break;
 		default:
 			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
 			status=1;
+			break;
 	}
 
 	sqlite3_reset(stmt);
