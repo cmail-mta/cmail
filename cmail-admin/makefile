@@ -13,6 +13,7 @@ all:
 	mv address/cmail-admin-address bin/
 	mv msa/cmail-admin-msa bin/
 	mv permissions/cmail-admin-permissions bin/
+	cp cmail-admin bin/
 
 clean:
 	rm bin/*

@@ -1,0 +1,20 @@
+#!/bin/bash
+# wrapper script for cmail admin
+
+
+case $1 in
+
+	help)
+		echo "cmail-admin usage"
+		echo ""
+		echo "available modules:"
+		printf "\taddress\t\tmodify addresses\n"
+		printf "\tmsa\t\tmodify msa configuration\n"
+		printf "\tpermissions\tmodify permissions\n"
+		printf "\tuser\t\tmodify users\n"
+		;;
+	*)
+		./cmail-admin-$1 ${2-}
+
+
+esac
