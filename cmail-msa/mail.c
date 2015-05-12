@@ -187,7 +187,9 @@ int mail_reset(MAIL* mail){
 		.data_allocated = 0,
 		.data = NULL,
 		.submitter = NULL,
-		.protocol = NULL,
+		//FIXME this might pose a security risk, settings to UNKNOWN might be better.
+		//Setting to NULL breaks the constraint when inserting
+		.protocol = mail->protocol,
 		.message_id = ""
 	};
 
