@@ -10,6 +10,7 @@
 
 #define VERSION "cmail-mta 0.1"
 #define CMAIL_HAVE_DATABASE_TYPE
+#define CMAIL_REALLOC_CHUNK 10
 
 #include "../lib/logger.h"
 #include "../lib/signal.h"
@@ -33,6 +34,11 @@ typedef enum /*_DELIVERY_MODE*/ {
 	DELIVER_DOMAIN,
 	DELIVER_HANDOFF
 } DELIVERY_MODE;
+
+typedef struct /*_DELIVERY_REMOTE*/ {
+	char* host;
+	DELIVERY_MODE mode;
+} REMOTE;
 
 typedef enum /*_MAIL_STATUS*/ {
 	RCPT_READY,
@@ -69,8 +75,7 @@ typedef struct /*_DATABASE_CONN*/ {
 } DATABASE;
 
 typedef struct /*_ARGUMENT_COLLECTION*/ {
-	char* delivery_domain;
-	DELIVERY_MODE delivery_mode;
+	REMOTE remote;
 	bool drop_privileges;
 	bool daemonize;
 	char* config_file;

@@ -14,8 +14,10 @@ int usage(char* filename){
 
 int main(int argc, char** argv){
 	ARGUMENTS args = {
-		.delivery_domain = NULL,
-		.delivery_mode = DELIVER_DOMAIN,
+		.remote = {
+			.host = NULL,
+			.mode = DELIVER_DOMAIN
+		},
 		.drop_privileges = true,
 		.daemonize = true,
 		.config_file = NULL
@@ -133,8 +135,8 @@ int main(int argc, char** argv){
 	}
 
 	//run core loop
-	if(args.delivery_domain){
-		logic_handle_remote(config.log, &(config.database), config.settings, args.delivery_domain, args.delivery_mode);
+	if(args.remote.host){
+		logic_handle_remote(config.log, &(config.database), config.settings, args.remote);
 	}
 	else{
 		logic_loop_hosts(config.log, &(config.database), config.settings);
