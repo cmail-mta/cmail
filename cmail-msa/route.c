@@ -123,7 +123,7 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 
 			//if we could not store mail, retry with master
 			if(rv){
-				logprintf(log, LOG_WARNING, "Failed to store mail for %s, retrying one last time with master db\n", current_path->resolved_user);
+				logprintf(log, LOG_WARNING, "Failed to store mail for %s (%d: %s), retrying one last time with master db\n", current_path->resolved_user, rv, sqlite3_errmsg(database->conn));
 				rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 			}
 		}
