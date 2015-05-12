@@ -134,7 +134,7 @@ int main(int argc, char** argv){
 
 	//run core loop
 	if(args.delivery_domain){
-		logic_loop_proto(config.log, &(config.database), config.settings, args.delivery_domain, args.delivery_mode);
+		logic_handle_remote(config.log, &(config.database), config.settings, args.delivery_domain, args.delivery_mode);
 	}
 	else{
 		logic_loop_hosts(config.log, &(config.database), config.settings);

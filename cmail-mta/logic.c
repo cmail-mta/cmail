@@ -1,4 +1,4 @@
-int logic_loop_proto(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
+int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, char* host, DELIVERY_MODE mode){
 	int status, delivered_mails=-1;
 	unsigned i=0, mx_count=0, port;
 	sqlite3_stmt* data_statement=(mode==DELIVER_DOMAIN)?database->query_domain:database->query_remote;
@@ -150,7 +150,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", mail_remote, (mail_mode==DELIVER_DOMAIN)?"domain":"handoff");
 
 					//TODO implement multi-threading here
-					status=logic_loop_proto(log, database, settings, mail_remote, mail_mode);
+					status=logic_handle_remote(log, database, settings, mail_remote, mail_mode);
 
 					if(status<0){
 						logprintf(log, LOG_WARNING, "Delivery procedure returned an error\n");
@@ -171,7 +171,6 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 
 		sqlite3_reset(database->query_outbound_hosts);
 
-		//TODO check for mails over the retry limit
 		sleep(settings.check_interval);
 	}
 	while(!abort_signaled);
