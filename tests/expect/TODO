@@ -1,0 +1,3 @@
+Run tests with HELO as well as EHLO
+Run tests with STARTTLS as well as with plaintext
+
