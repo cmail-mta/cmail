@@ -29,6 +29,9 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		return -1;
 	}
 
+	//read all mail transactions for this host
+	//TODO
+
 	//resolve host for MX records
 	if(remote.mode==DELIVER_DOMAIN){
 		status=adns_init(&resolver, adns_if_none, log.stream);
@@ -119,6 +122,8 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		free(resolver_answer);
 		adns_finish(resolver);
 	}
+
+	//TODO free mail transactions
 
 	connection_reset(&conn, false);
 	logprintf(log, LOG_INFO, "Mail delivery for %s done\n", remote.host);
