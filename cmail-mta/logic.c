@@ -16,32 +16,69 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	adns_answer* resolver_answer=NULL;
 	char* mail_remote=remote.host;
 
+	unsigned tx_allocated=0, tx_active=0;
+	MAIL* mails=NULL;
+
 	if(!remote.host || strlen(remote.host)<2){
 		logprintf(log, LOG_ERROR, "No valid hostname provided\n");
 		return -1;
 	}
 
-	logprintf(log, LOG_INFO, "Entering mail delivery procedure for host %s in mode %s\n", remote.host, (remote.mode==DELIVER_DOMAIN)?"domain":"handoff");
+	logprintf(log, LOG_INFO, "Entering mail delivery procedure for host %s in mode %s\n", remote.host, (remote.mode == DELIVER_DOMAIN) ? "domain":"handoff");
 
 	//prepare mail data query
-	if(sqlite3_bind_text(data_statement, 1, remote.host, -1, SQLITE_STATIC)!=SQLITE_OK){
+	if(sqlite3_bind_text(data_statement, 1, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
 		return -1;
 	}
 
 	//read all mail transactions for this host
-	//TODO
+	do{
+		status = sqlite3_step(data_statement);
+		switch(status){
+			case SQLITE_ROW:
+				if(tx_active>=tx_allocated){
+					//reallocate transaction array
+					mails = realloc(mails, (tx_allocated+CMAIL_REALLOC_CHUNK) * sizeof(MAIL));
+					if(!mails){
+						logprintf(log, LOG_ERROR, "Failed to allocate memory for mail transaction array\n");
+						return -1;
+					}
+					
+					//clear freshly allocated mails
+					for(i=0;i<CMAIL_REALLOC_CHUNK;i++){
+						mail_reset(mail+i, false);
+					}
+					
+					tx_allocated += CMAIL_REALLOC_CHUNK;
+				}
+				
+				//read transaction
+				//TODO	
+				
+				break;
+			case SQLITE_DONE:
+				logprintf(log, LOG_INFO, "Connection handles %d transactions\n", tx_active);
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Unhandled response from mail transaction query: %s\n", sqlite3_errmsg(database->conn));
+				break;
+		}
+	}
+	while(status == SQLITE_ROW);
+	sqlite3_reset(data_statement);
+	sqlite3_clear_bindings(data_statement);
 
 	//resolve host for MX records
-	if(remote.mode==DELIVER_DOMAIN){
-		status=adns_init(&resolver, adns_if_none, log.stream);
-		if(status!=0){
+	if(remote.mode == DELIVER_DOMAIN){
+		status = adns_init(&resolver, adns_if_none, log.stream);
+		if(status != 0){
 			logprintf(log, LOG_ERROR, "Failed to initialize adns: %s\n", strerror(status));
 			return -1;
 		}
 
-		status=adns_synchronous(resolver, remote.host, adns_r_mx, adns_qf_cname_loose, &resolver_answer);
-		if(status!=0){
+		status = adns_synchronous(resolver, remote.host, adns_r_mx, adns_qf_cname_loose, &resolver_answer);
+		if(status != 0){
 			logprintf(log, LOG_ERROR, "Failed to run query: %s\n", strerror(status));
 			return -1;
 		}
@@ -123,7 +160,11 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		adns_finish(resolver);
 	}
 
-	//TODO free mail transactions
+	//free mail transactions
+	for(i=0;i<tx_active;i++){
+		mail_reset(mails+i, true);
+	}
+	free(mails);
 
 	connection_reset(&conn, false);
 	logprintf(log, LOG_INFO, "Mail delivery for %s done\n", remote.host);
@@ -185,6 +226,9 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					break;
 				case SQLITE_DONE:
 					logprintf(log, LOG_INFO, "Interval contains %d remotes\n", remotes_active);
+					break;
+				default:
+					logprintf(log, LOG_WARNING, "Unhandled outbound host query result: %s\n", sqlite3_errmsg(database->conn));
 					break;
 			}
 		}

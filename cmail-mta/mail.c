@@ -151,7 +151,7 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 	return -1;
 }
 
-int mail_free(MAIL* mail){
+int mail_reset(MAIL* mail, bool data_valid){
 	MAIL empty_mail = {
 		.recipients = 0,
 		.rcpt = NULL,
@@ -160,16 +160,18 @@ int mail_free(MAIL* mail){
 		.data = NULL
 	};
 
-	if(mail->rcpt){
-		free(mail->rcpt);
-	}
+	if(data_valid){
+		if(mail->rcpt){
+			free(mail->rcpt);
+		}
 
-	if(mail->envelopefrom){
-		free(mail->envelopefrom);
-	}
+		if(mail->envelopefrom){
+			free(mail->envelopefrom);
+		}
 
-	if(mail->data){
-		free(mail->data);
+		if(mail->data){
+			free(mail->data);
+		}
 	}
 
 	*mail=empty_mail;
