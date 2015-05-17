@@ -5,8 +5,14 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 
 	if(mail_dispatch(log, database, transaction, conn)<0){
 		logprintf(log, LOG_WARNING, "Failed to dispatch transaction\n");
+		//need to reset transaction here because greylisting may fail the first connection,
+		//but we'd still like to try the next
+		smtp_rset(log, conn);
 		return -1;
 	}
+
+	//reset in case any transaction follows
+	smtp_rset(log, conn);
 
 	//handle failcount increase and bounces
 	for(i=0;i<transaction->recipients;i++){
@@ -36,6 +42,7 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 				break;
 		}
 	}
+
 
 	logprintf(log, LOG_INFO, "Handled %d mails in transaction\n", delivered_mails);
 	return delivered_mails;	
@@ -100,7 +107,8 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 				if(mail_dbread(log, mails+tx_active, tx_statement)<0){
 					logprintf(log, LOG_ERROR, "Failed to read transaction %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
 				}
-				
+
+				tx_active++;
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "Connection handles %d transactions\n", tx_active);

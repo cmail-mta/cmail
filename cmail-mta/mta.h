@@ -123,17 +123,11 @@ typedef struct /*_SMTPCLIENT_CONN*/ {
 	SMTPREPLY reply;
 } CONNDATA;
 
-//Prototypes where needed
-int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt);
-int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn);
-int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool fatal);
-int mail_reset(MAIL* mail, bool data_valid);
-
 #include "args.c"
 #include "database.c"
 #include "config.c"
 #include "connection.c"
 #include "protocol.c"
 #include "smtp.c"
-#include "logic.c"
 #include "mail.c"
+#include "logic.c"

@@ -144,7 +144,6 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 			return -1;
 		case 0:
 			logprintf(log, LOG_INFO, "Mail accepted\n");
-			smtp_rset(log, conn);
 			return 0;
 	}
 
