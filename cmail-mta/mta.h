@@ -127,7 +127,7 @@ typedef struct /*_SMTPCLIENT_CONN*/ {
 int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt);
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn);
 int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool fatal);
-int mail_free(MAIL* mail);
+int mail_reset(MAIL* mail, bool data_valid);
 
 #include "args.c"
 #include "database.c"

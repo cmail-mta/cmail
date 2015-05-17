@@ -47,7 +47,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 					
 					//clear freshly allocated mails
 					for(i=0;i<CMAIL_REALLOC_CHUNK;i++){
-						mail_reset(mail+i, false);
+						mail_reset(mails+i, false);
 					}
 					
 					tx_allocated += CMAIL_REALLOC_CHUNK;

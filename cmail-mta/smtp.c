@@ -299,7 +299,7 @@ int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement
 				}
 				transactions++;
 
-				mail_free(&current_mail);
+				mail_reset(&current_mail, true);
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "All transactions for this connection done\n", mails_delivered, transactions);
