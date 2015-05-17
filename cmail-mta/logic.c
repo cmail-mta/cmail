@@ -1,7 +1,50 @@
+int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, MAIL* transaction){
+	int delivered_mails=0;
+	unsigned i;
+	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+
+	if(mail_dispatch(log, database, transaction, conn)<0){
+		logprintf(log, LOG_WARNING, "Failed to dispatch transaction\n");
+		return -1;
+	}
+
+	//handle failcount increase and bounces
+	for(i=0;i<transaction->recipients;i++){
+		switch(transaction->rcpt[i].status){
+			case RCPT_OK:
+				//delivery done, remove from database
+				if(sqlite3_bind_int(database->delete_mail, 1, transaction->rcpt[i].dbid)!=SQLITE_OK){
+					logprintf(log, LOG_WARNING, "Failed to bind deletion parameter %d: %s\n", transaction->rcpt[i].dbid, sqlite3_errmsg(database->conn));
+				}
+				else{
+					if(sqlite3_step(database->delete_mail)!=SQLITE_DONE){
+						logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", transaction->rcpt[i].dbid, sqlite3_errmsg(database->conn));
+					}
+					sqlite3_reset(database->delete_mail);
+					sqlite3_clear_bindings(database->delete_mail);
+				}
+				delivered_mails++;
+				break;
+			case RCPT_FAIL_TEMPORARY:
+			case RCPT_FAIL_PERMANENT:
+				//handled by bouncehandler
+				break;
+			case RCPT_READY:
+				logprintf(log, LOG_WARNING, "Recipient %d not touched by dispatch loop\n", i);
+				//this happens if the peer rejects the MAIL command
+				mail_failure(log, database, transaction->rcpt[i].dbid, conn_data->reply.response_text, false);
+				break;
+		}
+	}
+
+	logprintf(log, LOG_INFO, "Handled %d mails in transaction\n", delivered_mails);
+	return delivered_mails;	
+}
+
 int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE remote){
-	int status, delivered_mails=-1;
-	unsigned i=0, mx_count=0, port;
-	sqlite3_stmt* data_statement=(remote.mode==DELIVER_DOMAIN)?database->query_domain:database->query_remote;
+	int status, delivered_mails = -1;
+	unsigned current_mx = 0, mx_count = 0, port, c;
+	sqlite3_stmt* tx_statement = (remote.mode == DELIVER_DOMAIN) ? database->query_domain:database->query_remote;
 
 	CONNDATA conn_data = {
 	};
@@ -12,29 +55,29 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 	connection_reset(&conn, true);
 
-	adns_state resolver=NULL;
-	adns_answer* resolver_answer=NULL;
-	char* mail_remote=remote.host;
+	adns_state resolver = NULL;
+	adns_answer* resolver_answer = NULL;
+	char* resolver_remote = NULL;
 
-	unsigned tx_allocated=0, tx_active=0;
-	MAIL* mails=NULL;
+	unsigned tx_allocated = 0, tx_active = 0;
+	MAIL* mails = NULL;
 
-	if(!remote.host || strlen(remote.host)<2){
+	if(!remote.host || strlen(remote.host) < 2){
 		logprintf(log, LOG_ERROR, "No valid hostname provided\n");
 		return -1;
 	}
 
-	logprintf(log, LOG_INFO, "Entering mail delivery procedure for host %s in mode %s\n", remote.host, (remote.mode == DELIVER_DOMAIN) ? "domain":"handoff");
+	logprintf(log, LOG_INFO, "Entering mail remote handling for host %s in mode %s\n", remote.host, (remote.mode == DELIVER_DOMAIN) ? "domain":"handoff");
 
 	//prepare mail data query
-	if(sqlite3_bind_text(data_statement, 1, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
+	if(sqlite3_bind_text(tx_statement, 1, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
 		return -1;
 	}
 
 	//read all mail transactions for this host
 	do{
-		status = sqlite3_step(data_statement);
+		status = sqlite3_step(tx_statement);
 		switch(status){
 			case SQLITE_ROW:
 				if(tx_active>=tx_allocated){
@@ -46,15 +89,17 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 					}
 					
 					//clear freshly allocated mails
-					for(i=0;i<CMAIL_REALLOC_CHUNK;i++){
-						mail_reset(mails+i, false);
+					for(c=0;c<CMAIL_REALLOC_CHUNK;c++){
+						mail_reset(mails+c, false);
 					}
 					
 					tx_allocated += CMAIL_REALLOC_CHUNK;
 				}
 				
 				//read transaction
-				//TODO	
+				if(mail_dbread(log, mails+tx_active, tx_statement)<0){
+					logprintf(log, LOG_ERROR, "Failed to read transaction %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
+				}
 				
 				break;
 			case SQLITE_DONE:
@@ -66,10 +111,11 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		}
 	}
 	while(status == SQLITE_ROW);
-	sqlite3_reset(data_statement);
-	sqlite3_clear_bindings(data_statement);
+	sqlite3_reset(tx_statement);
+	sqlite3_clear_bindings(tx_statement);
 
 	//resolve host for MX records
+	resolver_remote = remote.host;
 	if(remote.mode == DELIVER_DOMAIN){
 		status = adns_init(&resolver, adns_if_none, log.stream);
 		if(status != 0){
@@ -85,32 +131,32 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
 
-		if(resolver_answer->nrrs<=0){
+		if(resolver_answer->nrrs <= 0){
 			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to HANDOFF strategy\n", remote.host);
 
 			//free resolver data
 			free(resolver_answer);
 			adns_finish(resolver);
 
-			remote.mode=DELIVER_HANDOFF;
+			remote.mode = DELIVER_HANDOFF;
 			//TODO report error type
 		}
 		else{
-			for(i=0;i<resolver_answer->nrrs;i++){
-				logprintf(log, LOG_DEBUG, "MX %d: %s\n", i, resolver_answer->rrs.inthostaddr[i].ha.host);
+			for(c=0;c<resolver_answer->nrrs;c++){
+				logprintf(log, LOG_DEBUG, "MX %d: %s\n", c, resolver_answer->rrs.inthostaddr[c].ha.host);
 			}
 
-			mx_count=resolver_answer->nrrs;
+			mx_count = resolver_answer->nrrs;
 		}
 	}
 
 	//connect to remote
-	i=0;
+	current_mx = 0;
 	do{
-		if(remote.mode==DELIVER_DOMAIN){
-			mail_remote=resolver_answer->rrs.inthostaddr[i].ha.host;
+		if(remote.mode == DELIVER_DOMAIN){
+			resolver_remote = resolver_answer->rrs.inthostaddr[current_mx].ha.host;
 		}
-		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", i, mail_remote);
+		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", current_mx, resolver_remote);
 
 		for(port=0;settings.port_list[port].port;port++){
 			#ifndef CMAIL_NO_TLS
@@ -119,12 +165,12 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			logprintf(log, LOG_INFO, "Trying port %d\n", settings.port_list[port].port);
 			#endif
 
-			conn.fd=network_connect(log, mail_remote, settings.port_list[port].port);
+			conn.fd = network_connect(log, resolver_remote, settings.port_list[port].port);
 			//TODO only reconnect if port or remote have changed
 
 			if(conn.fd>0){
 				//negotiate smtp
-				if(smtp_negotiate(log, settings, mail_remote, &conn, settings.port_list[port])<0){
+				if(smtp_negotiate(log, settings, resolver_remote, &conn, settings.port_list[port])<0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(&conn, false);
@@ -132,25 +178,32 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 				}
 
 				//connected, run the delivery loop
-				delivered_mails=smtp_deliver_loop(log, database, data_statement, &conn);
-				if(delivered_mails<0){
-					logprintf(log, LOG_WARNING, "Failed to deliver mail\n");
-					//failed to deliver != no mx reachable
-					delivered_mails=0;
+				delivered_mails=0;
+				for(c=0;c<tx_active;c++){
+					status = logic_handle_transaction(log, database, &conn, mails+c);
+					if(status < 0){
+						logprintf(log, LOG_WARNING, "Mail transaction failed, continuing\n");
+					}
+					else{
+						delivered_mails += status;
+					}
 				}
+					
+				logprintf(log, LOG_INFO, "Delivered %d mails in %d transactions for this remote\n", delivered_mails, tx_active);
+				
 				//FIXME might want to continue if not all mail could be delivered
-				i=mx_count; //break the outer loop
+				current_mx = mx_count; //break the outer loop
 				break;
 			}
 		}
 
-		i++;
+		current_mx++;
 	}
-	while(i<mx_count);
+	while(current_mx < mx_count);
 	logprintf(log, LOG_INFO, "Finished delivery handling of host %s\n", remote.host);
 
 
-	if(delivered_mails<0){
+	if(delivered_mails < 0){
 		//TODO handle "no mxes reachable" -> increase retry count for all mails
 		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", remote.host);
 	}
@@ -161,8 +214,8 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	}
 
 	//free mail transactions
-	for(i=0;i<tx_active;i++){
-		mail_reset(mails+i, true);
+	for(c=0;c<tx_active;c++){
+		mail_reset(mails+c, true);
 	}
 	free(mails);
 
