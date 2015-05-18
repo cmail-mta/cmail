@@ -1,4 +1,4 @@
-int connection_reset(CONNECTION* conn, bool data_valid){
+int connection_reset(LOGGER log, CONNECTION* conn, bool data_valid){
 	CONNDATA empty_data = {
 		.extensions_supported = false,
 		.last_action = time(NULL),
