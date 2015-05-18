@@ -60,7 +60,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		.aux_data = &conn_data
 	};
 
-	connection_reset(&conn, true);
+	connection_reset(&conn, false);
 
 	adns_state resolver = NULL;
 	adns_answer* resolver_answer = NULL;
@@ -181,7 +181,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 				if(smtp_negotiate(log, settings, resolver_remote, &conn, settings.port_list[port])<0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
-					connection_reset(&conn, false);
+					connection_reset(&conn, true);
 					continue;
 				}
 
@@ -216,7 +216,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", remote.host);
 	}
 
-	if(remote.mode==DELIVER_DOMAIN){
+	if(remote.mode == DELIVER_DOMAIN){
 		free(resolver_answer);
 		adns_finish(resolver);
 	}
@@ -227,7 +227,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	}
 	free(mails);
 
-	connection_reset(&conn, false);
+	connection_reset(&conn, true);
 	logprintf(log, LOG_INFO, "Mail delivery for %s done\n", remote.host);
 	return delivered_mails;
 }

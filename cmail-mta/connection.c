@@ -1,4 +1,4 @@
-int connection_reset(CONNECTION* conn, bool initialize){
+int connection_reset(CONNECTION* conn, bool data_valid){
 	CONNDATA empty_data = {
 		.extensions_supported = false,
 		.last_action = time(NULL),
@@ -22,7 +22,9 @@ int connection_reset(CONNECTION* conn, bool initialize){
 
 	CONNDATA* conn_data;
 
-	if(!initialize){
+	if(data_valid){
+		logprintf(log, LOG_DEBUG, "Shutting down connection\n");
+
 		#ifndef CMAIL_NO_TLS
 		//shut down the tls session
 		if(conn->tls_mode!=TLS_NONE){
@@ -35,13 +37,16 @@ int connection_reset(CONNECTION* conn, bool initialize){
 			close(conn->fd);
 		}
 	}
+	else{
+		logprintf(log, LOG_DEBUG, "Initializing connection data\n");
+	}
 
 	*conn=empty_conn;
 
 	if(conn->aux_data){
 		conn_data=(CONNDATA*)conn->aux_data;
 
-		if(!initialize){
+		if(data_valid){
 			if(conn_data->reply.response_text){
 				free(conn_data->reply.response_text);
 			}
