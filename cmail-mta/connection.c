@@ -28,7 +28,7 @@ int connection_reset(LOGGER log, CONNECTION* conn, bool data_valid){
 		#ifndef CMAIL_NO_TLS
 		//shut down the tls session
 		if(conn->tls_mode!=TLS_NONE){
-			gnutls_bye(conn->tls_session, GNUTLS_SHUT_RDWR);
+			gnutls_bye(conn->tls_session, GNUTLS_SHUT_WR);
 		}
 		gnutls_deinit(conn->tls_session);
 		#endif
