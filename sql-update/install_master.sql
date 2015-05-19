@@ -126,13 +126,12 @@ BEGIN TRANSACTION;
 		mail_submission,
 		mail_submitter,
 		mail_data,
-		count( fail_mail ) AS mail_failcount,
-		coalesce( max( fail_time ) , 0 ) AS mail_lasttry,
-		coalesce( sum( fail_fatal ) , 0 ) AS mail_fatality
-		FROM outbox
-		LEFT JOIN faillog
-		ON mail_id = fail_mail
-		GROUP BY mail_id;
+		COUNT( fail_mail ) AS mail_failcount,
+		COALESCE( MAX( fail_time ) , 0 ) AS mail_lasttry,
+		COALESCE( SUM( fail_fatal ) , 0 ) AS mail_fatality
+	FROM outbox
+	LEFT JOIN faillog ON mail_id = fail_mail
+	GROUP BY mail_id;
 
 	INSERT INTO meta (key, value) VALUES ('schema_version', '7');
 COMMIT;
