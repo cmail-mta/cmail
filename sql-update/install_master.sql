@@ -2,8 +2,6 @@
 .echo on
 
 BEGIN TRANSACTION;
-
-	-- create tables --
 	CREATE TABLE users (
 		user_name	TEXT NOT NULL
 				UNIQUE,
@@ -135,5 +133,6 @@ BEGIN TRANSACTION;
 		LEFT JOIN faillog
 		ON mail_id = fail_mail
 		GROUP BY mail_id;
-INSERT INTO meta (key, value) VALUES ('schema_version', '6');
+
+	INSERT INTO meta (key, value) VALUES ('schema_version', '7');
 COMMIT;
