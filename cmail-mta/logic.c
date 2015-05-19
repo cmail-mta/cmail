@@ -77,7 +77,12 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	logprintf(log, LOG_INFO, "Entering mail remote handling for host %s in mode %s\n", remote.host, (remote.mode == DELIVER_DOMAIN) ? "domain":"handoff");
 
 	//prepare mail data query
-	if(sqlite3_bind_text(tx_statement, 1, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
+	if(sqlite3_bind_int(tx_statement, 1, settings.retry_interval) != SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
+		return -1;
+	}
+
+	if(sqlite3_bind_text(tx_statement, 2, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
 		return -1;
 	}
@@ -247,6 +252,12 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		mails_delivered = 0;
 		remotes_active = 0;
 	
+		//bind the timeout parameter
+		if(sqlite3_bind_int(database->query_outbound_hosts, 1, settings.retry_interval) != SQLITE_OK){
+			logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
+			break;
+		}
+
 		//fetch all hosts to be delivered to
 		do{
 			status=sqlite3_step(database->query_outbound_hosts);
@@ -295,6 +306,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		}
 		while(status==SQLITE_ROW);
 		sqlite3_reset(database->query_outbound_hosts);
+		sqlite3_clear_bindings(database->query_outbound_hosts);
 
 		//deliver all remotes
 		for(i=0;i<remotes_active;i++){
