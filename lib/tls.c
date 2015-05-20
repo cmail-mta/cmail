@@ -103,7 +103,7 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 		//FIXME error check this lot
 		logprintf(log, LOG_DEBUG, "Generating Diffie-Hellman parameters\n");
         	gnutls_dh_params_init(&(listener->tls_dhparams));
-	        gnutls_dh_params_generate2(listener->tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LOW));
+	        gnutls_dh_params_generate2(listener->tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, TLS_PARAM_STRENGTH));
 		gnutls_certificate_set_dh_params(listener->tls_cert, listener->tls_dhparams);
 		return 0;
 }
