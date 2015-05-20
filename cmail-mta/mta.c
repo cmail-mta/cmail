@@ -52,7 +52,9 @@ int main(int argc, char** argv){
 			.rate_limit = 0,
 			.mail_retries = 5,
 			.retry_interval = 3600,
-			.tls_padding = 10
+			.tls_padding = 10,
+			.bounce_from = NULL,
+			.bounce_to = NULL
 		}
 	};
 

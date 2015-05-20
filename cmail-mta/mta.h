@@ -96,6 +96,8 @@ typedef struct /*_MTA_SETTINGS*/ {
 	unsigned mail_retries;
 	unsigned retry_interval;
 	unsigned tls_padding;
+	char* bounce_from;
+	char** bounce_to;
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_credentials_t tls_credentials;
 	#endif
