@@ -14,7 +14,7 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 	//reset in case any transaction follows
 	smtp_rset(log, conn);
 
-	//handle failcount increase and bounces
+	//handle failcount increase
 	for(i=0;i<transaction->recipients;i++){
 		switch(transaction->rcpt[i].status){
 			case RCPT_OK:
@@ -50,7 +50,7 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 
 int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE remote){
 	int status, delivered_mails = -1;
-	unsigned current_mx = 0, mx_count = 0, port, c;
+	unsigned current_mx = 0, mx_count = 0, port, i, c;
 	sqlite3_stmt* tx_statement = (remote.mode == DELIVER_DOMAIN) ? database->query_domain:database->query_remote;
 
 	CONNDATA conn_data = {
@@ -217,8 +217,12 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 
 	if(delivered_mails < 0){
-		//TODO handle "no mxes reachable" -> increase retry count for all mails
 		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", remote.host);
+		for(i=0;i<tx_active;i++){
+			for(c=0;c<mails[i].recipients;c++){
+				mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to reach any MX", false);
+			}
+		}
 	}
 
 	if(remote.mode == DELIVER_DOMAIN){
