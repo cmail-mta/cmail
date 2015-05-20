@@ -1,3 +1,12 @@
+int logic_generate_bounces(LOGGER log, DATABASE* database){
+	//query all candidates (FIXME collate by mail/sender in order to catch mult-recipient mails)
+		//fetch reasons
+		//create bounce message
+		//insert into outbox
+		//delete original message
+	return -1;
+}
+
 int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, MAIL* transaction){
 	int delivered_mails=0;
 	unsigned i;
