@@ -1,10 +1,47 @@
-int logic_generate_bounces(LOGGER log, DATABASE* database){
-	//query all candidates (FIXME collate by mail/sender in order to catch mult-recipient mails)
-		//fetch reasons
-		//create bounce message
-		//insert into outbox
-		//delete original message
-	return -1;
+int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
+	int status, rv = 0;
+	unsigned bounces = 0;
+
+	logprintf(log, LOG_INFO, "Entering bounce handling logic\n");
+
+	if(sqlite3_bind_int(database->query_bounce_candidates, 1, settings.mail_retries) != SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind retry amount parameter %d: %s\n", settings.mail_retries, sqlite3_errmsg(database->conn));
+		return -1;
+	}
+
+	//query all candidates (FIXME collate by mail/sender in order to catch mult-recipient mails. or dont.)
+	do{
+		status = sqlite3_step(database->query_bounce_candidates);
+		switch(status){
+			case SQLITE_ROW:
+				logprintf(log, LOG_DEBUG, "Bouncing message %d from %s retries %d fatality %d\n", sqlite3_column_int(database->query_bounce_candidates, 0), sqlite3_column_text(database->query_bounce_candidates, 1), sqlite3_column_int(database->query_bounce_candidates, 3), sqlite3_column_int(database->query_bounce_candidates, 4));
+
+				//TODO fetch reasons
+				//TODO create bounce message
+				//TODO insert into outbox
+
+				//delete original message
+				mail_delete(log, database, sqlite3_column_int(database->query_bounce_candidates, 0));
+
+				bounces++;
+				//reset condition to continue
+				status = SQLITE_ROW;
+				break;
+			case SQLITE_DONE:
+				logprintf(log, LOG_INFO, "Generated %d bounce messages\n", bounces);
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Unhandled database response in bounce generation: %s\n", sqlite3_errmsg(database->conn));
+				rv = -1;
+				break;
+		}
+	}
+	while(status==SQLITE_ROW);
+
+	sqlite3_reset(database->query_bounce_candidates);
+	sqlite3_clear_bindings(database->query_bounce_candidates);
+	
+	return (rv<0) ? rv:bounces;
 }
 
 int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, MAIL* transaction){
@@ -28,16 +65,10 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 		switch(transaction->rcpt[i].status){
 			case RCPT_OK:
 				//delivery done, remove from database
-				if(sqlite3_bind_int(database->delete_mail, 1, transaction->rcpt[i].dbid)!=SQLITE_OK){
-					logprintf(log, LOG_WARNING, "Failed to bind deletion parameter %d: %s\n", transaction->rcpt[i].dbid, sqlite3_errmsg(database->conn));
+				if(mail_delete(log, database, transaction->rcpt[i].dbid)<0){
+					logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d\n", transaction->rcpt[i].dbid);
 				}
-				else{
-					if(sqlite3_step(database->delete_mail)!=SQLITE_DONE){
-						logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", transaction->rcpt[i].dbid, sqlite3_errmsg(database->conn));
-					}
-					sqlite3_reset(database->delete_mail);
-					sqlite3_clear_bindings(database->delete_mail);
-				}
+			
 				delivered_mails++;
 				break;
 			case RCPT_FAIL_TEMPORARY:
@@ -254,7 +285,8 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	int status;
 	unsigned i;
 	unsigned mails_delivered = 0;
-	
+	int bounces_generated = 0;
+
 	unsigned remotes_allocated = 0;
 	unsigned remotes_active = 0;
 	REMOTE* remotes = NULL;
@@ -336,7 +368,13 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 			}
 		}
 		
-		logprintf(log, LOG_INFO, "Core interval done, delivered %d mails\n", mails_delivered);
+		bounces_generated = logic_generate_bounces(log, database, settings);
+		if(bounces_generated < 0){
+			logprintf(log, LOG_WARNING, "Bounce generation reported an error\n");
+			bounces_generated = 0;
+		}
+
+		logprintf(log, LOG_INFO, "Core interval done, delivered %d mails, generated %d bounces\n", mails_delivered, bounces_generated);
 		
 		sleep(settings.check_interval);
 	}

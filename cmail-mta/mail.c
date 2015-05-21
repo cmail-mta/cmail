@@ -74,6 +74,24 @@ int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool f
 	return rv;
 }
 
+int mail_delete(LOGGER log, DATABASE* database, int dbid){
+	int rv = 0;
+
+	if(sqlite3_bind_int(database->delete_mail, 1, dbid) != SQLITE_OK){
+		logprintf(log, LOG_WARNING, "Failed to bind deletion parameter %d: %s\n", dbid, sqlite3_errmsg(database->conn));
+		return -1;
+	}
+
+	if(sqlite3_step(database->delete_mail) != SQLITE_DONE){
+		logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", dbid, sqlite3_errmsg(database->conn));	
+		rv = -1;
+	}
+
+	sqlite3_reset(database->delete_mail);
+	sqlite3_clear_bindings(database->delete_mail);
+	return rv;
+}
+
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 	unsigned i;
