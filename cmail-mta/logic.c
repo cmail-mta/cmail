@@ -2,6 +2,9 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 	int status, rv = 0;
 	unsigned bounces = 0;
 
+	unsigned bounce_allocated = 0;
+	char* bounce_message = NULL;
+
 	logprintf(log, LOG_INFO, "Entering bounce handling logic\n");
 
 	if(sqlite3_bind_int(database->query_bounce_candidates, 1, settings.mail_retries) != SQLITE_OK){
@@ -40,16 +43,20 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 
 	sqlite3_reset(database->query_bounce_candidates);
 	sqlite3_clear_bindings(database->query_bounce_candidates);
-	
+
+	if(bounce_message){
+		free(bounce_message);
+	}
+
 	return (rv<0) ? rv:bounces;
 }
 
 int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, MAIL* transaction){
-	int delivered_mails=0;
+	int delivered_mails = 0;
 	unsigned i;
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*) conn->aux_data;
 
-	if(mail_dispatch(log, database, transaction, conn)<0){
+	if(mail_dispatch(log, database, transaction, conn) < 0){
 		logprintf(log, LOG_WARNING, "Failed to dispatch transaction\n");
 		//need to reset transaction here because greylisting may fail the first connection,
 		//but we'd still like to try the next
@@ -132,7 +139,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		status = sqlite3_step(tx_statement);
 		switch(status){
 			case SQLITE_ROW:
-				if(tx_active>=tx_allocated){
+				if(tx_active >= tx_allocated){
 					//reallocate transaction array
 					mails = realloc(mails, (tx_allocated+CMAIL_REALLOC_CHUNK) * sizeof(MAIL));
 					if(!mails){
@@ -221,7 +228,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			conn.fd = network_connect(log, resolver_remote, settings.port_list[port].port);
 			//TODO only reconnect if port or remote have changed
 
-			if(conn.fd>0){
+			if(conn.fd > 0){
 				//negotiate smtp
 				if(smtp_negotiate(log, settings, resolver_remote, &conn, settings.port_list[port])<0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
@@ -231,7 +238,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 				}
 
 				//connected, run the delivery loop
-				delivered_mails=0;
+				delivered_mails = 0;
 				for(c=0;c<tx_active;c++){
 					status = logic_handle_transaction(log, database, &conn, mails+c);
 					if(status < 0){
@@ -305,12 +312,12 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 
 		//fetch all hosts to be delivered to
 		do{
-			status=sqlite3_step(database->query_outbound_hosts);
+			status = sqlite3_step(database->query_outbound_hosts);
 			switch(status){
 				case SQLITE_ROW:
-					if(remotes_active>=remotes_allocated){
+					if(remotes_active >= remotes_allocated){
 						//reallocate remote array
-						remotes=realloc(remotes, (remotes_allocated+CMAIL_REALLOC_CHUNK)*sizeof(REMOTE));
+						remotes = realloc(remotes, (remotes_allocated+CMAIL_REALLOC_CHUNK)*sizeof(REMOTE));
 						if(!remotes){
 							logprintf(log, LOG_ERROR, "Failed to allocate memory for remote array\n");
 							return -1;
@@ -324,14 +331,14 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 						free(remotes[remotes_active].host);
 					}
 					
-					remotes[remotes_active].mode=DELIVER_HANDOFF;
+					remotes[remotes_active].mode = DELIVER_HANDOFF;
 					
 					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
-						remotes[remotes_active].host=common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
+						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
 					}
 					else if(sqlite3_column_text(database->query_outbound_hosts, 1)){
-						remotes[remotes_active].mode=DELIVER_DOMAIN;
-						remotes[remotes_active].host=common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 1));
+						remotes[remotes_active].mode = DELIVER_DOMAIN;
+						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 1));
 					}
 
 					if(!remotes[remotes_active].host){
@@ -349,7 +356,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					break;
 			}
 		}
-		while(status==SQLITE_ROW);
+		while(status == SQLITE_ROW);
 		sqlite3_reset(database->query_outbound_hosts);
 		sqlite3_clear_bindings(database->query_outbound_hosts);
 

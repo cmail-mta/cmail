@@ -16,7 +16,7 @@
 #include "../lib/signal.h"
 #include "../lib/privileges.h"
 #include "../lib/config.h"
-#include "../lib/tls.h"
+//#include "../lib/tls.h" //pulled in by network.h anyway
 #include "../lib/database.h"
 #include "../lib/network.h"
 
