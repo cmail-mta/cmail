@@ -30,3 +30,13 @@ Case-sensitive matching
 -----------------------
 Currently, all paths are matched completely case-sensitive,
 including the domain parts. This may be fixed in the future.
+
+Problematic user names
+----------------------
+Some components of cmail (notably cmail-msa and cmail-popd)
+use the SQLite ATTACH functionality to connect to user databases.
+This facility requires the application to assign a name to the
+attached database. The users name is used for that identifier.
+SQLite reserves the names "main" and "temp" for internal use,
+making cmail users with these names using the user database
+functionality problematic. This may be fixed in the future.
