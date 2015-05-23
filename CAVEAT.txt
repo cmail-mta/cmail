@@ -15,7 +15,7 @@ It is currently possible to have users be aliased to other
 aliased users, including the original user. This creates an 
 infinite loop at the time the alias is resolved (mail routing). 
 Aliases should for the time being only be created by administrators,
-not directly b end users.
+not directly by end users.
 
 Internationalized Email
 -----------------------

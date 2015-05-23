@@ -1,3 +1,14 @@
+char* common_strdup(char* input){
+	char* duplicate=NULL;
+	size_t length=strlen(input);
+	duplicate=calloc(length+1, sizeof(char));
+	if(!duplicate){
+		return NULL;
+	}
+
+	return strncpy(duplicate, input, length); //this is ok because the memory is calloc'd
+}
+
 ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
 	//This function needs to be called on a buffer until it returns 0,
 	//otherwise, the append_offset points to the end of the "olddata" buffer

@@ -13,6 +13,7 @@
 #define CMAIL_REALLOC_CHUNK 10
 
 #include "../lib/logger.h"
+#include "../lib/common.c"
 #include "../lib/signal.h"
 #include "../lib/privileges.h"
 #include "../lib/config.h"

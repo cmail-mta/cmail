@@ -1,5 +1,17 @@
 #ifndef CMAIL_NO_TLS
 
+char* tls_modestring(TLSMODE mode){
+	switch(mode){
+		case TLS_NONE:
+			return "TLS_NONE";
+		case TLS_NEGOTIATE:
+			return "TLS_NEGOTIATE";
+		case TLS_ONLY:
+			return "TLS_ONLY";
+	}
+	return "Unknown";
+}
+
 int tls_handshake(LOGGER log, CONNECTION* conn){
 	int status;
 
