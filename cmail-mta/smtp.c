@@ -56,12 +56,9 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 
 int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
-	if(!mail->envelopefrom){
-		logprintf(log, LOG_ERROR, "Mail did not have valid envelope sender\n");
-		return -1;
-	}
 
-	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom);
+	//need to accept NULL as sender here in order to handle bounces
+	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom ? mail->envelopefrom:"");
 	if(protocol_read(log, conn, SMTP_MAIL_TIMEOUT)<0){
 		logprintf(log, LOG_ERROR, "Failed to read response to mail initiation\n");
 		return -1;
