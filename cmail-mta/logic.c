@@ -25,7 +25,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 
 				logprintf(log, LOG_DEBUG, "Bouncing message %d from %s retries %d fatality %d\n", sqlite3_column_int(database->query_bounce_candidates, 0), sqlite3_column_text(database->query_bounce_candidates, 1), sqlite3_column_int(database->query_bounce_candidates, 3), sqlite3_column_int(database->query_bounce_candidates, 4));
 
-
+				//TODO fix date
 				bounce_message = common_strappf(bounce_message, &bounce_allocated, 
 						"From: %s\r\n" \
 						"To: %s\r\n" \
@@ -35,7 +35,8 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 						"This message was automatically created by the outbound mail delivery system\r\n" \
 						"\r\n" \
 						"A message you sent could not be delivered to one of its intended recipients\r\n" \
-						"by the local system. This error is permanent. The following attempts at delivery have been made:\r\n",
+						"by the local system. This error is permanent.\r\n" \
+						"The following attempts at delivery have been made:\r\n",
 						settings.bounce_from, (char*)sqlite3_column_text(database->query_bounce_candidates, 1), "FIXED DATE", bounces);
 				if(!bounce_message){
 					logprintf(log, LOG_ERROR, "Failed to create bounce message base\n");
