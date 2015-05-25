@@ -99,14 +99,14 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 						}
 
 						sqlite3_reset(database->insert_bounce);
-						if(settings.bounce_to[i]){
+						if(settings.bounce_to && settings.bounce_to[i]){
 							if(sqlite3_bind_text(database->insert_bounce, 1, settings.bounce_to[i], -1, SQLITE_STATIC) != SQLITE_OK){
 								logprintf(log, LOG_ERROR, "Failed to bind additional bounce recipient: %s\n", sqlite3_errmsg(database->conn));
 								rv = -1;
 							}
 						}
 					}
-					while(rv == 0 && settings.bounce_to[i++]);
+					while(rv == 0 && settings.bounce_to && settings.bounce_to[i++]);
 
 					if(rv == 0){
 						//delete original message
