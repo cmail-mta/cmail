@@ -23,9 +23,8 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 					continue;
 				}
 
-				logprintf(log, LOG_DEBUG, "Bouncing message %d from %s retries %d fatality %d\n", sqlite3_column_int(database->query_bounce_candidates, 0), sqlite3_column_text(database->query_bounce_candidates, 1), sqlite3_column_int(database->query_bounce_candidates, 3), sqlite3_column_int(database->query_bounce_candidates, 4));
+				logprintf(log, LOG_DEBUG, "Bouncing message %d from %s retries %d fatality %d\n", sqlite3_column_int(database->query_bounce_candidates, 0), sqlite3_column_text(database->query_bounce_candidates, 1), sqlite3_column_int(database->query_bounce_candidates, 4), sqlite3_column_int(database->query_bounce_candidates, 5));
 
-				//TODO fix date
 				bounce_message = common_strappf(bounce_message, &bounce_allocated, 
 						"From: %s\r\n" \
 						"To: %s\r\n" \
@@ -34,10 +33,14 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 						"\r\n" \
 						"This message was automatically created by the outbound mail delivery system\r\n" \
 						"\r\n" \
-						"A message you sent could not be delivered to one of its intended recipients\r\n" \
-						"by the local system. This error is permanent.\r\n" \
+						"A message you sent (received locally at unixtime %d) could not be delivered\r\n" \
+						"to its intended recipient %s by the local system.\r\n" \
 						"The following attempts at delivery have been made:\r\n",
-						settings.bounce_from, (char*)sqlite3_column_text(database->query_bounce_candidates, 1), "FIXED DATE", bounces);
+						settings.bounce_from,
+						sqlite3_column_text(database->query_bounce_candidates, 1),
+						"FIXED DATE", //TODO generate real date here
+						sqlite3_column_int(database->query_bounce_candidates, 3),
+						sqlite3_column_text(database->query_bounce_candidates, 2));
 				if(!bounce_message){
 					logprintf(log, LOG_ERROR, "Failed to create bounce message base\n");
 					break;
@@ -77,7 +80,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 				//FIXME error check here
 
 				if(sqlite3_bind_text(database->insert_bounce, 2, bounce_message, -1, SQLITE_STATIC) != SQLITE_OK
-					|| sqlite3_bind_value(database->insert_bounce, 3, sqlite3_column_value(database->query_bounce_candidates, 5)) != SQLITE_OK){
+					|| sqlite3_bind_value(database->insert_bounce, 3, sqlite3_column_value(database->query_bounce_candidates, 6)) != SQLITE_OK){
 					logprintf(log, LOG_ERROR, "Failed to bind bounce insertion parameter: %s\n", sqlite3_errmsg(database->conn));
 				}
 				else{
