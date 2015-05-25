@@ -1,6 +1,6 @@
 int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	int status, rv = 0;
-	unsigned bounces = 0;
+	unsigned bounces = 0, i;
 
 	unsigned bounce_allocated = 0;
 	char* bounce_message = NULL;
@@ -33,8 +33,8 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 						"\r\n" \
 						"This message was automatically created by the outbound mail delivery system\r\n" \
 						"\r\n" \
-						"A message you sent (received locally at unixtime %d) could not be delivered\r\n" \
-						"to its intended recipient %s by the local system.\r\n" \
+						"A message you sent (received locally at unixtime %d) could not be\r\n" \
+						"delivered to its intended recipient %s by the local system.\r\n" \
 						"The following attempts at delivery have been made:\r\n",
 						settings.bounce_from,
 						sqlite3_column_text(database->query_bounce_candidates, 1),
@@ -56,7 +56,10 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 					switch(status){
 						case SQLITE_ROW:
 							bounce_message = common_strappf(bounce_message, &bounce_allocated,
-									"Unixtime %d: %s\r\n", sqlite3_column_int(database->query_bounce_reasons, 0), sqlite3_column_text(database->query_bounce_reasons, 1));
+									"Unixtime %d %s => %s\r\n", 
+									sqlite3_column_int(database->query_bounce_reasons, 0), 
+									(sqlite3_column_int(database->query_bounce_reasons, 2) != 0) ? "(Permanent failure)":"(Deferring)",
+									sqlite3_column_text(database->query_bounce_reasons, 1));
 							if(!bounce_message){
 								logprintf(log, LOG_ERROR, "Failed to append bounce reason to bounce message\r\n");
 								break;
@@ -84,14 +87,28 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 					logprintf(log, LOG_ERROR, "Failed to bind bounce insertion parameter: %s\n", sqlite3_errmsg(database->conn));
 				}
 				else{
-					//TODO iterate over intended bounce recipients
 					sqlite3_bind_value(database->insert_bounce, 1, sqlite3_column_value(database->query_bounce_candidates, 1));
 
-					//insert into outbox
-					if(sqlite3_step(database->insert_bounce) != SQLITE_DONE){
-						logprintf(log, LOG_ERROR, "Failed to insert bounce message\n");
+					//iterate over intended bounce recipients
+					i = 0;
+					do{
+						//insert into outbox
+						if(sqlite3_step(database->insert_bounce) != SQLITE_DONE){
+							logprintf(log, LOG_ERROR, "Failed to insert bounce message\n");
+							rv = -1;
+						}
+
+						sqlite3_reset(database->insert_bounce);
+						if(settings.bounce_to[i]){
+							if(sqlite3_bind_text(database->insert_bounce, 1, settings.bounce_to[i], -1, SQLITE_STATIC) != SQLITE_OK){
+								logprintf(log, LOG_ERROR, "Failed to bind additional bounce recipient: %s\n", sqlite3_errmsg(database->conn));
+								rv = -1;
+							}
+						}
 					}
-					else{
+					while(rv == 0 && settings.bounce_to[i++]);
+
+					if(rv == 0){
 						//delete original message
 						mail_delete(log, database, sqlite3_column_int(database->query_bounce_candidates, 0));
 
