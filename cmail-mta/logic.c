@@ -17,9 +17,6 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
 	}
 
-	//create message id
-	snprintf(message_id, sizeof(message_id)-1, "%X.%X@%s", (unsigned)unix_time, rand(), settings.helo_announce);
-
 	if(sqlite3_bind_int(database->query_bounce_candidates, 1, settings.mail_retries) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind retry amount parameter %d: %s\n", settings.mail_retries, sqlite3_errmsg(database->conn));
 		return -1;
@@ -37,6 +34,9 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 				}
 
 				logprintf(log, LOG_DEBUG, "Bouncing message %d from %s retries %d fatality %d\n", sqlite3_column_int(database->query_bounce_candidates, 0), sqlite3_column_text(database->query_bounce_candidates, 1), sqlite3_column_int(database->query_bounce_candidates, 4), sqlite3_column_int(database->query_bounce_candidates, 5));
+
+				//create message id
+				snprintf(message_id, sizeof(message_id)-1, "%X.%X@%s", (unsigned)unix_time, rand(), settings.helo_announce);
 
 				bounce_message = common_strappf(bounce_message, &bounce_allocated, 
 						"From: %s\r\n" \
