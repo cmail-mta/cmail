@@ -122,51 +122,62 @@ int mail_line(LOGGER log, MAIL* mail, char* line){
 }
 
 int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
-	char buffer[(SMTP_HEADER_LINE_MAX*4)+1];
+	char time_buffer[SMTP_HEADER_LINE_MAX];
+	char* recv_header = NULL;
+	unsigned header_allocated = 0;
 
 	unsigned mark=0, i, off=0;
-	int bytes=0;
+
+	MAILPATH* forward_path = (mail->forward_paths[1]) ? NULL:mail->forward_paths[0];
+
 	time_t unix_time=time(NULL);
 	struct tm* local_time=localtime(&unix_time);
 
-	//write received: header
-	bytes=snprintf(buffer, sizeof(buffer)-1, "Received: from %s by %s with %s; ", mail->submitter, announce, mail->protocol);
+	//create timestring
+	if(!local_time || !strftime(time_buffer, sizeof(time_buffer)-1, "%a, %d %b %Y %T %z", local_time)){
+		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
+	}
 
-	if(bytes<0){
+	//write received: header
+	recv_header = common_strappf(recv_header, &header_allocated,
+			"Received: from %s by %s%s%s with %s; %s",
+			mail->submitter,
+			announce,
+			forward_path ? " for ":"",
+			forward_path ? forward_path->path:"",
+			mail->protocol,
+			time_buffer);
+
+	if(!recv_header){
+		logprintf(log, LOG_ERROR, "Failed to allocate memory for Received: header\n");
 		return -1;
 	}
 
-	if(local_time){
-		bytes+=strftime(buffer+bytes, sizeof(buffer)-bytes-1, "%a, %d %b %Y %T %z", local_time);
-	}
-	else{
-		bytes+=snprintf(buffer+bytes, sizeof(buffer)-bytes-1, "Time failed");
-	}
+	logprintf(log, LOG_DEBUG, "%d bytes of header data: %s\n", header_allocated, recv_header);
 
-	logprintf(log, LOG_DEBUG, "%d bytes of header data: %s\n", bytes, buffer);
-
-	for(i=0;i<=bytes;i++){
-		if(buffer[i]==' '){
-			mark=i;
+	for(i=0;i<=header_allocated;i++){
+		if(recv_header[i] == ' '){
+			mark = i;
 		}
 
-		if(((i-off)>=SMTP_HEADER_LINE_MAX && off<mark) || buffer[i]==0){
+		if(((i - off) >= SMTP_HEADER_LINE_MAX && off < mark) || recv_header[i] == 0){
 			//add current contents
 			//terminate
-			if(buffer[i]){
-				buffer[mark]=0;
+			if(recv_header[i]){
+				recv_header[mark] = 0;
 			}
-			mail_line(log, mail, buffer+off);
+			mail_line(log, mail, recv_header + off);
 			//un-terminate
-			buffer[mark]=' ';
+			recv_header[mark] = ' ';
 
-			off=mark;
-			if(buffer[i]==0){
+			off = mark;
+			if(recv_header[i] == 0){
 				break;
 			}
 		}
 	}
 
+	free(recv_header);
 	return 0;
 }
 
