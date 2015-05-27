@@ -1,11 +1,20 @@
 int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
+	char time_buffer[SMTP_HEADER_LINE_MAX];
 	int status, rv = 0;
 	unsigned bounces = 0, i;
 
 	unsigned bounce_allocated = 0;
 	char* bounce_message = NULL;
 
+	time_t unix_time = time(NULL);
+	struct tm* local_time = localtime(&unix_time);
+
 	logprintf(log, LOG_INFO, "Entering bounce handling logic\n");
+
+	//create time string
+	if(!local_time || !strftime(time_buffer, sizeof(time_buffer)-1, "%a, %d %b %Y %T %z", local_time)){
+		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
+	}
 
 	if(sqlite3_bind_int(database->query_bounce_candidates, 1, settings.mail_retries) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind retry amount parameter %d: %s\n", settings.mail_retries, sqlite3_errmsg(database->conn));
@@ -38,7 +47,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 						"The following attempts at delivery have been made:\r\n",
 						settings.bounce_from,
 						sqlite3_column_text(database->query_bounce_candidates, 1),
-						"FIXED DATE", //TODO generate real date here
+						time_buffer,
 						sqlite3_column_int(database->query_bounce_candidates, 3),
 						sqlite3_column_text(database->query_bounce_candidates, 2));
 				if(!bounce_message){
