@@ -1,5 +1,6 @@
 int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	char time_buffer[SMTP_HEADER_LINE_MAX];
+	char message_id[SMTP_HEADER_LINE_MAX];
 	int status, rv = 0;
 	unsigned bounces = 0, i;
 
@@ -15,6 +16,9 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 	if(!local_time || !strftime(time_buffer, sizeof(time_buffer)-1, "%a, %d %b %Y %T %z", local_time)){
 		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
 	}
+
+	//create message id
+	snprintf(message_id, sizeof(message_id)-1, "%X.%X@%s", (unsigned)unix_time, rand(), settings.helo_announce);
 
 	if(sqlite3_bind_int(database->query_bounce_candidates, 1, settings.mail_retries) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind retry amount parameter %d: %s\n", settings.mail_retries, sqlite3_errmsg(database->conn));
@@ -39,6 +43,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 						"To: %s\r\n" \
 						"Subject: Mail delivery failed, returning message to sender\r\n" \
 						"Date: %s\r\n" \
+						"Message-Id: <%s>\r\n" \
 						"\r\n" \
 						"This message was automatically created by the outbound mail delivery system\r\n" \
 						"\r\n" \
@@ -48,6 +53,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 						settings.bounce_from,
 						sqlite3_column_text(database->query_bounce_candidates, 1),
 						time_buffer,
+						message_id,
 						sqlite3_column_int(database->query_bounce_candidates, 3),
 						sqlite3_column_text(database->query_bounce_candidates, 2));
 				if(!bounce_message){
@@ -65,9 +71,9 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 					switch(status){
 						case SQLITE_ROW:
 							bounce_message = common_strappf(bounce_message, &bounce_allocated,
-									"Unixtime %d %s => %s\r\n", 
+									"Unixtime %d %s: %s\r\n", 
 									sqlite3_column_int(database->query_bounce_reasons, 0), 
-									(sqlite3_column_int(database->query_bounce_reasons, 2) != 0) ? "(Permanent failure)":"(Deferring)",
+									(sqlite3_column_int(database->query_bounce_reasons, 2) != 0) ? "(Permanent failure)":"(Temporary failure)",
 									sqlite3_column_text(database->query_bounce_reasons, 1));
 							if(!bounce_message){
 								logprintf(log, LOG_ERROR, "Failed to append bounce reason to bounce message\r\n");
@@ -89,7 +95,10 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 				//append mail data indicator
 				bounce_message = common_strappf(bounce_message, &bounce_allocated, 
 						"\r\n-------Original Message including headers--------\r\n");
-				//FIXME error check here
+				if(!bounce_message){
+					logprintf(log, LOG_ERROR, "Failed to append to bounce message\n");
+					break;
+				}
 
 				if(sqlite3_bind_text(database->insert_bounce, 2, bounce_message, -1, SQLITE_STATIC) != SQLITE_OK
 					|| sqlite3_bind_value(database->insert_bounce, 3, sqlite3_column_value(database->query_bounce_candidates, 6)) != SQLITE_OK){
