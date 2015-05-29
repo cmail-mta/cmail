@@ -22,7 +22,7 @@
 			$this->db = $c->getDB();
 			$this->output = $c->getOutput();
 
-			$this->user = $_SERVER["PHP_AUTH_USER"];
+			$this->user = $c->getAuth()->getUser();
 
 			$this->getUserDB();
 		}
