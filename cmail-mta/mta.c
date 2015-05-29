@@ -14,8 +14,10 @@ int usage(char* filename){
 
 int main(int argc, char** argv){
 	ARGUMENTS args = {
-		.delivery_domain = NULL,
-		.delivery_mode = DELIVER_DOMAIN,
+		.remote = {
+			.host = NULL,
+			.mode = DELIVER_DOMAIN
+		},
 		.drop_privileges = true,
 		.daemonize = true,
 		.config_file = NULL
@@ -50,7 +52,9 @@ int main(int argc, char** argv){
 			.rate_limit = 0,
 			.mail_retries = 5,
 			.retry_interval = 3600,
-			.tls_padding = 10
+			.tls_padding = 10,
+			.bounce_from = NULL,
+			.bounce_to = NULL
 		}
 	};
 
@@ -133,8 +137,9 @@ int main(int argc, char** argv){
 	}
 
 	//run core loop
-	if(args.delivery_domain){
-		logic_loop_proto(config.log, &(config.database), config.settings, args.delivery_domain, args.delivery_mode);
+	//TODO add run mode for generating bounces
+	if(args.remote.host){
+		logic_handle_remote(config.log, &(config.database), config.settings, args.remote);
 	}
 	else{
 		logic_loop_hosts(config.log, &(config.database), config.settings);

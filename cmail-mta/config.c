@@ -34,9 +34,9 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 		return -1;
 	}
 
-	config->database.conn=database_open(config->log, params, SQLITE_OPEN_READWRITE);
+	config->database.conn = database_open(config->log, params, SQLITE_OPEN_READWRITE);
 
-	return (config->database.conn)?0:-1;
+	return (config->database.conn) ? 0:-1;
 }
 
 #ifndef CMAIL_NO_TLS
@@ -46,20 +46,56 @@ int config_trustfile(CONFIGURATION* config, char* directive, char* params){
 }
 #endif
 
+int config_bounceto(CONFIGURATION* config, char* directive, char* params){
+	unsigned i = 0;
+	char* bounce_rcpt;
+	
+	if(config->settings.bounce_to){
+		//count current recipients
+		for(i=0;config->settings.bounce_to[i];i++){
+		}
+	}
+
+	bounce_rcpt=strtok(params, " ");
+	do{
+		if(bounce_rcpt){
+			config->settings.bounce_to = realloc(config->settings.bounce_to, (i + 2) * sizeof(char*));
+			if(!config->settings.bounce_to){
+				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for bounce_copy buffer\n");
+				return -1;
+			}
+
+			config->settings.bounce_to[i+1] = NULL;
+			config->settings.bounce_to[i] = common_strdup(bounce_rcpt);
+			if(!config->settings.bounce_to[i]){
+				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for bounce_copy buffer entry\n");
+				return -1;
+			}
+			else{
+				logprintf(config->log, LOG_INFO, "Added bounce copy recipient %d: %s\n", i, bounce_rcpt);
+			}
+			i++;
+		}
+		bounce_rcpt=strtok(NULL, " ");
+	}
+	while(bounce_rcpt);
+	return 0;
+}
+
 int config_logger(CONFIGURATION* config, char* directive, char* params){
 	FILE* log_file;
 
 	if(!strcmp(directive, "verbosity")){
-		config->log.verbosity=strtoul(params, NULL, 10);
+		config->log.verbosity = strtoul(params, NULL, 10);
 		return 0;
 	}
 	else if(!strcmp(directive, "logfile")){
-		log_file=fopen(params, "a");
+		log_file = fopen(params, "a");
 		if(!log_file){
 			logprintf(config->log, LOG_ERROR, "Failed to open logfile %s for appending\n", params);
 			return -1;
 		}
-		config->log.stream=log_file;
+		config->log.stream = log_file;
 		return 0;
 	}
 	return -1;
@@ -206,11 +242,21 @@ int config_line(void* config_data, char* line){
 		return 0;
 	}
 
+	else if(!strncmp(line, "bounce_from", 11)){
+		config->settings.bounce_from=common_strdup(line+parameter);
+		return (config->settings.bounce_from)?0:-1;
+	}
+
+	else if(!strncmp(line, "bounce_copy", 11)){
+		return config_bounceto(config, line, line+parameter);
+	}
+
 	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
 	return -1;
 }
 
 void config_free(CONFIGURATION* config){
+	unsigned i;
 	database_free(config->log, &(config->database));
 
 	if(config->settings.helo_announce){
@@ -219,6 +265,17 @@ void config_free(CONFIGURATION* config){
 
 	if(config->settings.port_list){
 		free(config->settings.port_list);
+	}
+
+	if(config->settings.bounce_from){
+		free(config->settings.bounce_from);
+	}
+
+	if(config->settings.bounce_to){
+		for(i=0;config->settings.bounce_to[i];i++){
+			free(config->settings.bounce_to[i]);
+		}
+		free(config->settings.bounce_to);
 	}
 
 	#ifndef CMAIL_NO_TLS

@@ -506,6 +506,10 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 							logprintf(log, LOG_INFO, "Incoming mail accepted from %s\n", client_data->peer_name);
 							client_send(log, client, "250 OK\r\n");
 							break;
+						case 400:
+							logprintf(log, LOG_INFO, "Temporary routing failure, deferring message\n");
+							client_send(log, client, "451 Temporary failure, please try again later. If the error persists, contact the administrator.\r\n");
+							break;
 						default:
 							logprintf(log, LOG_WARNING, "Mail not routed, rejecting\n");
 							client_send(log, client, "554 Rejected\r\n");
@@ -517,6 +521,10 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 						case 250:
 							logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->auth.user, client_data->peer_name);
 							client_send(log, client, "250 OK\r\n");
+							break;
+						case 400:
+							logprintf(log, LOG_INFO, "Temporary routing failure, deferring message\n");
+							client_send(log, client, "451 Temporary failure, please try again later. If the error persists, contact the administrator.\r\n");
 							break;
 						default:
 							logprintf(log, LOG_WARNING, "Originated mail could not be routed, rejecting\n");

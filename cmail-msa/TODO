@@ -4,7 +4,7 @@ Implement client timeouts
 Periodically release unused memory
 Bind parameter filter-local-reverse
 Implement client command rate limiting
-Write some tests
 Configurable reject message
 Alias routing README compliancy (route _as_ user)
-Do not accept mail when all recipients fail
+Test outbound/inbound handoff/forward routers
+Allow specification of remote port with HANDOFF

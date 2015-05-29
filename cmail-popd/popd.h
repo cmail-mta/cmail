@@ -18,7 +18,7 @@
 #include "../lib/network.h"
 #include "../lib/connpool.h"
 #include "../lib/auth.h"
-#include "../lib/tls.h"
+//#include "../lib/tls.h" //Pulled in by network.h anyway
 #include "../lib/database.h"
 
 #include "../lib/common.c"

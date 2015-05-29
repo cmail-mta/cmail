@@ -13,10 +13,10 @@ int args_parse(ARGUMENTS* args, int argc, char** argv){
 		else if(!strcmp(argv[i], "deliver")||!strcmp(argv[i], "handoff")){
 			if(i+1<argc){
 				if(argv[i][0]=='h'){
-					args->delivery_mode=DELIVER_HANDOFF;
+					args->remote.mode=DELIVER_HANDOFF;
 				}
 				printf("Updating delivery domain to %s\n", argv[i+1]);
-				args->delivery_domain=argv[++i];
+				args->remote.host=argv[++i];
 			}
 			else{
 				printf("Failed to read argument for delivery domain\n");

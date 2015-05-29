@@ -2,8 +2,6 @@
 .echo on
 
 BEGIN TRANSACTION;
-
-	-- create tables --
 	CREATE TABLE users (
 		user_name	TEXT NOT NULL
 				UNIQUE,
@@ -118,5 +116,22 @@ BEGIN TRANSACTION;
 		fail_time	TEXT NOT NULL DEFAULT (strftime( '%s', 'now' )),
 		fail_fatal	BOOLEAN NOT NULL DEFAULT (0)
 	);
-INSERT INTO meta (key, value) VALUES ('schema_version', '6');
+	
+	CREATE VIEW outbound AS	
+	SELECT 
+		mail_id,
+		mail_remote,
+		mail_envelopefrom,
+		mail_envelopeto,
+		mail_submission,
+		mail_submitter,
+		mail_data,
+		COUNT( fail_mail ) AS mail_failcount,
+		COALESCE( MAX( fail_time ) , 0 ) AS mail_lasttry,
+		COALESCE( SUM( fail_fatal ) , 0 ) AS mail_fatality
+	FROM outbox
+	LEFT JOIN faillog ON mail_id = fail_mail
+	GROUP BY mail_id;
+
+	INSERT INTO meta (key, value) VALUES ('schema_version', '7');
 COMMIT;

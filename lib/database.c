@@ -89,6 +89,11 @@ sqlite3* database_open(LOGGER log, const char* filename, int flags){
 		logprintf(log, LOG_ERROR, "Failed to register instr() with sqlite: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		return NULL;
+	}
+
+	if(sqlite3_busy_timeout(db, 5000) != SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to set sqlite busy timeout\n");
+		sqlite3_close(db);
 		return NULL;
 	}
 

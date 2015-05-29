@@ -10,12 +10,14 @@
 
 #define VERSION "cmail-mta 0.1"
 #define CMAIL_HAVE_DATABASE_TYPE
+#define CMAIL_REALLOC_CHUNK 10
 
 #include "../lib/logger.h"
+#include "../lib/common.c"
 #include "../lib/signal.h"
 #include "../lib/privileges.h"
 #include "../lib/config.h"
-#include "../lib/tls.h"
+//#include "../lib/tls.h" //pulled in by network.h anyway
 #include "../lib/database.h"
 #include "../lib/network.h"
 
@@ -33,6 +35,11 @@ typedef enum /*_DELIVERY_MODE*/ {
 	DELIVER_DOMAIN,
 	DELIVER_HANDOFF
 } DELIVERY_MODE;
+
+typedef struct /*_DELIVERY_REMOTE*/ {
+	char* host;
+	DELIVERY_MODE mode;
+} REMOTE;
 
 typedef enum /*_MAIL_STATUS*/ {
 	RCPT_READY,
@@ -69,8 +76,7 @@ typedef struct /*_DATABASE_CONN*/ {
 } DATABASE;
 
 typedef struct /*_ARGUMENT_COLLECTION*/ {
-	char* delivery_domain;
-	DELIVERY_MODE delivery_mode;
+	REMOTE remote;
 	bool drop_privileges;
 	bool daemonize;
 	char* config_file;
@@ -91,6 +97,8 @@ typedef struct /*_MTA_SETTINGS*/ {
 	unsigned mail_retries;
 	unsigned retry_interval;
 	unsigned tls_padding;
+	char* bounce_from;
+	char** bounce_to;
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_credentials_t tls_credentials;
 	#endif
@@ -118,17 +126,11 @@ typedef struct /*_SMTPCLIENT_CONN*/ {
 	SMTPREPLY reply;
 } CONNDATA;
 
-//Prototypes where needed
-int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt);
-int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn);
-int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool fatal);
-int mail_free(MAIL* mail);
-
 #include "args.c"
 #include "database.c"
 #include "config.c"
 #include "connection.c"
 #include "protocol.c"
 #include "smtp.c"
-#include "logic.c"
 #include "mail.c"
+#include "logic.c"

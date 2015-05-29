@@ -56,12 +56,9 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 
 int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
-	if(!mail->envelopefrom){
-		logprintf(log, LOG_ERROR, "Mail did not have valid envelope sender\n");
-		return -1;
-	}
 
-	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom);
+	//need to accept NULL as sender here in order to handle bounces
+	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom ? mail->envelopefrom:"");
 	if(protocol_read(log, conn, SMTP_MAIL_TIMEOUT)<0){
 		logprintf(log, LOG_ERROR, "Failed to read response to mail initiation\n");
 		return -1;
@@ -240,77 +237,4 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	}
 
 	return 0;
-}
-
-int smtp_deliver_loop(LOGGER log, DATABASE* database, sqlite3_stmt* tx_statement, CONNECTION* conn){
-	int status;
-	unsigned transactions=0, mails_delivered=0, i;
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
-	MAIL current_mail = {
-		.recipients = 0,
-		.rcpt = NULL,
-		.envelopefrom = NULL,
-		.length = 0,
-		.data = NULL
-	};
-
-	do{
-		status=sqlite3_step(tx_statement);
-		switch(status){
-			case SQLITE_ROW:
-				//handle outbound mail
-				if(mail_dbread(log, &current_mail, tx_statement)<0){
-					logprintf(log, LOG_ERROR, "Failed to read transaction %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
-				}
-				else{
-					if(mail_dispatch(log, database, &current_mail, conn)<0){
-						logprintf(log, LOG_WARNING, "Failed to dispatch transaction %s\n", (char*)sqlite3_column_text(tx_statement, 0));
-					}
-
-					//handle failcount increase and bounces
-					for(i=0;i<current_mail.recipients;i++){
-						switch(current_mail.rcpt[i].status){
-							case RCPT_OK:
-								//delivery done, remove from database
-								if(sqlite3_bind_int(database->delete_mail, 1, current_mail.rcpt[i].dbid)!=SQLITE_OK){
-										logprintf(log, LOG_WARNING, "Failed to bind deletion parameter %d: %s\n", current_mail.rcpt[i].dbid, sqlite3_errmsg(database->conn));
-								
-								}
-								else{
-									if(sqlite3_step(database->delete_mail)!=SQLITE_DONE){
-										logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", current_mail.rcpt[i].dbid, sqlite3_errmsg(database->conn));
-									}
-									sqlite3_reset(database->delete_mail);
-									sqlite3_clear_bindings(database->delete_mail);
-								}
-								mails_delivered++;
-								break;
-							case RCPT_FAIL_TEMPORARY:
-							case RCPT_FAIL_PERMANENT:
-								//handled by bouncehandler
-								break;
-							case RCPT_READY:
-								logprintf(log, LOG_WARNING, "Recipient %d not touched by dispatch loop\n", i);
-								//this happens if the peer rejects the MAIL command
-								mail_failure(log, database, current_mail.rcpt[i].dbid, conn_data->reply.response_text, false);
-								break;
-						}
-					}
-				}
-				transactions++;
-
-				mail_free(&current_mail);
-				break;
-			case SQLITE_DONE:
-				logprintf(log, LOG_INFO, "All transactions for this connection done\n", mails_delivered, transactions);
-				break;
-		}
-	}
-	while(status==SQLITE_ROW);
-
-	sqlite3_reset(tx_statement);
-	sqlite3_clear_bindings(tx_statement);
-
-	logprintf(log, LOG_INFO, "Handled %d mails in %d transactions\n", mails_delivered, transactions);
-	return transactions;
 }
