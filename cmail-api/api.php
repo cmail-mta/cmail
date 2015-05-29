@@ -93,7 +93,7 @@ function main($module_name) {
 		header("HTTP/1.0 401 Unauthorized");
 
 		$output->write();
-		die();
+		return;
 	}
 
 	$output->add("login", true);
