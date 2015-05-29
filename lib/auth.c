@@ -72,7 +72,7 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 	}
 
 	memset(digest_b16, 0, sizeof(digest_b16));
-	logprintf(log, LOG_DEBUG, "Trying to authenticate %s with password %s\n", user, password);
+	logprintf(log, LOG_DEBUG, "Trying to authenticate %s\n", user);
 
 	if(sqlite3_bind_text(database->query_authdata, 1, user, -1, SQLITE_STATIC)!=SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind auth data query parameter\n");
