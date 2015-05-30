@@ -25,6 +25,18 @@
 			<span id="status">Ok</span>
 		</div>
 
+		<div id="login_prompt" class="editPanel">
+			<form>
+				<label>Username: <br />
+					<input id="login_name" type="text"/>
+				</label>
+				<label>Password: <br />
+					<input id="login_password" type="password" />
+				</label>
+				<span class="button" onclick="cmail.login()">Login</span>
+			</form>
+		</div>
+		
 		<div id="useradd" class="editPanel">
 			<form>
 				<input type="hidden" id="form_type" value="new"/>

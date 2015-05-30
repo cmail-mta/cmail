@@ -141,3 +141,12 @@ label {
 	left: 0;
 	top: 0;
 }
+
+#login_prompt form {
+
+	text-align: center;
+}
+
+#login_prompt form label {
+	text-align: left;
+}

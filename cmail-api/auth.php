@@ -206,20 +206,17 @@ class Auth {
 			return true;
 		}
 
-		$auth = array();
-		if (!isset($_SERVER["PHP_AUTH_USER"]) || empty($_SERVER["PHP_AUTH_USER"])) {
+		if (!isset($auth)) {
+			$this->output->add("status", "Please login first");
+			return false;
+		}
+		if (!isset($auth["user_name"]) || empty($auth["user_name"])) {
+			$this->output->add("status", "Username is not set!");
 			return false;
 		}
 
-		if (!isset($_SERVER["PHP_AUTH_PW"]) || empty($_SERVER["PHP_AUTH_PW"])) {
-			return false;
-		}
-
-		$auth["user_name"] = $_SERVER["PHP_AUTH_USER"];
-		$auth["password"] = $_SERVER["PHP_AUTH_PW"];
-
-		if (!isset($auth["user_name"]) || empty($auth["user_name"]) ) {
-			$this->output->add("status", "No auth username set.");
+		if (!isset($auth["password"]) || empty($auth["password"])) {
+			$this->output->add("status", "Password is not set!");
 			return false;
 		}
 

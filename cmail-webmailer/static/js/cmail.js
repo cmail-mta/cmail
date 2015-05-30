@@ -6,8 +6,33 @@ var cmail = {
 		"list",
 		"single",
 		"write",
-		],
+	],
 	init: function() {
+		this.login();
+	},
+	login: function() {
+		var auth = {
+                        user_name: gui.elem("login_name").value,
+                        password: gui.elem("login_password").value
+                };
+
+                ajax.asyncPost(cmail.api_url + "?login", JSON.stringify({ auth: auth }) , function(xhr) {
+                        var resp = JSON.parse(xhr.response);
+
+                        cmail.set_status(resp.status);
+                        gui.elem("login_name").value = "";
+                        gui.elem("login_password").value = "";
+
+                        // check for correct login
+                        if (!resp.login) {
+                                gui.elem("login_prompt").style.display = "block";
+                        } else {
+                                gui.elem("login_prompt").style.display = "none";
+                                cmail.main();
+                        }
+                });
+	},
+	main: function() {
 
 		this.mail.get_all();
 

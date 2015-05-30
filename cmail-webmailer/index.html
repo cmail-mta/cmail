@@ -21,7 +21,21 @@
 			<span>Status: </span>
 			<span id="status">Ok</span>
 		</div>
-		
+	
+		<div id="login_prompt" class="editPanel">
+			<form>
+				<label>Username: <br />
+					<input id="login_name" type="text" />
+				</label>
+
+				<label>Password: <br />
+					<input id="login_password" type="password" />
+				</label>
+				<span class="button" onclick="cmail.login()">Login</span>
+			</form>
+
+		</div>
+
 		<div id="list" class="tab">
 			<h2>Mails</h2>
 			<br />

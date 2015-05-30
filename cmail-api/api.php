@@ -89,9 +89,6 @@ function main($module_name) {
 
 	if (!$auth->auth($obj["auth"])) {
 		$output->add("login", false);
-		header("WWW-Authenticate: Basic realm=\"cmail Access (Invalid Credentials)\"");
-		header("HTTP/1.0 401 Unauthorized");
-
 		$output->write();
 		return;
 	}
