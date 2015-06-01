@@ -57,6 +57,7 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 	char auth[sizeof(salt) + sizeof(hashed) +1];
 
 	memset(salt, 0, sizeof(salt));
+	memset(hashed, 0, sizeof(hashed));
 	memset(auth, 0, sizeof(auth));
 
 	if (password) {
@@ -78,6 +79,8 @@ int set_asked_password(LOGGER log, sqlite3* db, const char* user) {
 	printf("Password: ");
 
 	char pw[MAX_PW_LENGTH];
+	memset(pw, 0, sizeof(pw));
+
 	if (ask_password(pw, MAX_PW_LENGTH) < 0) {
 		logprintf(log, LOG_ERROR, "Maximal password size is %d\n", MAX_PW_LENGTH);
 		return 11;
