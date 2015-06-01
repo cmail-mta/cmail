@@ -10,8 +10,7 @@ BEGIN TRANSACTION;
 	);
 
 	CREATE TABLE addresses (
-		address_expression	TEXT	NOT NULL
-						UNIQUE,
+		address_expression	TEXT	NOT NULL, -- UNIQUE constraint breaks some tricks and should not be needed (ordering is enforced)
 		address_order		INTEGER	PRIMARY KEY AUTOINCREMENT
 						NOT NULL
 						UNIQUE,
