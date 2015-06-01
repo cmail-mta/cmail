@@ -14,8 +14,8 @@ all:
 	mv address/cmail-admin-address bin/
 	mv msa/cmail-admin-msa bin/
 	mv permissions/cmail-admin-permissions bin/
+	mv popd/cmail-admin-popd bin/
 	cp cmail-admin bin/
-	cp popd/cmail-admin-popd bin/
 
 clean:
 	rm bin/*
