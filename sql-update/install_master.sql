@@ -116,9 +116,9 @@ BEGIN TRANSACTION;
 		fail_time	TEXT NOT NULL DEFAULT (strftime( '%s', 'now' )),
 		fail_fatal	BOOLEAN NOT NULL DEFAULT (0)
 	);
-	
-	CREATE VIEW outbound AS	
-	SELECT 
+
+	CREATE VIEW outbound AS
+	SELECT
 		mail_id,
 		mail_remote,
 		mail_envelopefrom,

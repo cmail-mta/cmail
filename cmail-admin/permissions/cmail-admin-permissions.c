@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			int status = sqlite_add_right(log, database.conn, argv[i + 1], argv[i + 2]);
-			
+
 			sqlite3_close(database.conn);
 			return status;
 
@@ -109,8 +109,8 @@ int main(int argc, char* argv[]) {
 
 			sqlite3_close(database.conn);
 			return status;
-		
-		
+
+
 		} else if (!strcmp(argv[i], "delegate")) {
 			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 

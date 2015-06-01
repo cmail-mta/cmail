@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			int status = sqlite_add_popd(log, database.conn, argv[i + 1]);
-			
+
 			sqlite3_close(database.conn);
 			return status;
 
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 			if (!database.conn) {
 				return 10;
 			}
-			
+
 			status = sqlite_update_popd(log, database.conn, argv[i + 1], 0);
 			sqlite3_close(database.conn);
 			return status;

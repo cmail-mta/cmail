@@ -164,12 +164,12 @@
 		private function GetDelegated($auth, $write = true) {
 
 
-			$sql = "select * from addresses 
-				WHERE address_expression LIKE 
-				(select api_expression from api_address_delegates 
-				where api_address_delegates.api_user = :api_user) 
-				OR address_user IN 
-				(SELECT api_delegate FROM api_user_delegates 
+			$sql = "select * from addresses
+				WHERE address_expression LIKE
+				(select api_expression from api_address_delegates
+				where api_address_delegates.api_user = :api_user)
+				OR address_user IN
+				(SELECT api_delegate FROM api_user_delegates
 				WHERE api_user_delegates.api_user = :api_user) ORDER BY address_order DESC";
 
 			$params = array(
@@ -212,12 +212,12 @@
 
 			$auth = $this->c->getAuth();
 			if ($auth->hasRight("delegate")) {
-				$sql = "select * from addresses 
-					WHERE (address_expression LIKE 
-					(select api_expression from api_address_delegates 
-					where api_address_delegates.api_user = :api_user) 
-					OR address_user IN 
-					(SELECT api_delegate FROM api_user_delegates 
+				$sql = "select * from addresses
+					WHERE (address_expression LIKE
+					(select api_expression from api_address_delegates
+					where api_address_delegates.api_user = :api_user)
+					OR address_user IN
+					(SELECT api_delegate FROM api_user_delegates
 					WHERE api_user_delegates.api_user = :api_user))
 				       	AND address_expression = :address_expression ORDER BY address_order DESC";
 
@@ -460,7 +460,7 @@
 			$test = false;
 			if ($auth->hasRight("admin")) {
 				$test = true;
-			} else if ($auth->hasRight("delegate") && $this->checkAddressDelegate($obj["address_expression"]) 
+			} else if ($auth->hasRight("delegate") && $this->checkAddressDelegate($obj["address_expression"])
 					&& $this->checkAddressDelegate($address2["address_expression"])) {
 				$test = true;
 			}

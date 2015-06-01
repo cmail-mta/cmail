@@ -2,7 +2,7 @@ int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt){
 	int entries = 1;
 	unsigned i;
 	char* id_list = (char*)sqlite3_column_text(stmt, 0);
-	
+
 	for(i=0;i<strlen(id_list);i++){
 		if(id_list[i] == ','){
 			entries++;
@@ -55,7 +55,7 @@ int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool f
 		message="No server response";
 	}
 
-	if(sqlite3_bind_int(database->insert_bounce_reason, 1, dbid) != SQLITE_OK 
+	if(sqlite3_bind_int(database->insert_bounce_reason, 1, dbid) != SQLITE_OK
 		|| sqlite3_bind_text(database->insert_bounce_reason, 2, message, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_int(database->insert_bounce_reason, 3, fatal?1:0)){
 		logprintf(log, LOG_ERROR, "Failed to bind bounce reason parameter: %s\n", sqlite3_errmsg(database->conn));
@@ -85,7 +85,7 @@ int mail_delete(LOGGER log, DATABASE* database, int dbid){
 	}
 
 	if(sqlite3_step(database->delete_mail) != SQLITE_DONE){
-		logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", dbid, sqlite3_errmsg(database->conn));	
+		logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d: %s\n", dbid, sqlite3_errmsg(database->conn));
 		rv = -1;
 	}
 
@@ -98,7 +98,7 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 	unsigned i;
 	bool continue_data=false;
-	
+
 	if(smtp_initiate(log, conn, mail)){
 		logprintf(log, LOG_WARNING, "Failed to initiate mail transaction\n");
 		return -1;

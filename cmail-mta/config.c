@@ -49,7 +49,7 @@ int config_trustfile(CONFIGURATION* config, char* directive, char* params){
 int config_bounceto(CONFIGURATION* config, char* directive, char* params){
 	unsigned i = 0;
 	char* bounce_rcpt;
-	
+
 	if(config->settings.bounce_to){
 		//count current recipients
 		for(i=0;config->settings.bounce_to[i];i++){

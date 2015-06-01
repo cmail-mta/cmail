@@ -1,6 +1,6 @@
 var cmail = {
 	/**
-	 * all routers 
+	 * all routers
 	 */
 	tabs: [
 		"list",
@@ -41,7 +41,7 @@ var cmail = {
 		// handle tab change
 		this.switch_hash();
 		window.addEventListener("hashchange", function() {
-			self.switch_hash();	
+			self.switch_hash();
 		}, false);
 	},
 	logout: function() {
@@ -50,7 +50,7 @@ var cmail = {
                 });
         },
 	switch_hash: function(hash) {
-		if (!hash) { 
+		if (!hash) {
 			hash = window.location.hash;
 		}
 		var test = true;

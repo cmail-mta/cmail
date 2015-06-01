@@ -16,7 +16,7 @@ master database structure
 		user_name	TEXT NOT NULL
 		Textual user identifier, not directly related to
 		any mailbox name. Should be used as user identifier
-		in all authentication scenarios (e.g. IMAP auth, 
+		in all authentication scenarios (e.g. IMAP auth,
 		POP auth, SMTP auth)
 
 		user_authdata	TEXT
@@ -29,7 +29,7 @@ master database structure
 		Primary incoming mail storage database for the user.
 		If this database fails, an attempt will be made to
 		store to the master database instead.
-		
+
 	'addresses' table
 	-----------------
 	Contains the mapping of addresses (or rather, mail paths)
@@ -37,7 +37,7 @@ master database structure
 
 		address_expression	TEXT NOT NULL UNIQUE
 		SQLite regular expression defining the path to be mapped.
-		
+
 		address_order		INTEGER NOT NULL UNIQUE
 		Integer allowing total ordering of addresses for matching.
 		If multiple addresses match a given path, the one with the
@@ -59,12 +59,12 @@ master database structure
 
 		msa_inrouter	TEXT NOT NULL DEFAULT 'store'
 		msa_inroute	TEXT
-		Mail routing function and parameter used for incoming 
+		Mail routing function and parameter used for incoming
 		mail to any address belonging to this user.
 
 		msa_outrouter	TEXT NOT NULL DEFAULT 'drop'
 		msa_outroute
-		Mail routing function and parameter used for mail 
+		Mail routing function and parameter used for mail
 		submitted by a connection authenticated as this user.
 
 	Valid inbound mail routing functions are as follows:
@@ -74,7 +74,7 @@ master database structure
 		Store the incoming messages in the 'mails' table of
 		a database. Local system users may want to have their
 		mail delivered to a database in their home directories.
-	
+
 		Router: forward
 		Parameter: address (NULL behaves the same way as
 			the drop router)
@@ -114,13 +114,13 @@ master database structure
 
 		Router: defined
 		Parameter: None
-		Originating mail must have an adress mapped to the sending 
+		Originating mail must have an adress mapped to the sending
 		user as envelope sender.
 
 		Router: handoff
-		Parameter: Mail server address (NULL behaves the same 
+		Parameter: Mail server address (NULL behaves the same
 			way as the drop router)
-		Hand off all originated mail for this user to another server 
+		Hand off all originated mail for this user to another server
 		(smarthost) for relaying.
 
 		Router: alias
@@ -130,7 +130,7 @@ master database structure
 
 		Router: reject
 		Parameter: None
-		Reject originated messages for this user and any addresses routed 
+		Reject originated messages for this user and any addresses routed
 		to him.
 
 		Router: drop
@@ -155,7 +155,7 @@ master database structure
 
 		mail_envelopeto		TEXT NOT NULL
 		Envelope recipient address.
-	
+
 		mail_envelopefrom	TEXT NOT NULL
 		Envelope origin address.
 

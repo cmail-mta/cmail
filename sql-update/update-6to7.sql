@@ -8,8 +8,8 @@ BEGIN TRANSACTION;
 	INSERT OR ROLLBACK INTO meta (key, value) VALUES ('schema_version', '7');
 
 	-- database changes --
-	CREATE VIEW outbound AS	
-		SELECT 
+	CREATE VIEW outbound AS
+		SELECT
 			mail_id,
 			mail_remote,
 			mail_envelopefrom,

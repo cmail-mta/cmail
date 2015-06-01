@@ -5,7 +5,7 @@
 
 	//this emulates conio.h's getch().
 	//via http://cboard.cprogramming.com/faq-board/27714-faq-there-getch-conio-equivalent-linux-unix.html
-	
+
 	int _getch(void){
 		struct termios canon,raw;
 		int ch;

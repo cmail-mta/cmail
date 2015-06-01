@@ -17,9 +17,9 @@ int sqlite_get_popd(LOGGER log, sqlite3* db, const char* username) {
 	int status;
 	const char* user;
 	int lock;
-	
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-		
+
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		lock = sqlite3_column_int(stmt, 1);
 		printf("%s | %d\n", user, lock);
@@ -44,15 +44,15 @@ int sqlite_get_all_popd(LOGGER log, sqlite3* db) {
 	int status;
 	const char* user;
 	int lock;
-	
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-		
+
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		lock = sqlite3_column_int(stmt, 1);
 		printf("%s | %d\n", user, lock);
 	}
 
-	
+
 	sqlite3_finalize(stmt);
 
 	if (status == SQLITE_DONE) {
@@ -75,7 +75,7 @@ int sqlite_add_popd(LOGGER log, sqlite3* db, const char* user) {
                 sqlite3_finalize(stmt);
                 return 91;
         }
-	
+
         if (sqlite3_step(stmt) != SQLITE_DONE) {
                 logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
                 sqlite3_finalize(stmt);
@@ -98,13 +98,13 @@ int sqlite_update_popd(LOGGER log, sqlite3* db, const char* user, int lock) {
 		logprintf(log, LOG_ERROR, "Cannot bind popd lock.\n");
 		return 81;
 	}
-	
+
 	if (sqlite3_bind_text(stmt, 2, user , -1, SQLITE_STATIC) != SQLITE_OK) {
                 logprintf(log, LOG_ERROR, "Cannot bind user.\n");
                 sqlite3_finalize(stmt);
                 return 82;
         }
-	
+
         if (sqlite3_step(stmt) != SQLITE_DONE) {
                 logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
                 sqlite3_finalize(stmt);

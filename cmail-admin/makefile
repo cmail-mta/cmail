@@ -2,7 +2,7 @@
 CFLAGS=-Wall -g
 LDLIBS=-lsqlite3 -lnettle
 
-all: 
+all:
 	cd user && make all
 	cd address && make all
 	cd msa && make all

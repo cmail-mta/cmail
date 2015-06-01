@@ -99,7 +99,7 @@ int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){
 int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
 	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
 	char* mail_bytestuff;
-	
+
 	//Calling contract: retn 0 -> accepted, 1 -> fail temp, -1 -> fail perm
 	client_send(log, conn, "DATA\r\n");
 
@@ -108,7 +108,7 @@ int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
 		logprintf(log, LOG_WARNING, "Data initiation failed, response was %d\n", conn_data->reply.code);
 		return -1;
 	}
-	
+
 	if(mail_data[0]=='.'){
 		client_send(log, conn, ".");
 	}
@@ -125,9 +125,9 @@ int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
 		}
 	}
 	while(mail_bytestuff);
-	
+
 	client_send(log, conn, "\r\n.\r\n");
-	
+
 	if(protocol_read(log, conn, SMTP_DATA_TERMINATION_TIMEOUT)<0){
 		logprintf(log, LOG_ERROR, "Failed to read data terminator response\n");
 		return 1;
@@ -214,7 +214,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 			logprintf(log, LOG_ERROR, "Failed to negotiate TLS layer\n");
 			return -1;
 		}
-		
+
 		//perform greeting again
 		if(smtp_greet(log, conn, settings)<0){
 			logprintf(log, LOG_WARNING, "Failed to negotiate SMTPS/ESMTPS\n");

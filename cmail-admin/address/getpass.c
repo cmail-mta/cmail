@@ -2,11 +2,11 @@
 
 int ask_password(char* buffer, int maxlength){
 	int i=0,c;
-	
+
 	if(!buffer||maxlength<1){
 		return -1;
 	}
-	
+
 	do{
 		c=getch();
 		switch(c){

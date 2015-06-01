@@ -62,7 +62,7 @@
 
 			$auth = Auth::getInstance($this->db, $this->output);
 
-			$sql = "SELECT pop_user, pop_lock FROM popd WHERE pop_user = :api_user OR pop_user IN 
+			$sql = "SELECT pop_user, pop_lock FROM popd WHERE pop_user = :api_user OR pop_user IN
 				(SELECT api_delegate FROM api_user_delegates WHERE api_user = :api_user)";
 
 			$params = array(

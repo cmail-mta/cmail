@@ -3,9 +3,9 @@ int sqlite_exec_select(LOGGER log, sqlite3_stmt* stmt) {
 	int status;
 	const char* user;
 	const char* right;
-	
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-		
+
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		right = (const char*) sqlite3_column_text(stmt, 1);
 		printf("%s | %s\n", user, right);
@@ -22,7 +22,7 @@ int sqlite_exec_select(LOGGER log, sqlite3_stmt* stmt) {
 int sqlite_get_delegated_users(LOGGER log, sqlite3* db, const char* username) {
 
 	char* sql = "SELECT api_user, api_delegate FROM api_user_delegates WHERE api_user LIKE ?";
-	
+
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 
 	if (!stmt) {
@@ -41,7 +41,7 @@ int sqlite_get_delegated_users(LOGGER log, sqlite3* db, const char* username) {
 int sqlite_get_delegated_addresses(LOGGER log, sqlite3* db, const char* username) {
 
 	char* sql = "SELECT api_user, api_expression FROM api_address_delegates WHERE api_user LIKE ?";
-	
+
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 
 	if (!stmt) {
@@ -121,7 +121,7 @@ int sqlite_get_rights(LOGGER log, sqlite3* db, const char* username) {
 int sqlite_get_rights_by_right(LOGGER log, sqlite3* db, const char* right) {
 
 	char*  sql = "SELECT api_user, api_right FROM api_access WHERE api_right LIKE ?";
-	
+
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 
 	if (!stmt) {
@@ -134,7 +134,7 @@ int sqlite_get_rights_by_right(LOGGER log, sqlite3* db, const char* right) {
 	}
 
 	return sqlite_exec_select(log, stmt);
-	
+
 }
 
 int sqlite_get_all_rights(LOGGER log, sqlite3* db) {
@@ -145,7 +145,7 @@ int sqlite_get_all_rights(LOGGER log, sqlite3* db) {
 	if (!stmt) {
 		return 2;
 	}
-	
+
 	return sqlite_exec_select(log, stmt);
 }
 
@@ -185,13 +185,13 @@ int sqlite_delete_user_delegation(LOGGER log, sqlite3* db, const char* user, con
 		sqlite3_finalize(stmt);
 		return 3;
 	}
-	
+
 	if (sqlite3_bind_text(stmt, 2, delegate, -1, SQLITE_STATIC) != SQLITE_OK) {
 		logprintf(log, LOG_INFO, "Cannot bind delegate.\n");
 		sqlite3_finalize(stmt);
 		return 3;
 	}
-	
+
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
 		sqlite3_finalize(stmt);
@@ -220,13 +220,13 @@ int sqlite_delete_address_delegation(LOGGER log, sqlite3* db, const char* user, 
 		sqlite3_finalize(stmt);
 		return 3;
 	}
-	
+
 	if (sqlite3_bind_text(stmt, 2, expression, -1, SQLITE_STATIC) != SQLITE_OK) {
 		logprintf(log, LOG_INFO, "Cannot bind expression.\n");
 		sqlite3_finalize(stmt);
 		return 3;
 	}
-	
+
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
 		sqlite3_finalize(stmt);
@@ -254,13 +254,13 @@ int sqlite_delete_right(LOGGER log, sqlite3* db, const char* user, const char* r
 		sqlite3_finalize(stmt);
 		return 3;
 	}
-	
+
 	if (sqlite3_bind_text(stmt, 2, right, -1, SQLITE_STATIC) != SQLITE_OK) {
 		logprintf(log, LOG_INFO, "Cannot bind right.\n");
 		sqlite3_finalize(stmt);
 		return 3;
 	}
-	
+
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
 		sqlite3_finalize(stmt);

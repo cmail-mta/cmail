@@ -10,7 +10,7 @@
 		TLS_NEGOTIATE,		//Listener: STARTTLS enabled, Client: Handshake in progress
 		TLS_NONE		//Listener: No TLS, Client: No TLS session active
 	} TLSMODE;
-	
+
 #else
 	#define TLSSUPPORT(x)
 #endif

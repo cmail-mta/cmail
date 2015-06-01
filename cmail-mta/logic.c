@@ -38,7 +38,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 				//create message id
 				snprintf(message_id, sizeof(message_id)-1, "%X.%X@%s", (unsigned)unix_time, rand(), settings.helo_announce);
 
-				bounce_message = common_strappf(bounce_message, &bounce_allocated, 
+				bounce_message = common_strappf(bounce_message, &bounce_allocated,
 						"From: %s\r\n" \
 						"To: %s\r\n" \
 						"Subject: Mail delivery failed, returning message to sender\r\n" \
@@ -71,8 +71,8 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 					switch(status){
 						case SQLITE_ROW:
 							bounce_message = common_strappf(bounce_message, &bounce_allocated,
-									"Unixtime %d %s: %s\r\n", 
-									sqlite3_column_int(database->query_bounce_reasons, 0), 
+									"Unixtime %d %s: %s\r\n",
+									sqlite3_column_int(database->query_bounce_reasons, 0),
 									(sqlite3_column_int(database->query_bounce_reasons, 2) != 0) ? "(Permanent failure)":"(Temporary failure)",
 									sqlite3_column_text(database->query_bounce_reasons, 1));
 							if(!bounce_message){
@@ -93,7 +93,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 				sqlite3_clear_bindings(database->query_bounce_reasons);
 
 				//append mail data indicator
-				bounce_message = common_strappf(bounce_message, &bounce_allocated, 
+				bounce_message = common_strappf(bounce_message, &bounce_allocated,
 						"\r\n-------Original Message including headers--------\r\n");
 				if(!bounce_message){
 					logprintf(log, LOG_ERROR, "Failed to append to bounce message\n");
@@ -185,7 +185,7 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 				if(mail_delete(log, database, transaction->rcpt[i].dbid)<0){
 					logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d\n", transaction->rcpt[i].dbid);
 				}
-			
+
 				delivered_mails++;
 				break;
 			case RCPT_FAIL_TEMPORARY:
@@ -202,7 +202,7 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 
 
 	logprintf(log, LOG_INFO, "Handled %d mails in transaction\n", delivered_mails);
-	return delivered_mails;	
+	return delivered_mails;
 }
 
 int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE remote){
@@ -256,15 +256,15 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 						logprintf(log, LOG_ERROR, "Failed to allocate memory for mail transaction array\n");
 						return -1;
 					}
-					
+
 					//clear freshly allocated mails
 					for(c=0;c<CMAIL_REALLOC_CHUNK;c++){
 						mail_reset(mails+c, false);
 					}
-					
+
 					tx_allocated += CMAIL_REALLOC_CHUNK;
 				}
-				
+
 				//read transaction
 				if(mail_dbread(log, mails+tx_active, tx_statement)<0){
 					logprintf(log, LOG_ERROR, "Failed to read transaction %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
@@ -358,9 +358,9 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 						delivered_mails += status;
 					}
 				}
-					
+
 				logprintf(log, LOG_INFO, "Delivered %d mails in %d transactions for this remote\n", delivered_mails, tx_active);
-				
+
 				//FIXME might want to continue if not all mail could be delivered
 				current_mx = mx_count; //break the outer loop
 				break;
@@ -413,7 +413,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	do{
 		mails_delivered = 0;
 		remotes_active = 0;
-	
+
 		//bind the timeout parameter
 		if(sqlite3_bind_int(database->query_outbound_hosts, 1, settings.retry_interval) != SQLITE_OK){
 			logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
@@ -440,9 +440,9 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					if(remotes[remotes_active].host){
 						free(remotes[remotes_active].host);
 					}
-					
+
 					remotes[remotes_active].mode = DELIVER_HANDOFF;
-					
+
 					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
 						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
 					}
@@ -473,7 +473,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		//deliver all remotes
 		for(i=0;i<remotes_active;i++){
 			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[i].host, (remotes[i].mode == DELIVER_DOMAIN) ? "domain":"handoff");
-			
+
 			//TODO implement multi-threading here
 			status = logic_handle_remote(log, database, settings, remotes[i]);
 
@@ -484,7 +484,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 				mails_delivered += status;
 			}
 		}
-		
+
 		bounces_generated = logic_generate_bounces(log, database, settings);
 		if(bounces_generated < 0){
 			logprintf(log, LOG_WARNING, "Bounce generation reported an error\n");
@@ -492,7 +492,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		}
 
 		logprintf(log, LOG_INFO, "Core interval done, delivered %d mails, generated %d bounces\n", mails_delivered, bounces_generated);
-		
+
 		sleep(settings.check_interval);
 	}
 	while(!abort_signaled);

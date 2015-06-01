@@ -1,19 +1,19 @@
-A collection and discussion of pitfalls in cmail that might 
+A collection and discussion of pitfalls in cmail that might
 not be immediately evident.
 
 Database schema versioning
 --------------------------
-The 'meta' table contains a key describing the current database 
-schema version. The schema is, as of currently, extremely 
+The 'meta' table contains a key describing the current database
+schema version. The schema is, as of currently, extremely
 volatile and might change between versions, commits and without
-notice. Upgrade paths will only be reliably provided between 
+notice. Upgrade paths will only be reliably provided between
 tagged releases.
 
 Infinite alias recursion
 ------------------------
-It is currently possible to have users be aliased to other 
-aliased users, including the original user. This creates an 
-infinite loop at the time the alias is resolved (mail routing). 
+It is currently possible to have users be aliased to other
+aliased users, including the original user. This creates an
+infinite loop at the time the alias is resolved (mail routing).
 Aliases should for the time being only be created by administrators,
 not directly by end users.
 

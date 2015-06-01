@@ -65,7 +65,7 @@
 		 */
 		private function getDelegated($write = true) {
 
-			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login 
+			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login
 				FROM users WHERE user_name IN (
 					SELECT api_delegate AS user_name FROM api_user_delegates WHERE api_user = :api_user
 				) OR user_name = :api_user";

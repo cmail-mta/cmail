@@ -22,7 +22,7 @@ var cmail = {
 	module: {
 		get: function() {
 			ajax.asyncGet(cmail.api_url + "?get_modules", function(xhr) {
-				
+
 				var resp = JSON.parse(xhr.response);
 				if (resp.status != "ok") {
 					cmail.set_status(resp.status);

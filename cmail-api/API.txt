@@ -2,13 +2,13 @@ This is the endpoint documentation for cmail api.
 
 == Modules ==
 
-The API is split into multiple modules, each handling multiple endpoints. 
+The API is split into multiple modules, each handling multiple endpoints.
 All code belonging to a specific module is stored in its folder, containing
-at the minimum an index.php and a <modulename>.php file. 
+at the minimum an index.php and a <modulename>.php file.
 
-Modules must implement a class named after the Module, extending the base 
-Module class. To enable a Module for requests by the API, the class name and 
-path to the file containing the class implementation must be placed in the 
+Modules must implement a class named after the Module, extending the base
+Module class. To enable a Module for requests by the API, the class name and
+path to the file containing the class implementation must be placed in the
 config.php file in the module list.
 
 == List of modules ==
@@ -23,9 +23,9 @@ config.php file in the module list.
 
 == Endpoints ==
 
-An endpoint URL consists of 
+An endpoint URL consists of
 	- the API URl
-	- the Module subpath (path to index.php) and 
+	- the Module subpath (path to index.php) and
 	- the endpoint name as GET parameter
 
 The only exception to this is the get_modules endpoint, being part
@@ -50,7 +50,7 @@ Query the user list. If the user_name parameter is set, return only information
 relevant to the given user.
 
 Unprivileged users will only get their own information in the response.
-Users with delegations receive information about all users in their 
+Users with delegations receive information about all users in their
 administrative zone.
 Administrators will receive information about all users registered in the system.
 
@@ -71,7 +71,7 @@ Parameter:
 	user_authdata: (optional) Plaintext user password (If not set or blank,
 				the created user will not have authenticated access
 				to the system)
-	rights: (optional) Array of permissions to grant to the new user 
+	rights: (optional) Array of permissions to grant to the new user
 				(Refer to the permissions section below)
 	}
 

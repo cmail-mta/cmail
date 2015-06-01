@@ -80,7 +80,7 @@
 				);
 			} else {
 				$sql_user = "SELECT * FROM api_user_delegates WHERE api_delegate = :api_user";
-				$sql_addresses = "SELECT api_user, api_expression FROM api_address_delegates 
+				$sql_addresses = "SELECT api_user, api_expression FROM api_address_delegates
 					JOIN addresses ON (address_expression = api_expression) WHERE address_user = :api_user";
 				$params = array(
 					":api_user" => $this->auth->getUser()
@@ -110,9 +110,9 @@
 				return false;
 			}
 
-			$sql = "SELECT :api_user AS user, 
+			$sql = "SELECT :api_user AS user,
 				(SELECT count(*) FROM api_user_delegates WHERE api_delegate = :api_user) AS users,
-				(SELECT count(*) FROM api_address_delegates 
+				(SELECT count(*) FROM api_address_delegates
 				JOIN addresses ON (api_expression LIKE address_expression) WHERE address_user = :api_user) AS addresses";
 
 			$params = array(

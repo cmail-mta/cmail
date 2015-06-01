@@ -1,6 +1,6 @@
 void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 	//mostly copied from sqlite-src/func.c
-	
+
 	int nHaystack;
 	int nNeedle;
 	int N = 1;
@@ -17,7 +17,7 @@ void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 
 	nHaystack = sqlite3_value_bytes(argv[0]);
 	nNeedle = sqlite3_value_bytes(argv[1]);
-	
+
 	if(sqlite3_value_type(argv[0])==SQLITE_BLOB
 		&& sqlite3_value_type(argv[1])==SQLITE_BLOB){
 
@@ -29,7 +29,7 @@ void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 		needle=sqlite3_value_text(argv[1]);
 		text=true;
 	}
-	
+
 	while(nNeedle<=nHaystack && memcmp(hay, needle, nNeedle)!=0 ){
 		N++;
 		do{
@@ -38,7 +38,7 @@ void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 		}
 		while(text&&(hay[0]&0xc0)==0x80);
 	}
-  
+
 	if(nNeedle>nHaystack){
 		N=0;
 	}

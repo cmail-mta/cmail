@@ -62,7 +62,7 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 	int status;
 
-	//atomically modify maildrop lock, bail out if it fails	
+	//atomically modify maildrop lock, bail out if it fails
 	if(sqlite3_bind_int(database->update_lock, 1, lock?1:0) != SQLITE_OK
 			|| sqlite3_bind_text(database->update_lock, 2, user_name, -1, SQLITE_STATIC) !=SQLITE_OK
 			|| sqlite3_bind_int(database->update_lock, 3, lock?0:1) != SQLITE_OK){

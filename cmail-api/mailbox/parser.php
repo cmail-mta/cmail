@@ -81,10 +81,10 @@ class MailParser {
 			}
 
 			if ($line[0] == " " || $line[0] == "\t") {
-				$unfolded[$count] .= substr($line, 1);	
+				$unfolded[$count] .= substr($line, 1);
 			} else {
 				$count++;
-				$unfolded[$count] = $line;	
+				$unfolded[$count] = $line;
 			}
 		}
 

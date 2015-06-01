@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			int status = sqlite_add_msa_default(log, database.conn, argv[i + 1]);
-			
+
 			sqlite3_close(database.conn);
 			return status;
 

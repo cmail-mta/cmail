@@ -43,7 +43,7 @@ int sqlite_get_address(LOGGER log, sqlite3* db, const char* expression) {
 	const char* address;
 	int order;
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-		
+
 		address = (const char*) sqlite3_column_text(stmt, 0);
 		user = (const char*) sqlite3_column_text(stmt, 1);
 		order = sqlite3_column_int(stmt, 2);

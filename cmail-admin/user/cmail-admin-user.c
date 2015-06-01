@@ -32,7 +32,7 @@ void gen_salt(char* salt, unsigned n) {
 	unsigned i, j, counter = 0;
 	int salt_raw;
 	uint8_t salt_arr[n];
-	
+
 	for (j = 0; j < (n / 4); j++) {
 		salt_raw = rand();
 		for (i = 0; i < 4; i++) {
@@ -71,7 +71,7 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 	} else {
 		return sqlite_set_password(log, db, user, NULL);
 	}
-		
+
 }
 
 int set_asked_password(LOGGER log, sqlite3* db, const char* user) {
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 			usage();
 			return 0;
 		} else if (!strcmp(argv[i], "--password") || !strcmp(argv[i], "-p")) {
-			pw_flag = 1;	
+			pw_flag = 1;
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
 		} else if (i + 2 < argc && (!strcmp(argv[i], "set") && !strcmp(argv[i + 1], "password"))) {
@@ -200,8 +200,8 @@ int main(int argc, char* argv[]) {
 			}
 
 			status = set_password(log, database.conn, argv[i + 1], NULL);
-			return status;	
-		
+			return status;
+
 		} else if (!strcmp(argv[i], "list")) {
 			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
 

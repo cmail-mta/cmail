@@ -20,9 +20,9 @@ int sqlite_get_msa(LOGGER log, sqlite3* db, const char* username) {
 	const char* inroute;
 	const char* outrouter;
 	const char* outroute;
-	
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-		
+
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		inrouter = (const char*) sqlite3_column_text(stmt, 1);
 		inroute = (const char*) sqlite3_column_text(stmt, 2);
@@ -53,9 +53,9 @@ int sqlite_get_all_msa(LOGGER log, sqlite3* db) {
 	const char* inroute;
 	const char* outrouter;
 	const char* outroute;
-	
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-		
+
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		inrouter = (const char*) sqlite3_column_text(stmt, 1);
 		inroute = (const char*) sqlite3_column_text(stmt, 2);
@@ -64,7 +64,7 @@ int sqlite_get_all_msa(LOGGER log, sqlite3* db) {
 		printf("%s | %s | %s | %s | %s\n", user, inrouter, inroute, outrouter, outroute);
 	}
 
-	
+
 	sqlite3_finalize(stmt);
 
 	if (status == SQLITE_DONE) {
@@ -107,7 +107,7 @@ int sqlite_update_msa(LOGGER log, sqlite3* db, const char* router, const char* u
 	} else {
 		sqlite3_bind_null(stmt, 2);
 	}
-	
+
 	if (sqlite3_bind_text(stmt, 3, user, -1, SQLITE_STATIC) != SQLITE_OK) {
        		logprintf(log, LOG_ERROR, "Cannot bind user.");
                 sqlite3_finalize(stmt);
