@@ -7,6 +7,7 @@ all:
 	cd address && make all
 	cd msa && make all
 	cd permissions && make all
+	cd popd && make all
 
 	mkdir -p bin
 	mv user/cmail-admin-user bin/
@@ -14,6 +15,7 @@ all:
 	mv msa/cmail-admin-msa bin/
 	mv permissions/cmail-admin-permissions bin/
 	cp cmail-admin bin/
+	cp popd/cmail-admin-popd bin/
 
 clean:
 	rm bin/*
