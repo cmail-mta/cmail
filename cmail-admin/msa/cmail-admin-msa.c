@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
 			const char* arguments = NULL;
 
 			if (i + 4 < argc) {
-				arguments = argv[i+3];
+				arguments = argv[i+4];
 			}
 
 			status = sqlite_update_msa(log, database.conn, argv[i + 1], argv[i + 2], argv[i + 3], arguments);
