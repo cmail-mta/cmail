@@ -52,7 +52,7 @@ function main($module_name) {
 	$output = Output::getInstance();
 	$db = new DB($dbpath, $output);
 
-	$API_VERSION = 7;
+	$API_VERSION = 8;
 
 	// db connection
 	if (!$db->connect()) {
