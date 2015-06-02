@@ -77,37 +77,56 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	return 0;
 }
 
-int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, bool forward_path){
+// If originating_user is set, this checks if the user may use the path outbound
+int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originating_user, bool is_reverse){
 	int status, rv = -1;
+	char* router;
 
 	if(path->resolved_user){
 		return 0;
 	}
 
-	status=sqlite3_bind_text(database->query_addresses, 1, path->path, -1, SQLITE_STATIC);
+	status = sqlite3_bind_text(database->query_addresses, 1, path->path, -1, SQLITE_STATIC);
 	if(status == SQLITE_OK){
-		switch(sqlite3_step(database->query_addresses)){
+		do{
+			status = sqlite3_step(database->query_addresses);
+
+			if(originating_user || is_reverse){
+				//test if matched user is authentiicated user
+				if(originating_user && strcmp(originating_user, (char*)sqlite3_column_text(database->query_addresses, 0))){
+					// Falling through to SQLITE_DONE here implies a non-local origin while routers for this adress are set
+					// (just not for this user). The defined router will then fail the address, the any router will accept it
+					continue;
+				}
+				router = (char*)sqlite3_column_text(database->query_addresses, 2);
+			}
+			else{
+				router = (char*)sqlite3_column_text(database->query_addresses, 1);
+			}
+
+			//check for reject
+			if(!strcmp(router, "reject")){
+				rv = 1;
+				break;
+			}
+
+			//path ok, resolve to user
+			path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 0));
+			if(!path->resolved_user){
+				logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
+				break;
+			}
+			rv = 0;
+
+		} while(status == SQLITE_ROW);
+
+		switch(status){
 			case SQLITE_ROW:
-				//match found, test if router says we should reject it
-				//FIXME this should take the currently authenticated user into consideration
-				if(!strcmp((char*)sqlite3_column_text(database->query_addresses, forward_path ? 1:2), "reject")){
-					rv=1;
-					break;
-				}
-
-				//ok, path resolved
-				path->resolved_user = calloc(sqlite3_column_bytes(database->query_addresses, 0)+1, sizeof(char));
-				if(!path->resolved_user){
-					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
-					break;
-				}
-
-				strncpy(path->resolved_user, (char*)sqlite3_column_text(database->query_addresses, 0), sqlite3_column_bytes(database->query_addresses, 0)); //this is ok because the memory is calloc'd
-				rv=0;
+				//already handled during loop
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "No address match found\n");
-				rv=0;
+				rv = 0;
 				break;
 			default:
 				logprintf(log, LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database->conn));
@@ -132,8 +151,8 @@ void path_reset(MAILPATH* path){
 
 	if(path->resolved_user){
 		free(path->resolved_user);
-		path->resolved_user=NULL;
+		path->resolved_user = NULL;
 	}
 
-	*path=reset_path;
+	*path = reset_path;
 }

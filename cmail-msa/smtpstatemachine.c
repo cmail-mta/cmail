@@ -300,20 +300,16 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		}
 
 		//resolve reverse path
-		//FIXME this should additionally take the name of the authenticated user for resolution
-		switch(path_resolve(log, &(client_data->current_mail.reverse_path), database, false)){
+		switch(path_resolve(log, &(client_data->current_mail.reverse_path), database, client_data->auth.user, true)){
 			case 0:
 				//either local or unknown
 				//TODO filter local origin from unauthenticated connections
 				break;
 			case 1:
-				//reject router  - if authed, router may still be any, so accept
-				if(!client_data->auth.user){
-					logprintf(log, LOG_DEBUG, "Originating mail rejected due to router setting\n");
-					client_send(log, client, "550 User not allowed to originate mail\r\n");
-					return 0;
-				}
-				break;
+				//reject router
+				logprintf(log, LOG_DEBUG, "Originating mail rejected due to router setting\n");
+				client_send(log, client, "550 User not allowed to originate mail\r\n");
+				return 0;
 			default:
 				//resolution failed
 				logprintf(log, LOG_INFO, "Failed to resolve reverse path\n");
@@ -384,7 +380,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			return -1;
 		}
 
-		switch(path_resolve(log, current_path, database, true)){
+		switch(path_resolve(log, current_path, database, NULL, false)){
 			case 0:
 				//continue path handling
 				break;

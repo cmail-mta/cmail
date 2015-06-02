@@ -5,7 +5,6 @@ MAILROUTE route_query(LOGGER log, DATABASE* database, bool route_inbound, char* 
 	};
 	sqlite3_stmt* stmt=((route_inbound)?database->query_inrouter:database->query_outrouter);
 	int status;
-	char* recursion_temp;
 
 	if(!user){
 		return route;
