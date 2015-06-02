@@ -1,12 +1,3 @@
-/*
- * Transitions
- * 	NEW | HELO/EHLO -> IDLE | 250 CAPS
- * 	NEW | *		-> NEW | 500 Out of sequence
- *	IDLE | MAIL	-> MAIL | 250 OK
- *	IDLE | RSET	-> IDLE | 250 OK
- *	MAIL | RSET	-> IDLE | 250 OK
- */
-
 int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
 	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
@@ -309,7 +300,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		}
 
 		//resolve reverse path
-		//FIXME this does not resolve aliases
+		//FIXME this should additionally take the name of the authenticated user for resolution
 		switch(path_resolve(log, &(client_data->current_mail.reverse_path), database, false)){
 			case 0:
 				//either local or unknown

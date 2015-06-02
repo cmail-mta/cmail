@@ -30,6 +30,13 @@ master database structure
 		If this database fails, an attempt will be made to
 		store to the master database instead.
 
+		user_alias	TEXT
+		Mark the user as an alias to another user.
+		This feature should only be used to provide two
+		independent logins to a mailbox. Deleting the original
+		user deletes all mail associated with it.
+		THIS FEATURE IS CURRENTLY NOT IMPLEMENTED
+
 	'addresses' table
 	-----------------
 	Contains the mapping of addresses (or rather, mail paths)
@@ -88,13 +95,6 @@ master database structure
 		for fallback mail server configurations or relay
 		applications.
 
-		Router: alias
-		Parameter: locally defined user (NULL behaves the same
-			way as the drop router)
-		Assign all incoming mail to the aliased user, using
-		that users configured routing. Useful for shared
-		access to a mailbox.
-
 		Router: drop
 		Parameter: None
 		Accept incoming mail, but do not store it. Might be
@@ -122,11 +122,6 @@ master database structure
 			way as the drop router)
 		Hand off all originated mail for this user to another server
 		(smarthost) for relaying.
-
-		Router: alias
-		Parameter: locally defined user (NULL behaves the same
-			way as the drop router)
-		Route as the aliased user.
 
 		Router: reject
 		Parameter: None

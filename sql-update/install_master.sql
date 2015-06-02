@@ -3,20 +3,16 @@
 
 BEGIN TRANSACTION;
 	CREATE TABLE users (
-		user_name	TEXT NOT NULL
-				UNIQUE,
+		user_name	TEXT NOT NULL UNIQUE,
 		user_authdata	TEXT,
-		user_database	TEXT
+		user_database	TEXT,
+		user_alias 	TEXT REFERENCES users (user_name) ON DELETE SET NULL ON UPDATE CASCADE
 	);
 
 	CREATE TABLE addresses (
 		address_expression	TEXT	NOT NULL, -- UNIQUE constraint breaks some tricks and should not be needed (ordering is enforced)
-		address_order		INTEGER	PRIMARY KEY AUTOINCREMENT
-						NOT NULL
-						UNIQUE,
-		address_user		TEXT	NOT NULL
-						REFERENCES users ( user_name )	ON DELETE CASCADE
-										ON UPDATE CASCADE
+		address_order		INTEGER	PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
+		address_user		TEXT	NOT NULL REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE
 	);
 
 	CREATE TABLE mailbox (
@@ -132,5 +128,5 @@ BEGIN TRANSACTION;
 	LEFT JOIN faillog ON mail_id = fail_mail
 	GROUP BY mail_id;
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '7');
+	INSERT INTO meta (key, value) VALUES ('schema_version', '8');
 COMMIT;
