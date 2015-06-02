@@ -6,7 +6,6 @@ var cmail = {
 		"store",
 		"forward",
 		"handoff",
-		"alias",
 		"drop",
 		"reject"
 	],
@@ -15,7 +14,6 @@ var cmail = {
 		"any",
 		"defined",
 		"handoff",
-		"alias",
 		"reject"
 	],
 	modules: [],

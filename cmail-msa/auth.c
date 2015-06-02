@@ -64,6 +64,7 @@ int auth_method_plain(LOGGER log, DATABASE* database, AUTH_DATA* auth_data){
 		}
 	}
 
+	//TODO handle aliasing at this point
 	rv=auth_validate(log, database, user, pass);
 	if(rv==0){
 		//clean auth data

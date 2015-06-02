@@ -9,14 +9,6 @@ volatile and might change between versions, commits and without
 notice. Upgrade paths will only be reliably provided between
 tagged releases.
 
-Infinite alias recursion
-------------------------
-It is currently possible to have users be aliased to other
-aliased users, including the original user. This creates an
-infinite loop at the time the alias is resolved (mail routing).
-Aliases should for the time being only be created by administrators,
-not directly by end users.
-
 Internationalized Email
 -----------------------
 While cmail supports UTF8 characters in paths as well

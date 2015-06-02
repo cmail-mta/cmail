@@ -54,15 +54,6 @@ MAILROUTE route_query(LOGGER log, DATABASE* database, bool route_inbound, char* 
 	sqlite3_reset(stmt);
 	sqlite3_clear_bindings(stmt);
 
-	//handle alias via recursion
-	if(route.router && !strcmp(route.router, "alias")){
-		free(route.router);
-		recursion_temp=route.argument;
-		logprintf(log, LOG_INFO, "Recursing for user %s alias %s\n", user, recursion_temp);
-		route=route_query(log, database, route_inbound, recursion_temp);
-		free(recursion_temp);
-	}
-
 	return route;
 }
 

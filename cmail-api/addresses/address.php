@@ -567,61 +567,38 @@
 				$finished = true;
 				switch ($msa[$router]) {
 					case "drop":
-						$steps[] = "address dropped";
+						$steps[] = "Mail dropped due to router";
 						break;
 					case "handoff":
-						$steps[] = "handoff to " . $msa[substr($router, 0, -1)];
+						$steps[] = "Handing off to " . $msa[substr($router, 0, -1)];
 						break;
 					case "forward":
 						if ($router == "msa_outrouter") {
-							$steps[] = "invalid outrouter (forward)";
+							$steps[] = "Not an outbound router (forward)";
 						} else {
-							$steps[] = "forward to " . $msa[substr($router, 0, -1)];
+							$steps[] = "Forwarding to " . $msa[substr($router, 0, -1)];
 						}
 						break;
 					case "reject":
-						$steps[] = "address rejected";
+						$steps[] = "Address rejected";
 						break;
 					case "store":
 						if ($router == "msa_outrouter") {
-							$steps[] = "store is not a valid outrouter";
+							$steps[] = "Not an outbound router (store)";
 							break;
 						}
 
 						if ($msa[substr($router, 0, -1)] != "") {
-							$steps[] = "stored in " . $msa[substr($router, 0, -1)];
+							$steps[] = "Stored to database " . $msa[substr($router, 0, -1)];
 						} else {
-							$steps[] = "stored in master table";
-						}
-						break;
-					case "alias":
-						$user = $msa[substr($router, 0, -1)];
-						$finished = false;
-						foreach($steps as $step) {
-							if ($step == "alias to user " . $user) {
-								$finished = true;
-								$steps[] = "invalid routing, loop in aliases (user " . $user . ")";
-								break;
-							}
-						}
-
-						if (!$finished) {
-							$msa = $msaModule->get(array("msa_user" => $user, false));
-
-							if (count($msa) < 1) {
-								$finished = true;
-								$steps[] = "Cannot alias, user " . $user . " not found";
-							} else {
-								$msa = $msa[0];
-								$steps[] = "alias to user " . $user;
-							}
+							$steps[] = "Stored to master database mailbox";
 						}
 						break;
 					case "any":
 						if ($router == "msa_outrouter") {
-							$steps[] = "mail accepted (cause of any)";
+							$steps[] = "Mail accepted (router any)";
 						} else {
-							$steps[] = "invalid routing (any is only valid for outrouting)";
+							$steps[] = "Not an inbound router (any)";
 						}
 						break;
 					case "defined":
@@ -630,20 +607,20 @@
 							$accepted = false;
 							foreach($addresses as $address2) {
 								if ($obj["address_expression"] == $address2["address_expression"]) {
-									$steps[] = "address accepted";
+									$steps[] = "Address accepted";
 									$accepted = true;
 									break;
 								}
 							}
 							if (!$accepted) {
-								$steps[] = "address not accpeted (caused by defined routing with user " . $msa["msa_user"];
+								$steps[] = "User can not user address (router defined for " . $msa["msa_user"];
 							}
 						} else {
-							$steps[] = "defined is only valid for outrouting";
+							$steps[] = "Not in inbound router (defined)";
 						}
 						break;
 					default:
-						$steps[] = "invalid routing (" . $msa[$router] . " not valid)";
+						$steps[] = "Unknown router " . $msa[$router];
 						break;
 				}
 			}
