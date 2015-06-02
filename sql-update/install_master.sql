@@ -128,5 +128,5 @@ BEGIN TRANSACTION;
 	LEFT JOIN faillog ON mail_id = fail_mail
 	GROUP BY mail_id;
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '7');
+	INSERT INTO meta (key, value) VALUES ('schema_version', '8');
 COMMIT;
