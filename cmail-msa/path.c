@@ -90,34 +90,35 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 	if(status == SQLITE_OK){
 		do{
 			status = sqlite3_step(database->query_addresses);
-
-			if(originating_user || is_reverse){
-				//test if matched user is authentiicated user
-				if(originating_user && strcmp(originating_user, (char*)sqlite3_column_text(database->query_addresses, 0))){
-					// Falling through to SQLITE_DONE here implies a non-local origin while routers for this adress are set
-					// (just not for this user). The defined router will then fail the address, the any router will accept it
-					continue;
+			if(status == SQLITE_ROW){
+				if(originating_user || is_reverse){
+					//test if matched user is authenticated user
+					if(originating_user && strcmp(originating_user, (char*)sqlite3_column_text(database->query_addresses, 0))){
+						// Falling through to SQLITE_DONE here implies a non-local origin while routers for this adress are set
+						// (just not for this user). The defined router will then fail the address, the any router will accept it
+						continue;
+					}
+					router = (char*)sqlite3_column_text(database->query_addresses, 2);
 				}
-				router = (char*)sqlite3_column_text(database->query_addresses, 2);
-			}
-			else{
-				router = (char*)sqlite3_column_text(database->query_addresses, 1);
-			}
+				else{
+					router = (char*)sqlite3_column_text(database->query_addresses, 1);
+				}
 
-			//check for reject
-			if(!strcmp(router, "reject")){
-				rv = 1;
+				//check for reject
+				if(!strcmp(router, "reject")){
+					rv = 1;
+					break;
+				}
+
+				//path ok, resolve to user
+				path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 0));
+				if(!path->resolved_user){
+					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
+					break;
+				}
+				rv = 0;
 				break;
 			}
-
-			//path ok, resolve to user
-			path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 0));
-			if(!path->resolved_user){
-				logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
-				break;
-			}
-			rv = 0;
-
 		} while(status == SQLITE_ROW);
 
 		switch(status){
