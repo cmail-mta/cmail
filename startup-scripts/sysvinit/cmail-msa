@@ -5,21 +5,17 @@
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: mail server suite written in c
-# Description:       This file should be used to construct scripts to be
-#                    placed in /etc/init.d.
+# Short-Description: SMTP server (cmail-msa)
+# Description:       cmail-msa is the SMTP server module of the cmail-mta project
 ### END INIT INFO
 
 # Author: Jan Duepmeier <jan@cmail.rocks>
-#
-# Please remove the "Author" lines above and replace them
-# with your own name if you copy and modify this script.
 
 # Do NOT "set -e"
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="mail server suite written in c"
+DESC="SMTP server"
 NAME=cmail-msa
 DAEMON=/usr/sbin/cmail-msa
 DAEMON_ARGS="/etc/cmail/msa.conf"
