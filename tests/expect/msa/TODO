@@ -1,0 +1,17 @@
+Run tests with HELO as well as EHLO
+Run tests with STARTTLS as well as with plaintext
+Path resolver
+	Forward
+		reject router
+		local path/nonlocal path
+			authenticated/unauthenticated
+				multiple possibilities/single possibility
+		
+	Reverse
+		reject router
+		authenticated/unauthenticated
+			reject, any, defined routers
+				multiple match
+					first/later match
+				single match
+			no defined match
