@@ -15,3 +15,20 @@ Path resolver
 					first/later match
 				single match
 			no defined match
+
+Authentication
+	AUTH
+	AUTH_
+	AUTH EXTERNAL
+	AUTH EXTERAL_
+	AUTH PLAIN
+	AUTH PLAIN_
+	AUTH PLAIN XXXX (invalid bas64)
+	AUTH PLAIN AAAA (valid base64, random)
+	Invalid plain parameter
+	Valid bogus plain parameter
+	Sequence: Login -> Auth -> Quit -> Conn (reuse slot): No auth reuse
+	Sequence: Login -> Auth (Fail): No user name left in structures
+	Fixed authentication
+
+Size limiting
