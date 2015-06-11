@@ -24,8 +24,7 @@
 			"delete_right" => "deleteRight",
 			"add_right" => "addRight",
 			"update_rights" => "updateRights",
-			"add_alias" => "addAlias",
-			"delete_alias" => "deleteAlias"
+			"update_alias" => "updateAlias"
 		);
 
 		/**
@@ -72,7 +71,7 @@
 		 */
 		private function getDelegated($write = true) {
 
-			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login
+			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_alias
 				FROM users WHERE user_name IN (
 					SELECT api_delegate AS user_name FROM api_user_delegates WHERE api_user = :api_user
 				) OR user_name = :api_user";
@@ -148,7 +147,7 @@
 		 */
 		private function getByUser($username, $write = true) {
 
-			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login FROM users WHERE user_name = :user_name";
+			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_alias FROM users WHERE user_name = :user_name";
 
 			$params = array(":user_name" => $username);
 
@@ -353,7 +352,7 @@
 		 */
 		public function getAll() {
 
-			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login FROM users";
+			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_alias FROM users";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
 			$list = $this->getModuleUserLists();
@@ -531,6 +530,11 @@
 				return false;
 			}
 
+			if (in_array(strtolower($user["user_name"]), ["main", "temp"])) {
+				$this->output->add("status", "Username is not allowed. ");
+				return false;
+			}
+
 			if (!$this->auth->hasRight("admin") && !$this->auth->hasRight("delegate")) {
 				$this->output->add("status", "Not allowed");
 				return false;
@@ -564,8 +568,8 @@
 			}
 
 			if (isset($user["user_alias"]) && !empty($user["user_alias"])) {
-				if (!$this->addAlias($user)) {
-					$this->rollback();
+				if (!$this->updateAlias($user)) {
+					$this->db->rollback();
 					return false;		
 				}
 			}
@@ -573,7 +577,7 @@
 			if (isset($id) && !empty($id)) {
 				$this->output->add("user", true);
 
-				if ($auth->hasRight("delegate")) {
+				if ($this->auth->hasRight("delegate")) {
 					$status = $this->addDelegate(array("api_delegate" => $user["user_name"]), true);
 
 					if ($status < 1) {
@@ -586,7 +590,7 @@
 				return true;
 			} else {
 				$this->output->add("user", false);
-				$this->rollback();
+				$this->db->rollback();
 				return false;
 			}
 
@@ -669,13 +673,13 @@
 		}
 
 		/**
-		 * Adds an alias to the given user.
+		 * Updates the alias of the given user.
 		 * @param $obj object with
 		 * 	"user_name" => name of the user
 		 * 	"user_alias" => alias for this user.
 		 * @return true or false
 		 */
-		public function addAlias($obj) {
+		public function updateAlias($obj) {
 
 			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
 				$this->output->add("status", "No username set.");
@@ -684,6 +688,11 @@
 
 			if (!isset($obj["user_alias"]) || empty($obj["user_alias"])) {
 				$this->output->add("status", "No alias set.");
+				return false;
+			}
+
+			if ($obj["user_name"] == $obj["user_alias"]) {
+				$this->output->add("status", "Cannot alias to the same user.");
 				return false;
 			}
 
@@ -704,33 +713,6 @@
 			return $status > 0;
 		}
 
-		/**
-		 * Deletes the alias of the given user
-		 * @param $obj object with:
-		 * 	"user_name" name of the user
-		 * @return true or false
-		 */
-		public function deleteAlias($obj) {
-
-			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
-				$this->output->add("status", "No username set.");
-				return false;
-			}
-
-			if (!$this->auth->hasRight("admin")) {
-				$this->output->add("status", "Not allowed.");
-				return false;
-			}
-
-			$sql = "UPDATE users SET user_alias = NULL WHERE user_name = :user";
-
-			$params = [
-				":user" => $obj["user_name"]
-			];
-
-			$status = $this->db->insert($sql, [$params]);
-			return $status > 0;
-		}
 	}
 
 ?>

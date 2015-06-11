@@ -44,6 +44,7 @@ cmail.user = {
 		users.forEach(function(user) {
 			var tr = gui.create("tr");
 			tr.appendChild(gui.createColumn(user.user_name));
+			tr.appendChild(gui.createColumn(user.user_alias));
 
 			//can login?
 			var checkbox_col = gui.create("td");
@@ -143,6 +144,8 @@ cmail.user = {
 			gui.elem("user_name").value = user.user_name;
 			gui.elem("user_name").disabled = true;
 
+			gui.elem("user_alias").value = user.user_alias;
+
 			user_rights = gui.elem("user_rights");
 			user_rights.innerHTML = "";
 			user.user_rights.forEach(function(right) {
@@ -154,6 +157,7 @@ cmail.user = {
 			gui.elem("form_type").value = "new";
 			gui.elem("user_name").value = "";
 			gui.elem("user_name").disabled = false;
+			gui.elem("user_alias").value = "";
 			gui.elem("user_rights").innerHTML = "";
 
 		}
@@ -199,6 +203,11 @@ cmail.user = {
 		};
 
 		if (gui.elem("form_type").value === "new") {
+			
+			if (gui.elem("user_alias").value != "") {
+				user["user_alias"] = gui.elem("user_alias").value;
+			}
+			
 			ajax.asyncPost(cmail.api_url + "users/?add", JSON.stringify(user), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 			});
@@ -213,6 +222,20 @@ cmail.user = {
 					cmail.set_status(JSON.parse(xhr.response).status);
 				});
 			}
+
+			if (gui.elem("user_alias") == "") {
+				alias = null;
+
+			} else {
+				alias = gui.elem("user_alias").value;
+			}
+
+			ajax.asyncPost(cmail.api_url + "users/?update_alias", JSON.stringify({
+				user_name: user.user_name,
+				user_alias: alias
+			}), function(xhr) {
+				cmail.set_status(JSON.parse(xhr.response).status);
+			});
 
 			ajax.asyncPost(cmail.api_url + "users/?update_rights", JSON.stringify({
 				user_name: user.user_name,

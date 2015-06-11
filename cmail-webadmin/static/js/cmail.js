@@ -34,6 +34,7 @@ var cmail = {
 				head.innerHTML = "";
 				var tr = gui.create('tr');
 				tr.appendChild(gui.createColumn("Name"));
+				tr.appendChild(gui.createColumn("Alias"));
 
 				cmail.modules.forEach(function(module) {
 					tr.appendChild(gui.createColumn(module));
