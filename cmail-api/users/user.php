@@ -9,6 +9,7 @@
 
 		private $db;
 		private $output;
+		private $auth;
 		private $c;
 
 		// List of end points. Format is:
@@ -23,6 +24,8 @@
 			"delete_right" => "deleteRight",
 			"add_right" => "addRight",
 			"update_rights" => "updateRights",
+			"add_alias" => "addAlias",
+			"delete_alias" => "deleteAlias"
 		);
 
 		/**
@@ -34,6 +37,7 @@
 			$this->c = $c;
 			$this->db = $c->getDB();
 			$this->output = $c->getOutput();
+			$this->auth = $c->getAuth();
 		}
 
 		/**
@@ -44,6 +48,9 @@
 			return $this->endPoints;
 		}
 
+		/**
+		 * @see Module::getActiveUsers
+		 */
 		public function getActiveUsers() {
 			$sql = "SELECT user_name FROM users WHERE user_authdata IS NOT NULL";
 
@@ -70,10 +77,8 @@
 					SELECT api_delegate AS user_name FROM api_user_delegates WHERE api_user = :api_user
 				) OR user_name = :api_user";
 
-			$auth = Auth::getInstance($this->db, $this->output);
-
 			$params = array(
-				":api_user" => $auth->getUser()
+				":api_user" => $this->auth->getUser()
 			);
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
@@ -101,19 +106,17 @@
 		 */
 		public function get($obj, $write = true) {
 
-			$auth = Auth::getInstance($this->db, $this->output);
-
-			if ($auth->hasRight("admin")) {
+			if ($this->auth->hasRight("admin")) {
 				if (!isset($obj["username"])) {
 					// if no username is set, return all users
 					return $this->getAll();
 				} else {
 					return $this->getByUser($obj["username"], $write);
 				}
-			} else if ($auth->hasRight("delegate")) {
+			} else if ($this->auth->hasRight("delegate")) {
 				if (isset($obj["username"]) && !empty($obj["username"])) {
-					$users = $auth->getDelegateUsers();
-					$users[] = $auth->getUser();
+					$users = $this->auth->getDelegateUsers();
+					$users[] = $this->auth->getUser();
 					foreach($users as $user) {
 						if ($user == $obj["username"]) {
 							return $this->getByUser($user);
@@ -126,8 +129,8 @@
 					return $this->getDelegated($write);
 				}
 			} else {
-				if (!isset($obj["username"]) || $obj["username"] == $auth->getUser()) {
-					return $this->getByUser($auth->getUser());
+				if (!isset($obj["username"]) || $obj["username"] == $this->auth->getUser()) {
+					return $this->getByUser($this->auth->getUser());
 				} else {
 					$this->output->add("status","User has no right to do this (not the user).");
 					$this->output->add("users", []);
@@ -179,6 +182,13 @@
 			return $out;
 		}
 
+		/**
+		 * Revokes a right from the given user.
+		 * @param $user object with
+		 * 	"user_name"  => name of the user
+		 * 	"user_right" => name of the right
+		 * @return true or false
+		 */
 		public function deleteRight($user) {
 
 
@@ -192,9 +202,7 @@
 				return false;
 			}
 
-			$auth = Auth::getInstance($this->db, $this->output);
-
-			if (!$auth->hasRight("admin")) {
+			if (!$this->auth->hasRight("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -206,8 +214,16 @@
 				":api_right" => $user["user_right"]
 			);
 
-			return $this->db->insert($sql, [$params]);
+			return $this->db->insert($sql, [$params]) > 0;
 		}
+
+		/**
+		 * grant a right for the given user.
+		 * @param $user object with
+		 * 	"user_name" => name of the user
+		 * 	"user_right" => name of the right
+		 * @return true or false
+		 */
 		public function addRight($user) {
 
 
@@ -221,9 +237,7 @@
 				return false;
 			}
 
-			$auth = Auth::getInstance($this->db, $this->output);
-
-			if (!$auth->hasRight("admin")) {
+			if (!$this->auth->hasRight("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -235,9 +249,15 @@
 				":api_right" => $user["user_right"]
 			);
 
-			return $this->db->insert($sql, [$params]);
+			return $this->db->insert($sql, [$params]) > 0;
 		}
 
+		/**
+		 * Updates the rights of the given user
+		 * @param $user object with
+		 * 	"user_name"   => name of the user
+		 * 	"user_rights" => list of user rights
+		 */
 		public function updateRights($user) {
 			if (!isset($user["user_name"]) || empty($user["user_name"])) {
 				$this->output->add("status", "No user is set.");
@@ -248,9 +268,8 @@
 				$this->output->add("status", "No rights is set.");
 				return false;
 			}
-			$auth = Auth::getInstance($this->db, $this->output);
 
-			if (!$auth->hasRight("admin")) {
+			if (!$this->auth->hasRight("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -284,7 +303,8 @@
 		/**
 		 * Return a list of active modules for the given user
 		 * @param user object with
-		 * 	user_name name of the user
+		 * 	"user_name" => name of the user
+		 * @return list of active modules
 		 */
 		public function getActiveModules($user, $list) {
 			$modules = array();
@@ -300,7 +320,7 @@
 
 		/**
 		 * Return if the module is active for the user
-		 * @param username
+		 * @param $username username
 		 * @return true or false
 		 */
 		public function isActive($username) {
@@ -314,6 +334,7 @@
 			return ($this->get($obj, false)["user_can_login"]);
 		}
 
+		// get list of active users per module
 		private function getModuleUserLists() {
 
 			global $modulelist;
@@ -364,6 +385,14 @@
 			}
 		}
 
+		/**
+		 * Adds an delegate to the given user.
+		 * @param $obj object with
+		 * 	"api_user"	=> name of the user
+		 * 	"api_delegate"  => name of the delegated user
+		 * @param $delegated flag for adding this delegate from the user add call.
+		 * @return true or false
+		 */
 		public function addDelegate($obj, $delegated = false) {
 
 			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
@@ -375,9 +404,7 @@
 				$this->output->add("status", "Delegated user is not set.");
 				return false;
 			}
-			$auth = Auth::getInstance($this->db, $this->output);
-
-			if (!$auth->hasRight("admin") && !$delegated) {
+			if (!$this->auth->hasRight("admin") && !$delegated) {
 				return false;
 			}
 
@@ -388,9 +415,16 @@
 				":api_delegate" => $obj["api_delegate"]
 			);
 
-			return $this->db->insert($sql, [$params]);
+			return $this->db->insert($sql, [$params]) > 0;
 		}
 
+		/**
+		 * Removes a delegated user from the given user.
+		 * @param $obj object with
+		 * 	"api_user"	=> name of the user
+		 * 	"api_delegate"  => name of the delegated user
+		 * @return true or false
+		 */
 		public function removeDelegate($obj) {
 			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
 				$this->output->add("status", "User is not set.");
@@ -401,9 +435,7 @@
 				$this->output->add("status", "Delegated user is not set.");
 				return false;
 			}
-			$auth = Auth::getInstance($this->db, $this->output);
-
-			if (!$auth->hasRight("admin") && !$delegated) {
+			if (!$this->auth->hasRight("admin")) {
 				return false;
 			}
 
@@ -414,12 +446,18 @@
 				":api_delegate" => $obj["api_delegate"]
 			);
 
-			return $this->db->insert($sql, [$params]);
+			return $this->db->insert($sql, [$params]) > 0;
 
 		}
 
+		/**
+		 * Adds an delegated address to the given user.
+		 * @param $obj object with
+		 * 	"api_user"	 => name of the user
+		 * 	"api_expression" => address expression
+		 * @return true or false;
+		 */
 		public function addDelegatedAddress($obj) {
-			$auth = Auth::getInstance($this->db, $this->output);
 
 			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
 				$this->output->add("status", "User is not set.");
@@ -429,7 +467,7 @@
 				$this->output->add("status", "Address expression is not set.");
 				return false;
 			}
-			if (!$auth->hasRight("admin")) {
+			if (!$this->auth->hasRight("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -441,11 +479,17 @@
 				":api_expression" => $obj["api_expression"]
 			);
 
-			return $this->db->insert($sql, [$params]);
+			return $this->db->insert($sql, [$params]) > 0;
 		}
 
+		/**
+		 * Removes an delegated address.
+		 * @param $obj object with
+		 * 	"api_user" 	 => user with delegated address
+		 * 	"api_expression" => address expression
+		 * @return true or false
+		 */
 		public function removeDelegatedAddress($obj, $write = true) {
-			$auth = Auth::getInstance($this->db, $this->output);
 
 			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
 				$this->output->add("status", "User is not set.");
@@ -455,7 +499,7 @@
 				$this->output->add("status", "Address expression is not set.");
 				return false;
 			}
-			if (!$auth->hasRight("admin")) {
+			if (!$this->auth->hasRight("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -467,17 +511,18 @@
 				":api_expression" => $obj["api_expression"]
 			);
 
-			return $this->db->insert($sql, [$params]);
+			return $this->db->insert($sql, [$params]) > 0;
 		}
 
 		/**
 		 * Adds a user to database.
 		 * @param $user the user object. Every user needs at least a name.
 		 *              Valid fields are:
-		 *              	* user_name
-		 *              	* user_authdata
-		 * @output_flags user contains true or false when it failed.
-		 * @return @see @output_flags
+		 *              	"user_name"     => name of the user
+		 *              	"user_authdata" => password for the user
+		 *              	"user_alias"    => alias user
+		 *              	"user_rights"   => array with user_rights
+		 * @return true or false
 		 */
 		public function add($user) {
 
@@ -486,16 +531,13 @@
 				return false;
 			}
 
-			$auth = Auth::getInstance($this->db, $this->output);
-			if (!$auth->hasRight("admin") && !$auth->hasRight("delegate")) {
+			if (!$this->auth->hasRight("admin") && !$this->auth->hasRight("delegate")) {
 				$this->output->add("status", "Not allowed");
 				return false;
 			}
 
 			if (isset($user["user_authdata"]) && !empty($user["user_authdata"]) && $user["user_authdata"] !== "") {
-
 				$user["user_authdata"] = $this->create_password_hash(null, $user["user_authdata"]);
-
 			} else {
 				$user["user_authdata"] = null;
 			}
@@ -512,13 +554,19 @@
 
 			$id = $this->db->insert($sql, array($params));
 
-
 			if (isset($user["user_rights"]) && !empty($user["user_rights"])) {
 				foreach($user["user_rights"] as $right) {
 					$this->addRight(array(
 						"user_right" => $right,
 						"user_name" => $user["user_name"]
 					));
+				}
+			}
+
+			if (isset($user["user_alias"]) && !empty($user["user_alias"])) {
+				if (!$this->addAlias($user)) {
+					$this->rollback();
+					return false;		
 				}
 			}
 
@@ -547,29 +595,18 @@
 		/**
 		 * Sets the password for the given user
 		 * @param $user user object with
-		 * 	- user_name name of the user
-		 * 	- user_authdata password of the user (if null login is not possible)
+		 * 	"user_name" => name of the user
+		 * 	"user_authdata" => password of the user (if null login is not possible)
 		 * @return true or false
 		 */
 		public function set_password($user) {
 
-			$auth = Auth::getInstance($this->db, $this->output);
-
-			$test = false;
 			if (!isset($user["user_name"]) || empty($user["user_name"])) {
 				$this->output->add("status", "Username is not set.");
 				return false;
 			}
 
-			if ($auth->hasRight("admin")) {
-				$test = true;
-			} else if ($auth->hasRight("delegate") && $auth->hasDelegatedUser($user["user_name"])) {
-				$test = true;
-			} else if ($auth->getUser() === $user["user_name"]) {
-				$test = true;
-			}
-
-			if (!$test) {
+			if (!$this->auth->hasDelegatedUser($user["user_name"]) && $auth->getUser() !== $user["user_name"]) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -600,22 +637,18 @@
 
 		/**
 		 * Deletes a user.
-		 * @param $username name of the user
+		 * @param $obj object with
+		 * 	"user_name" name of the user
 		 * @output_flags delete is "ok" when everything is fine, else "not ok"
 		 * @return false on error, else true
 		 */
 		public function delete($obj) {
-			$auth = Auth::getInstance($this->db, $this->output);
 			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
 				$this->output->add("status", "No username set.");
 				return false;
 			}
-			$test = false;
-			if ($auth->hasRight("admin") || ($auth->hasRight("delegate") && $auth->hasDelegatedUser($obj["user_name"]))) {
-				$test = true;
-			}
 
-			if (!$test && $auth->getUser() !== $obj["user_name"]) {
+			if (!$this->auth->hasDelegatedUser($obj["user_name"]) && $auth->getUser() !== $obj["user_name"]) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -633,6 +666,70 @@
 			} else {
 				return false;
 			}
+		}
+
+		/**
+		 * Adds an alias to the given user.
+		 * @param $obj object with
+		 * 	"user_name" => name of the user
+		 * 	"user_alias" => alias for this user.
+		 * @return true or false
+		 */
+		public function addAlias($obj) {
+
+			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
+				$this->output->add("status", "No username set.");
+				return false;
+			}
+
+			if (!isset($obj["user_alias"]) || empty($obj["user_alias"])) {
+				$this->output->add("status", "No alias set.");
+				return false;
+			}
+
+			if (!$this->auth->hasRight("admin")) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "UPDATE users SET user_alias = :alias WHERE user_name = :user";
+
+			$params = [
+				":alias" => $obj["user_alias"],
+				":user" => $obj["user_name"]
+			];
+
+			$status = $this->db->insert($sql, [$params]);
+
+			return $status > 0;
+		}
+
+		/**
+		 * Deletes the alias of the given user
+		 * @param $obj object with:
+		 * 	"user_name" name of the user
+		 * @return true or false
+		 */
+		public function deleteAlias($obj) {
+
+			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
+				$this->output->add("status", "No username set.");
+				return false;
+			}
+
+			if (!$this->auth->hasRight("admin")) {
+				$this->output->add("status", "Not allowed.");
+				return false;
+			}
+
+			$sql = "UPDATE users SET user_alias = NULL WHERE user_name = :user";
+
+			$params = [
+				":user" => $obj["user_name"]
+			];
+
+			$status = $this->db->insert($sql, [$params]);
+			return $status > 0;
 		}
 	}
 
