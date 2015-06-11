@@ -68,12 +68,13 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			.data_max = listener_data->max_size,
 			.data = NULL
 		},
-		.auth = {
-			.method = AUTH_PLAIN,
-			.user = NULL,
-			.parameter = NULL,
-			.challenge = NULL,
-			.response = NULL
+		.sasl_user = {
+			.authorized = NULL,
+			.authenticated = NULL
+		},
+		.sasl_context = {
+			.method = SASL_INVALID
+			//rest is automatically reset by sasl_begin
 		}
 	};
 	CLIENT* actual_data;
@@ -123,8 +124,9 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	}
 
 	if(listener_data->fixed_user){
-		actual_data->auth.user=common_strdup(listener_data->fixed_user);
-		if(!actual_data->auth.user){
+		actual_data->sasl_user.authenticated = common_strdup(listener_data->fixed_user);
+		actual_data->sasl_user.authorized = common_strdup(listener_data->fixed_user);
+		if(!actual_data->sasl_user.authenticated || !actual_data->sasl_user.authorized){
 			logprintf(log, LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
 			//dont fail here, its not critical
 		}
@@ -165,7 +167,7 @@ int client_close(CONNECTION* client){
 	mail_reset(&(client_data->current_mail));
 
 	//reset authentication
-	auth_reset(&(client_data->auth));
+	sasl_reset_user(&(client_data->sasl_user), true);
 
 	//return the conpool slot
 	client->fd=-1;

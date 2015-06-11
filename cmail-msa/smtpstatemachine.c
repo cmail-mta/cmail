@@ -6,19 +6,19 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->listener->tls_mode){
 			case TLS_ONLY:
-				client_data->current_mail.protocol=(client_data->auth.user?"sesmtpa":"sesmtp");
+				client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"sesmtpa":"sesmtp");
 				break;
 			case TLS_NEGOTIATE:
 				if(client->tls_mode==TLS_ONLY){
-					client_data->current_mail.protocol=(client_data->auth.user?"esmtpsa":"esmtps");
+					client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"esmtpsa":"esmtps");
 					break;
 				}
 			case TLS_NONE:
-				client_data->current_mail.protocol=(client_data->auth.user?"esmtpa":"esmtp");
+				client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"esmtpa":"esmtp");
 				break;
 		}
 		#else
-		client_data->current_mail.protocol=(client_data->auth.user?"esmtpa":"esmtp");
+		client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"esmtpa":"esmtp");
 		#endif
 
 		client_data->state=STATE_IDLE;
@@ -60,19 +60,19 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->listener->tls_mode){
 			case TLS_ONLY:
-				client_data->current_mail.protocol=(client_data->auth.user?"ssmtpa":"ssmtp");
+				client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "ssmtpa":"ssmtp");
 				break;
 			case TLS_NEGOTIATE:
 				if(client->tls_mode==TLS_ONLY){
-					client_data->current_mail.protocol=(client_data->auth.user?"smtpsa":"smtps");
+					client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "smtpsa":"smtps");
 					break;
 				}
 			case TLS_NONE:
-				client_data->current_mail.protocol=(client_data->auth.user?"smtpa":"smtp");
+				client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "smtpa":"smtp");
 				break;
 		}
 		#else
-		client_data->current_mail.protocol=(client_data->auth.user?"smtpa":"smtp");
+		client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "smtpa":"smtp");
 		#endif
 
 		client_data->state=STATE_IDLE;
@@ -89,101 +89,118 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 
 int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
 	CLIENT* client_data=(CLIENT*)client->aux_data;
-	char* parameter=client_data->recv_buffer;
+	int status = SASL_ERROR_PROCESSING;
+	char* method = NULL;
+	char* parameter = NULL;
+	char* challenge = NULL;
 
-	if(!strcmp(client_data->recv_buffer, "*")){
+	if(client_data->sasl_context.method != SASL_INVALID && !strcmp(client_data->recv_buffer, "*")){
 		//cancel authentication
 		logprintf(log, LOG_INFO, "Client cancelled authentication\n");
 		client_data->state=STATE_IDLE;
-		client_send(log, client, "501 Authentication failed\r\n");
+		sasl_cancel(&(client_data->sasl_context));
+		client_send(log, client, "501 Authentication cancelled\r\n");
+		return 0;
+	}
+	else if(client_data->sasl_context.method != SASL_INVALID){
+		status = sasl_continue(log, &(client_data->sasl_context), client_data->recv_buffer, &challenge);
+	}
+	else if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
+		//tokenize along spaces
+		method = strtok(client_data->recv_buffer + 5, " ");
+		if(method){
+			parameter = strtok(NULL, " ");
+			logprintf(log, LOG_DEBUG, "Beginning SASL with method %s parameter %s\n", method?method:"null", parameter?parameter:"null");
+			status = sasl_begin(log, &(client_data->sasl_context), &(client_data->sasl_user), method, parameter, &challenge);
+		}
+		else{
+			logprintf(log, LOG_WARNING, "Client tried auth without supplying method\n");
+			status = SASL_UNKNOWN_METHOD;
+		}
+	}
+	else{
+		logprintf(log, LOG_ERROR, "Invalid state (No negotiation but data) reached in AUTH, returning to IDLE\r\n");
+		client_data->state=STATE_IDLE;
+		client_send(log, client, "500 Invalid state\r\n");
 		return 0;
 	}
 
-	//method select & initial parameter
-	if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
-		if(!strncasecmp(client_data->recv_buffer+5, "plain", 5)){
-			client_data->auth.method=AUTH_PLAIN;
-		}
-		//may check for other methods here
-		else{
+	switch(status){
+		case SASL_OK:
+			logprintf(log, LOG_ERROR, "Invalid state (SASL_OK) reached in AUTH, returning to IDLE\r\n");
+			sasl_reset_ctx(&(client_data->sasl_context), false); //opting for security here, rather than freeing memory we do not own
+			client_data->state=STATE_IDLE;
+			client_send(log, client, "500 Invalid state\r\n");
+			return -1;
+		case SASL_ERROR_PROCESSING:
+			logprintf(log, LOG_ERROR, "SASL processing error\r\n");
+			sasl_reset_ctx(&(client_data->sasl_context), true);
+			client_send(log, client, "454 Internal Error\r\n");
+			client_data->state=STATE_IDLE;
+			return -1;
+		case SASL_ERROR_DATA:
+			logprintf(log, LOG_ERROR, "SASL failed to parse data\r\n");
+			sasl_reset_ctx(&(client_data->sasl_context), true);
+			client_send(log, client, "501 Invalid data provided\r\n");
+			client_data->state=STATE_IDLE;
+			return -1;
+		case SASL_UNKNOWN_METHOD:
 			logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer+5);
 			client_data->state=STATE_IDLE;
+			sasl_reset_ctx(&(client_data->sasl_context), false);
 			client_send(log, client, "504 Unknown mechanism\r\n");
+			return -1;
+		case SASL_CONTINUE:
+			logprintf(log, LOG_INFO, "Asking for SASL continuation\r\n");
+			client_send(log, client, "334 %s\r\n", challenge ? challenge:"");
 			return 0;
-		}
-
-		//scan over method
-		for(parameter=client_data->recv_buffer+5;!isspace(parameter[0])&&parameter[0];parameter++){
-		}
-
-		if(parameter[0]&&strlen(parameter)>1){
-			//parameter supplied, continue
-			parameter++;
-		}
-		else{
-			//no parameter, ask for continuation
-			switch(client_data->auth.method){
-				case AUTH_PLAIN:
-					client_send(log, client, "334 \r\n");
-					break;
-			}
-			return 0;
-		}
-	}
-
-	//FIXME refactor this part
-	//catch (unprefixed) data parameters
-	switch(client_data->auth.method){
-		case AUTH_PLAIN:
-			//must be parameter.
-			//duplicate to storage
-			client_data->auth.parameter=common_strdup(parameter);
-			if(!client_data->auth.parameter){
-				logprintf(log, LOG_ERROR, "Failed to allocate auth parameter memory\n");
-				client_data->state=STATE_IDLE;
-				client_send(log, client, "454 Internal Error\r\n");
-				auth_reset(&(client_data->auth));
-				return -1;
-			}
-
-			//evaluate
-			switch(auth_status(log, database, &(client_data->auth))){
-				case 1:
-					//more info required
-					//TODO more info required
-				case -1:
-					logprintf(log, LOG_INFO, "Client failed to authenticate\n");
-					client_send(log, client, "535 Authentication failed\r\n");
-					auth_reset(&(client_data->auth));
-					break;
-				case 0:
-					logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->auth.user);
-					client_send(log, client, "235 Authenticated\r\n");
-
-					#ifndef CMAIL_NO_TLS
-					switch(client_data->listener->tls_mode){
-						case TLS_ONLY:
-							client_data->current_mail.protocol="sesmtpa";
-							break;
-						case TLS_NEGOTIATE:
-							if(client->tls_mode==TLS_ONLY){
-								client_data->current_mail.protocol="esmtpsa";
-								break;
-							}
-						case TLS_NONE:
-							client_data->current_mail.protocol="esmtpa";
-							break;
-					}
-					#else
-					client_data->current_mail.protocol="esmtpa";
-					#endif
-					break;
-			}
+		case SASL_DATA_OK:
+			sasl_reset_ctx(&(client_data->sasl_context), true);
 			client_data->state=STATE_IDLE;
-			break;
+			
+			//check auth data
+			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge) < 0){
+				//login failed
+				sasl_reset_user(&(client_data->sasl_user), true);
+				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
+				client_send(log, client, "535 Authentication failed\r\n");
+				return 0;
+			}
+
+			//TODO handle aliasing at this point (set authorized)
+			client_data->sasl_user.authorized = common_strdup(client_data->sasl_user.authenticated);
+			if(!client_data->sasl_user.authorized){
+				sasl_reset_user(&(client_data->sasl_user), true);
+				logprintf(log, LOG_ERROR, "Failed to allocate memory for authorized user\n");
+				client_send(log, client, "454 Internal Error\r\n");
+				return 0;
+			}
+			
+			logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->sasl_user.authenticated);
+			client_send(log, client, "235 Authenticated\r\n");
+			
+			//update the protocol version
+			#ifndef CMAIL_NO_TLS
+			switch(client_data->listener->tls_mode){
+				case TLS_ONLY:
+					client_data->current_mail.protocol="sesmtpa";
+					break;
+				case TLS_NEGOTIATE:
+					if(client->tls_mode==TLS_ONLY){
+						client_data->current_mail.protocol="esmtpsa";
+						break;
+					}
+				case TLS_NONE:
+					client_data->current_mail.protocol="esmtpa";
+					break;
+			}
+			#else
+			client_data->current_mail.protocol="esmtpa";
+			#endif
+			return 0;
 	}
 
-	return 0;
+	return -1;
 }
 
 int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
@@ -246,7 +263,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				}
 				#endif
 			case AUTH_ANY:
-				if(client_data->auth.user){
+				if(client_data->sasl_user.authenticated){
 					logprintf(log, LOG_WARNING, "Authenticated client tried to authenticate again\n");
 					client_send(log, client, "503 Already authenticated\r\n");
 					return 0;
@@ -265,7 +282,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		//Using this command for some debug output...
 		logprintf(log, LOG_DEBUG, "Client protocol: %s\n", client_data->current_mail.protocol);
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
-		logprintf(log, LOG_DEBUG, "Authentication: %s\n", client_data->auth.user?client_data->auth.user:"none");
+		logprintf(log, LOG_DEBUG, "AUTH Status %s, Authentication: %s, Authorization: %s\n", client_data->sasl_context.method!=SASL_INVALID?"active":"inactive", client_data->sasl_user.authenticated ? client_data->sasl_user.authenticated:"none", client_data->sasl_user.authorized ? client_data->sasl_user.authorized:"none");
 		#ifndef CMAIL_NO_TLS
 		logprintf(log, LOG_DEBUG, "TLS State: %s\n", (client->tls_mode==TLS_NONE)?"none":"ok");
 		#endif
@@ -286,7 +303,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "mail from:", 10)){
-		if(listener_data->auth_require && !client_data->auth.user){
+		if(listener_data->auth_require && !client_data->sasl_user.authenticated){
 			logprintf(log, LOG_WARNING, "Client tried mail command without authentication on strict auth listener\n");
 			client_send(log, client, "530 Authentication required\r\n");
 			return 0;
@@ -300,7 +317,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		}
 
 		//resolve reverse path
-		switch(path_resolve(log, &(client_data->current_mail.reverse_path), database, client_data->auth.user, true)){
+		switch(path_resolve(log, &(client_data->current_mail.reverse_path), database, client_data->sasl_user.authorized, true)){
 			case 0:
 				//either local or unknown
 				//TODO filter local origin from unauthenticated connections
@@ -317,8 +334,8 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return -1;
 		}
 
-		if(client_data->auth.user){
-			if(route_outbound(log, database, client_data->auth.user, &(client_data->current_mail.reverse_path))<0){
+		if(client_data->sasl_user.authenticated){
+			if(route_outbound(log, database, client_data->sasl_user.authorized, &(client_data->current_mail.reverse_path))<0){
 				//sending for this user/path combination prohibited
 				client_send(log, client, "550 Authenticated user cannot use this path\r\n");
 				return 0;
@@ -400,7 +417,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 
 		if(!current_path->resolved_user){
 			//path not local, accept only if authenticated
-			if(!client_data->auth.user){
+			if(!client_data->sasl_user.authenticated){
 				client_send(log, client, "551 Unknown user\r\n");
 				pathpool_return(current_path);
 				return 0;
@@ -487,7 +504,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				logprintf(log, LOG_INFO, "End of mail data, routing\n");
 				//TODO call plugins here
 
-				if(!client_data->auth.user){
+				if(!client_data->sasl_user.authenticated){
 					switch(mail_route(log, &(client_data->current_mail), database)){
 						case 250:
 							logprintf(log, LOG_INFO, "Incoming mail accepted from %s\n", client_data->peer_name);
@@ -504,9 +521,9 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 					}
 				}
 				else{
-					switch(mail_originate(log, client_data->auth.user, &(client_data->current_mail), database)){
+					switch(mail_originate(log, client_data->sasl_user.authorized, &(client_data->current_mail), database)){
 						case 250:
-							logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->auth.user, client_data->peer_name);
+							logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->sasl_user.authorized, client_data->peer_name);
 							client_send(log, client, "250 OK\r\n");
 							break;
 						case 400:

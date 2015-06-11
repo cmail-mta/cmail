@@ -23,7 +23,7 @@
 #include "../lib/signal.h"
 #include "../lib/privileges.h"
 #include "../lib/config.h"
-#include "../lib/auth.h"
+#include "../lib/sasl.h"
 //#include "../lib/tls.h" //Pulled in by network.h anyway
 #include "../lib/database.h"
 
@@ -42,19 +42,6 @@ typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
 	AUTH_ANY,			//Authentication supported
 	AUTH_TLSONLY			//Authentication only in TLS session
 } AUTH_OFFER;
-
-typedef enum /*_AUTHENTICATION_METHOD*/ {
-	AUTH_PLAIN			//PLAIN only for now
-} AUTH_METHOD;
-
-typedef struct /*_AUTHENTICATION_DATA*/ {
-	AUTH_METHOD method;
-	char* user;
-
-	char* parameter;
-	char* challenge;
-	char* response;
-} AUTH_DATA;
 
 typedef struct /*_MAIL_PATH*/ {
 	bool in_transaction;
@@ -102,7 +89,8 @@ typedef struct /*_CLIENT_DATA*/ {
 	size_t recv_offset;
 	char peer_name[MAX_FQDN_LENGTH];
 	MAIL current_mail;
-	AUTH_DATA auth;
+	SASL_USER sasl_user;
+	SASL_CONTEXT sasl_context;
 	/*last_action*/
 } CLIENT;
 
@@ -150,7 +138,9 @@ typedef struct /*_MAIL_ROUTE*/ {
 } MAILROUTE;
 
 //These need some defined types
+#include "../lib/auth.h"
 #include "../lib/auth.c"
+#include "../lib/sasl.c"
 #include "../lib/client.c"
 #ifndef CMAIL_NO_TLS
 #include "../lib/tls.c"
@@ -170,7 +160,6 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "route.c"
 #include "pathpool.c"
 #include "mail.c"
-#include "auth.c"
 #include "smtpstatemachine.c"
 #include "client.c"
 #include "coreloop.c"
