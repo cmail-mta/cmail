@@ -17,7 +17,6 @@
 #include "../lib/config.h"
 #include "../lib/network.h"
 #include "../lib/connpool.h"
-#include "../lib/auth.h"
 //#include "../lib/tls.h" //Pulled in by network.h anyway
 #include "../lib/database.h"
 
@@ -113,6 +112,7 @@ typedef struct /*_POP3_LISTENER*/ {
 } LISTENER;
 
 //These need some defined types
+#include "../lib/auth.h"
 #include "../lib/auth.c"
 #include "../lib/client.c"
 #ifndef CMAIL_NO_TLS
