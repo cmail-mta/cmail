@@ -30,5 +30,6 @@ Authentication
 	Sequence: Login -> Auth -> Quit -> Conn (reuse slot): No auth reuse
 	Sequence: Login -> Auth (Fail): No user name left in structures
 	Fixed authentication
+	Auth cancel
 
 Size limiting
