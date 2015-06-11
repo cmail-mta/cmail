@@ -128,6 +128,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	switch(status){
 		case SASL_OK:
 			logprintf(log, LOG_ERROR, "Invalid state (SASL_OK) reached in AUTH, returning to IDLE\r\n");
+			//FIXME might want to reset sasl_user here
 			sasl_reset_ctx(&(client_data->sasl_context), false); //opting for security here, rather than freeing memory we do not own
 			client_data->state=STATE_IDLE;
 			client_send(log, client, "500 Invalid state\r\n");
@@ -200,6 +201,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			return 0;
 	}
 
+	logprintf(log, LOG_ERROR, "Invalid branch reached in AUTH\n");
 	return -1;
 }
 

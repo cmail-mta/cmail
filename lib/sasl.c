@@ -90,6 +90,7 @@ int sasl_continue(LOGGER log, SASL_CONTEXT* ctx, char* data, char** response){
 				return SASL_ERROR_DATA;
 			}
 
+			//FIXME do not print passwords
 			logprintf(log, LOG_DEBUG, "SASL PLAIN user %s pass %s\n", data + off_user, data + off_pass);
 			ctx->user->authenticated = common_strdup(data + off_user);
 			if(!(ctx->user->authenticated)){
