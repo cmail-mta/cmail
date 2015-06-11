@@ -1,6 +1,6 @@
 int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "capa", 4)){
 		return pop_capa(log, client, database);
@@ -20,7 +20,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 		client_send(log, client, "+OK Start TLS negotiation\r\n");
 
-		client->tls_mode=TLS_NEGOTIATE;
+		client->tls_mode = TLS_NEGOTIATE;
 		return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
@@ -31,19 +31,19 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	#ifndef CMAIL_NO_TLS
 	//disable login on tls-required auth
-	if(client->tls_mode==TLS_ONLY || !listener_data->tls_require){
+	if(client->tls_mode == TLS_ONLY || !listener_data->tls_require){
 	#endif
 		if(!strncasecmp(client_data->recv_buffer, "user ", 5)){
-			if(client_data->auth.user){
+			if(client_data->auth.user.authenticated){
 				logprintf(log, LOG_INFO, "Client issued multiple USER commands\n");
 				client_send(log, client, "-ERR User already set\r\n");
 				return -1;
 			}
 
 			logprintf(log, LOG_INFO, "Client sends user %s\n", client_data->recv_buffer+5);
-			client_data->auth.method=AUTH_USER;
-			client_data->auth.user=common_strdup(client_data->recv_buffer+5);
-			if(!client_data->auth.user){
+			client_data->auth.method = AUTH_USER;
+			client_data->auth.user.authenticated = common_strdup(client_data->recv_buffer+5);
+			if(!client_data->auth.user.authenticated){
 				logprintf(log, LOG_WARNING, "Failed to allocate memory for user name\n");
 				client_send(log, client, "-ERR Out of memory\r\n");
 				return -1;
@@ -54,38 +54,47 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 		}
 
 		if(!strncasecmp(client_data->recv_buffer, "pass ", 5)){
-			if(!client_data->auth.user || client_data->auth.method!=AUTH_USER){
+			if(!client_data->auth.user.authenticated || client_data->auth.method != AUTH_USER){
 				logprintf(log, LOG_WARNING, "Client tried PASS without user or in another method\n");
 				client_send(log, client, "-ERR Not possible now\r\n");
 				return -1;
 			}
 
-			//TODO handle aliasing here
-			client_data->auth.authorized=(auth_validate(log, database, client_data->auth.user, client_data->recv_buffer+5)==0);
-			if(!client_data->auth.authorized){
+			if(auth_validate(log, database, client_data->auth.user.authenticated, client_data->recv_buffer + 5) < 0){
 				//failed to authenticate
+				logprintf(log, LOG_INFO, "Failed to authenticate client\n");
 				auth_reset(&(client_data->auth));
 				client_send(log, client, "-ERR Login failed\r\n");
 				return 0;
 			}
-			else{
-				//authentication ok, try to acquire the maildrop
-				if(maildrop_acquire(log, database, &(client_data->maildrop), client_data->auth.user)<0){
-					auth_reset(&(client_data->auth));
-					client_send(log, client, "-ERR Failed to lock the maildrop\r\n");
-					return 0;
-				}
-				client_data->state=STATE_TRANSACTION;
-				client_send(log, client, "+OK Lock and load\r\n");
+
+			client_data->auth.auth_ok = true;
+
+			//TODO handle aliasing here
+			client_data->auth.user.authorized = common_strdup(client_data->auth.user.authenticated);
+			if(!client_data->auth.user.authorized){
+				logprintf(log, LOG_ERROR, "Failed to allocate memory for authorization user name\n");
+				auth_reset(&(client_data->auth));
+				client_send(log, client, "-ERR Internal error\r\n");
 				return 0;
 			}
+
+			//authentication ok, try to acquire the maildrop
+			if(maildrop_acquire(log, database, &(client_data->maildrop), client_data->auth.user.authorized) < 0){
+				auth_reset(&(client_data->auth));
+				client_send(log, client, "-ERR Failed to lock the maildrop\r\n");
+				return 0;
+			}
+			client_data->state = STATE_TRANSACTION;
+			client_send(log, client, "+OK Lock and load\r\n");
+			return 0;
 		}
 
 		if(!strncasecmp(client_data->recv_buffer, "auth ", 5)){
 			//TODO
+			client_data->auth.method = AUTH_SASL;
+			
 		}
-
-		//TODO parse response if in auth_sasl mode
 	#ifndef CMAIL_NO_TLS
 	}
 	#endif
@@ -94,7 +103,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 }
 
 int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "capa", 4)){
 		return pop_capa(log, client, database);
@@ -143,7 +152,7 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 }
 
 int state_update(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	//this should probably never be reached
 	logprintf(log, LOG_WARNING, "Commands received while in UPDATE state\n");

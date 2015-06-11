@@ -205,22 +205,25 @@ int pop_dele(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 
 int pop_rset(LOGGER log, CONNECTION* client, DATABASE* database){
 	unsigned i;
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	for(i=0;i<client_data->maildrop.count;i++){
-		client_data->maildrop.mails[i].flag_delete=false;
+		client_data->maildrop.mails[i].flag_delete = false;
 	}
 
-	client_send(log, client, "+OK Deletion flags removed\r\n");
+	client_send(log, client, "+OK Deletion flags cleared\r\n");
 	return 0;
 }
 
 int pop_xyzzy(LOGGER log, CONNECTION* client, DATABASE* database){
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	logprintf(log, LOG_INFO, "Client performs incantation\n");
 	#ifndef CMAIL_NO_TLS
 	logprintf(log, LOG_DEBUG, "Client TLS status: %s\n", tls_modestring(client->tls_mode));
 	#endif
+	logprintf(log, LOG_DEBUG, "Auth state: %s, Method: %s\n", client_data->auth.auth_ok ? "true":"false", client_data->auth.method==AUTH_USER ? "USER":"SASL");
+	logprintf(log, LOG_DEBUG, "Authentication: %s, Authorization: %s\n", client_data->auth.user.authenticated ? client_data->auth.user.authenticated:"null", client_data->auth.user.authorized ? client_data->auth.user.authorized:"null");
 	client_send(log, client, "+OK Nothing happens\r\n");
 	return 0;
 }

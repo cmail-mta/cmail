@@ -30,8 +30,15 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		},
 		.auth = {
 			.method = AUTH_USER,
-			.user = NULL,
-			.authorized = false
+			.auth_ok = false,
+			.ctx = {
+				.method = SASL_INVALID
+				//rest handled by sasl_begin
+			},
+			.user = {
+				.authenticated  = NULL,
+				.authorized = NULL
+			}
 		}
 	};
 	CLIENT* actual_data;
@@ -87,14 +94,14 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 }
 
 int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	#ifndef CMAIL_NO_TLS
 	//shut down the tls session
-	if(client->tls_mode!=TLS_NONE){
+	if(client->tls_mode != TLS_NONE){
 		gnutls_bye(client->tls_session, GNUTLS_SHUT_RDWR);
 		gnutls_deinit(client->tls_session);
-		client->tls_mode=TLS_NONE;
+		client->tls_mode = TLS_NONE;
 	}
 	#endif
 
@@ -102,18 +109,18 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	close(client->fd);
 
 	//reset client data
-	maildrop_release(log, database, &(client_data->maildrop), client_data->auth.user);
+	maildrop_release(log, database, &(client_data->maildrop), client_data->auth.user.authorized);
 	auth_reset(&(client_data->auth));
 
 	//return the conpool slot
-	client->fd=-1;
+	client->fd = -1;
 
 	return 0;
 }
 
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 	ssize_t left, bytes, line_length;
 
 	//TODO handle client timeout
@@ -121,9 +128,9 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	#ifndef CMAIL_NO_TLS
 	do{
 	#endif
-	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
+	left = sizeof(client_data->recv_buffer) - client_data->recv_offset;
 
-	if(left<2){
+	if(left < 2){
 		//unterminated line
 		//FIXME this might be kind of a harsh response
 		logprintf(log, LOG_WARNING, "Line too long, closing client connection\n");
@@ -132,10 +139,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 		return 0;
 	}
 
-	bytes=network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
+	bytes = network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
 
 	//failed to read from socket
-	if(bytes<0){
+	if(bytes < 0){
 		#ifndef CMAIL_NO_TLS
 		switch(client->tls_mode){
 			case TLS_NONE:

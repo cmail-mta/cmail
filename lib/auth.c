@@ -14,6 +14,8 @@ int auth_base64decode(LOGGER log, char* in){
 	//decode to code point indices
 	for(i=0;i<len;i++){
 		if(in[i]=='='){
+			//FIXME = is only allowed as trailing character, so fail if it is within valid base64
+			//this is marked MUST by some rfcs (5034)
 			in[i]=0;
 			continue;
 		}

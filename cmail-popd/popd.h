@@ -16,6 +16,7 @@
 #include "../lib/privileges.h"
 #include "../lib/config.h"
 #include "../lib/network.h"
+#include "../lib/sasl.h"
 #include "../lib/connpool.h"
 //#include "../lib/tls.h" //Pulled in by network.h anyway
 #include "../lib/database.h"
@@ -51,7 +52,7 @@ typedef struct /*_MAILDROP_DESC*/ {
 
 typedef enum /*_AUTH_METHOD*/ {
 	AUTH_USER,
-	AUTH_SASLPLAIN
+	AUTH_SASL
 } AUTH_METHOD;
 
 typedef enum /*_POP_STATE*/ {
@@ -62,8 +63,10 @@ typedef enum /*_POP_STATE*/ {
 
 typedef struct /*_AUTHENTICATION_DATA*/ {
 	AUTH_METHOD method;
-	char* user;
-	bool authorized;
+	bool auth_ok;
+
+	SASL_CONTEXT ctx;
+	SASL_USER user;
 } AUTH_DATA;
 
 typedef struct /*_DATABASE_CONNECTION*/ {
@@ -114,6 +117,7 @@ typedef struct /*_POP3_LISTENER*/ {
 //These need some defined types
 #include "../lib/auth.h"
 #include "../lib/auth.c"
+#include "../lib/sasl.c"
 #include "../lib/client.c"
 #ifndef CMAIL_NO_TLS
 #include "../lib/tls.c"
