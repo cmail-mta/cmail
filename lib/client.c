@@ -89,8 +89,8 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 		}
 		send_buffer=dynamic_send_buffer;
 		bytes=vsnprintf(send_buffer, bytes+1, fmt, copy);
-		va_end(copy);
 	}
+	va_end(copy);
 
 	if(bytes<0){
 		logprintf(log, LOG_ERROR, "Failed to render client output data string\n");
