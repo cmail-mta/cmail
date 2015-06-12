@@ -110,7 +110,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		method = strtok(client_data->recv_buffer + 5, " ");
 		if(method){
 			parameter = strtok(NULL, " ");
-			logprintf(log, LOG_DEBUG, "Beginning SASL with method %s parameter %s\n", method?method:"null", parameter?parameter:"null");
+			logprintf(log, LOG_DEBUG, "Beginning SASL with method %s parameter %s\n", method, parameter?parameter:"null");
 			status = sasl_begin(log, &(client_data->sasl_context), &(client_data->sasl_user), method, parameter, &challenge);
 		}
 		else{
