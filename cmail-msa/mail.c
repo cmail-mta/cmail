@@ -184,6 +184,10 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 int mail_reset(MAIL* mail){
 	unsigned i;
 
+	if(!mail){
+		return -1;
+	}
+
 	//changes made here must be reflected in client_accept
 	MAIL empty_mail = {
 		.reverse_path = {
@@ -203,10 +207,6 @@ int mail_reset(MAIL* mail){
 		.protocol = mail->protocol,
 		.message_id = ""
 	};
-
-	if(!mail){
-		return -1;
-	}
 
 	empty_mail.data_allocated=mail->data_allocated;
 	empty_mail.data=mail->data;
