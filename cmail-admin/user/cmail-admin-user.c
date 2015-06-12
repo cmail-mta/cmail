@@ -27,48 +27,50 @@
 
 #define MAX_PW_LENGTH 256
 
-void gen_salt(char* salt, unsigned n) {
+int generate_salt(char* out, unsigned chars) {
+	const char* salt_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	uint8_t randomness[chars];
+	int i;
 
-	unsigned i, j, counter = 0;
-	int salt_raw;
-	uint8_t salt_arr[n];
-
-	for (j = 0; j < (n / 4); j++) {
-		salt_raw = rand();
-		for (i = 0; i < 4; i++) {
-			salt_arr[counter] = (salt_raw & (0xFF << 8 * i)) >> 8 * i;
-			counter++;
-		}
+	if(common_rand(randomness, chars) < 0){
+		return -1;
 	}
 
-	salt_raw = rand();
-	for (j = 0; j < (n % 4); j++) {
-		salt_arr[counter] = (salt_raw & (0xFF << 8 * j)) >> 8 * j;
-		counter++;
+	for(i=0;i<chars;i++){
+		out[i] = salt_alphabet[randomness[i]%strlen(salt_alphabet)];
 	}
-	base16_encode_update((uint8_t*) salt, n, salt_arr);
+
+	return 0;
 }
 
 int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
+	unsigned salt_len = 10;
 
-	unsigned n = 4;
-	char salt[BASE16_ENCODE_LENGTH(n) +1];
-	char hashed[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE) +1];
-	char auth[sizeof(salt) + sizeof(hashed) +1];
+	char salt[salt_len + 1];
+	char password_hash[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE) + 1];
+	char auth_data[sizeof(salt) + sizeof(password_hash) + 1];
 
 	memset(salt, 0, sizeof(salt));
-	memset(hashed, 0, sizeof(hashed));
-	memset(auth, 0, sizeof(auth));
+	memset(password_hash, 0, sizeof(password_hash));
+	memset(auth_data, 0, sizeof(auth_data));
 
-	if (password) {
-		gen_salt(salt, n);
-		if (auth_hash(hashed, sizeof(hashed), salt, strlen(salt), password, strlen(password)) < 0) {
+	if(password){
+		if(generate_salt(salt, salt_len) < 0){
+			logprintf(log, LOG_ERROR, "Failed to generate a random salt\n");
+			return 21;
+		}
+
+		logprintf(log, LOG_DEBUG, "Generated salt %s\n", salt);
+
+		if(auth_hash(password_hash, sizeof(password_hash), salt, strlen(salt), password, strlen(password)) < 0) {
 			logprintf(log, LOG_ERROR, "Error hashing password\n");
 			return 21;
 		}
-		snprintf(auth, sizeof(auth), "%s:%s", salt, hashed);
-		return sqlite_set_password(log, db, user, auth);
-	} else {
+
+		snprintf(auth_data, sizeof(auth_data), "%s:%s", salt, password_hash);
+		return sqlite_set_password(log, db, user, auth_data);
+	}
+	else{
 		return sqlite_set_password(log, db, user, NULL);
 	}
 
@@ -82,7 +84,7 @@ int set_asked_password(LOGGER log, sqlite3* db, const char* user) {
 	memset(pw, 0, sizeof(pw));
 
 	if (ask_password(pw, MAX_PW_LENGTH) < 0) {
-		logprintf(log, LOG_ERROR, "Maximal password size is %d\n", MAX_PW_LENGTH);
+		logprintf(log, LOG_ERROR, "Maximum password length is %d\n", MAX_PW_LENGTH);
 		return 11;
 	}
 
