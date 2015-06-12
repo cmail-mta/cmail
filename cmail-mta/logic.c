@@ -233,6 +233,42 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 	logprintf(log, LOG_INFO, "Entering mail remote handling for host %s in mode %s\n", remote.host, (remote.mode == DELIVER_DOMAIN) ? "domain":"handoff");
 
+	//resolve host for MX records
+	resolver_remote = remote.host;
+	if(remote.mode == DELIVER_DOMAIN){
+		status = adns_init(&resolver, adns_if_none, log.stream);
+		if(status != 0){
+			logprintf(log, LOG_ERROR, "Failed to initialize adns: %s\n", strerror(status));
+			return -1;
+		}
+
+		status = adns_synchronous(resolver, remote.host, adns_r_mx, adns_qf_cname_loose, &resolver_answer);
+		if(status != 0){
+			logprintf(log, LOG_ERROR, "Failed to run query: %s\n", strerror(status));
+			return -1;
+		}
+
+		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
+
+		if(resolver_answer->nrrs <= 0){
+			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to HANDOFF strategy\n", remote.host);
+
+			//free resolver data
+			free(resolver_answer);
+			adns_finish(resolver);
+
+			remote.mode = DELIVER_HANDOFF;
+			//TODO report error type
+		}
+		else{
+			for(c=0;c<resolver_answer->nrrs;c++){
+				logprintf(log, LOG_DEBUG, "MX %d: %s\n", c, resolver_answer->rrs.inthostaddr[c].ha.host);
+			}
+
+			mx_count = resolver_answer->nrrs;
+		}
+	}
+
 	//prepare mail data query
 	if(sqlite3_bind_int(tx_statement, 1, settings.retry_interval) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
@@ -283,42 +319,6 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	while(status == SQLITE_ROW);
 	sqlite3_reset(tx_statement);
 	sqlite3_clear_bindings(tx_statement);
-
-	//resolve host for MX records
-	resolver_remote = remote.host;
-	if(remote.mode == DELIVER_DOMAIN){
-		status = adns_init(&resolver, adns_if_none, log.stream);
-		if(status != 0){
-			logprintf(log, LOG_ERROR, "Failed to initialize adns: %s\n", strerror(status));
-			return -1;
-		}
-
-		status = adns_synchronous(resolver, remote.host, adns_r_mx, adns_qf_cname_loose, &resolver_answer);
-		if(status != 0){
-			logprintf(log, LOG_ERROR, "Failed to run query: %s\n", strerror(status));
-			return -1;
-		}
-
-		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
-
-		if(resolver_answer->nrrs <= 0){
-			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to HANDOFF strategy\n", remote.host);
-
-			//free resolver data
-			free(resolver_answer);
-			adns_finish(resolver);
-
-			remote.mode = DELIVER_HANDOFF;
-			//TODO report error type
-		}
-		else{
-			for(c=0;c<resolver_answer->nrrs;c++){
-				logprintf(log, LOG_DEBUG, "MX %d: %s\n", c, resolver_answer->rrs.inthostaddr[c].ha.host);
-			}
-
-			mx_count = resolver_answer->nrrs;
-		}
-	}
 
 	//connect to remote
 	current_mx = 0;
