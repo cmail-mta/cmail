@@ -1,5 +1,5 @@
 ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t bytes){
-	ssize_t bytes_sent=0, bytes_written, bytes_left;
+	ssize_t bytes_sent = 0, bytes_written = 0, bytes_left;
 
 	//early bail saves some syscalls
 	if(bytes==0){
