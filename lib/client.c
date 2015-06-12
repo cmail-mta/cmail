@@ -78,15 +78,18 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	va_copy(copy, args);
 	//check if the buffer was long enough, if not, allocate a new one
 	bytes=vsnprintf(send_buffer, STATIC_SEND_BUFFER_LENGTH, fmt, args);
+	va_end(args);
 
 	if(bytes>=STATIC_SEND_BUFFER_LENGTH){
 		dynamic_send_buffer=calloc(bytes+2, sizeof(char));
 		if(!dynamic_send_buffer){
 			logprintf(log, LOG_ERROR, "Failed to allocate dynamic send buffer\n");
+			va_end(copy);
 			return -1;
 		}
 		send_buffer=dynamic_send_buffer;
 		bytes=vsnprintf(send_buffer, bytes+1, fmt, copy);
+		va_end(copy);
 	}
 
 	if(bytes<0){
@@ -100,7 +103,5 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 		free(dynamic_send_buffer);
 	}
 
-	va_end(args);
-	va_end(copy);
 	return bytes;
 }
