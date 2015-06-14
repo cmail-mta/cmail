@@ -2,7 +2,7 @@ PREFIX?=/usr/sbin
 LOGDIR?=/var/log/cmail
 CONFDIR?=/etc/cmail
 DBDIR?=$(CONFDIR)/databases
-.PHONY: clean install
+.PHONY: clean install init tls-init rtldumps
 
 all:
 	@$(MAKE) -C cmail-msa
@@ -39,6 +39,7 @@ init:
 	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
 	chown root:cmail "$(DBDIR)/master.db3"
 	chmod 770 "$(DBDIR)/master.db3"
+	# This target needs sqlite3 installed, TODO: mention this somewhere
 
 tls-init: init
 	@printf "\n*** Creating certificate storage directory in %s/keys\n" "$(CONFDIR)"
@@ -54,9 +55,9 @@ rtldumps:
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-mta
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-popd
 	@-mkdir -p rtldumps
-	@mv cmail-msa/*.expand rtldumps/
-	@mv cmail-mta/*.expand rtldumps/
-	@mv cmail-popd/*.expand rtldumps/
+	mv cmail-msa/*.expand rtldumps/
+	mv cmail-mta/*.expand rtldumps/
+	mv cmail-popd/*.expand rtldumps/
 
 clean:
 	rm bin/*
