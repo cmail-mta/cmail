@@ -48,6 +48,16 @@ tls-init: init
 	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
 	chmod 600 "$(CONFDIR)/keys"/*
 
+rtldumps:
+	@-rm -rf rtldumps
+	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-msa
+	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-mta
+	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-popd
+	@-mkdir -p rtldumps
+	@mv cmail-msa/*.expand rtldumps/
+	@mv cmail-mta/*.expand rtldumps/
+	@mv cmail-popd/*.expand rtldumps/
+
 clean:
 	rm bin/*
 

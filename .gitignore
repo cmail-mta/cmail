@@ -4,3 +4,4 @@ bin/*
 .tags
 logs/*
 *.log
+rtldumps/*
