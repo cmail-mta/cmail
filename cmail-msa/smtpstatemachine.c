@@ -286,7 +286,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
 		logprintf(log, LOG_DEBUG, "AUTH Status %s, Authentication: %s, Authorization: %s\n", client_data->sasl_context.method!=SASL_INVALID?"active":"inactive", client_data->sasl_user.authenticated ? client_data->sasl_user.authenticated:"none", client_data->sasl_user.authorized ? client_data->sasl_user.authorized:"none");
 		#ifndef CMAIL_NO_TLS
-		logprintf(log, LOG_DEBUG, "TLS State: %s\n", (client->tls_mode==TLS_NONE)?"none":"ok");
+		logprintf(log, LOG_DEBUG, "TLS State: %s\n", tls_modestring(client->tls_mode));
 		#endif
 		return 0;
 	}
