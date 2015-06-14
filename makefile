@@ -25,27 +25,28 @@ install:
 	#install -m 0755 bin/cmail-imapd "$(PREFIX)"
 
 init:
-	@printf "Creating cmail user\n"
-	adduser --disabled-login cmail
-	@printf "Creating configuration directories\n"
+	@printf "*** Creating cmail user\n"
+	-adduser --disabled-login cmail
+	@printf "\n*** Creating configuration directories\n"
 	mkdir -p "$(LOGDIR)"
 	mkdir -p "$(CONFDIR)"
 	mkdir -p "$(DBDIR)"
 	chown root:cmail "$(DBDIR)"
 	chmod 770 "$(DBDIR)"
-	@printf "Copying example configuration files to %s\n" "$(CONFDIR)"
+	@printf "\n*** Copying example configuration files to %s\n" "$(CONFDIR)"
 	cp example-configs/* "$(CONFDIR)"
-	@printf "Creating empty master database in %s/master.db3\n" "$(DBPATH)"
-	cat sql-update/install_master.sql | sqlite3 "$(DBPATH)/master.db3"
-	chmod 770 "$(DBPATH)/master.db3"
+	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
+	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
+	chown root:cmail "$(DBDIR)/master.db3"
+	chmod 770 "$(DBDIR)/master.db3"
 
 tls-init: init
-	printf "Creating certificate storage directory in %s/keys" "$(CONFDIR)"
+	@printf "\n*** Creating certificate storage directory in %s/keys\n" "$(CONFDIR)"
 	mkdir -p "$(CONFDIR)/keys"
 	chmod 700 "$(CONFDIR)/keys"
-	printf "Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
+	@printf "\n*** Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
 	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
-	chmod 600 "$(CONFDIR)/keys/*"
+	chmod 600 "$(CONFDIR)/keys"/*
 
 clean:
 	rm bin/*
