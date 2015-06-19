@@ -34,7 +34,7 @@ init:
 	chown root:cmail "$(DBDIR)"
 	chmod 770 "$(DBDIR)"
 	@printf "\n*** Copying example configuration files to %s\n" "$(CONFDIR)"
-	cp example-configs/* "$(CONFDIR)"
+	cp example-configs/*.conf "$(CONFDIR)"
 	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
 	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
 	chown root:cmail "$(DBDIR)/master.db3"

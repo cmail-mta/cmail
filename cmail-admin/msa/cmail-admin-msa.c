@@ -46,9 +46,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0
 	};
 
-	DATABASE database = {
-		.conn = NULL
-	};
+	sqlite3* db = NULL;
 
 	int i, status;
 
@@ -65,31 +63,31 @@ int main(int argc, char* argv[]) {
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
 		} else if (i + 1 < argc && (!strcmp(argv[i], "add"))) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			int status = sqlite_add_msa_default(log, database.conn, argv[i + 1]);
+			int status = sqlite_add_msa_default(log, db, argv[i + 1]);
 
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 
 		}  else if (i + 1 < argc && !strcmp(argv[i], "delete")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			status = sqlite_delete_msa(log, database.conn, argv[i + 1]);
-			sqlite3_close(database.conn);
+			status = sqlite_delete_msa(log, db, argv[i + 1]);
+			sqlite3_close(db);
 			return status;
 		}  else if (i + 3 < argc && !strcmp(argv[i], "update")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 			const char* arguments = NULL;
@@ -98,21 +96,21 @@ int main(int argc, char* argv[]) {
 				arguments = argv[i+4];
 			}
 
-			status = sqlite_update_msa(log, database.conn, argv[i + 1], argv[i + 2], argv[i + 3], arguments);
-			sqlite3_close(database.conn);
+			status = sqlite_update_msa(log, db, argv[i + 1], argv[i + 2], argv[i + 3], arguments);
+			sqlite3_close(db);
 			return status;
 		}  else if (!strcmp(argv[i], "list")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
+			db = database_open(log, dbpath, SQLITE_OPEN_READONLY);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 			if (i + 1 < argc) {
-				status = sqlite_get_msa(log, database.conn, argv[i + 1]);
+				status = sqlite_get_msa(log, db, argv[i + 1]);
 			} else {
-				status = sqlite_get_all_msa(log, database.conn);
+				status = sqlite_get_all_msa(log, db);
 			}
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 		}
 	}

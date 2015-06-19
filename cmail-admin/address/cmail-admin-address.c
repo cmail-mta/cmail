@@ -41,9 +41,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0
 	};
 
-	DATABASE database = {
-		.conn = NULL
-	};
+	sqlite3* db = NULL;
 
 	int i, status;
 
@@ -60,53 +58,53 @@ int main(int argc, char* argv[]) {
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
 		} else if (i + 2 < argc && (!strcmp(argv[i], "add"))) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
 			int status;
 			if (i + 3 < argc) {
-				status = sqlite_add_address_order(log, database.conn, argv[i + 1], argv[i + 2], (unsigned) strtol(argv[i + 3], NULL, 10));
+				status = sqlite_add_address_order(log, db, argv[i + 1], argv[i + 2], (unsigned) strtol(argv[i + 3], NULL, 10));
 			} else {
-				status = sqlite_add_address(log, database.conn, argv[i + 1], argv[i + 2]);
+				status = sqlite_add_address(log, db, argv[i + 1], argv[i + 2]);
 			}
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 
 		}  else if (i + 1 < argc && !strcmp(argv[i], "delete")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			status = sqlite_delete_address(log, database.conn, argv[i + 1]);
-			sqlite3_close(database.conn);
+			status = sqlite_delete_address(log, db, argv[i + 1]);
+			sqlite3_close(db);
 			return status;
 		}  else if (i + 2 < argc && !strcmp(argv[i], "switch")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			status = sqlite_switch(log, database.conn, argv[i + 1], argv[i + 2]);
-			sqlite3_close(database.conn);
+			status = sqlite_switch(log, db, argv[i + 1], argv[i + 2]);
+			sqlite3_close(db);
 			return status;
 		}  else if (!strcmp(argv[i], "list")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
+			db = database_open(log, dbpath, SQLITE_OPEN_READONLY);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 			if (i + 1 < argc) {
-				status = sqlite_get_address(log, database.conn, argv[i + 1]);
+				status = sqlite_get_address(log, db, argv[i + 1]);
 			} else {
-				status = sqlite_get_all_addresses(log, database.conn);
+				status = sqlite_get_all_addresses(log, db);
 			}
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 		}
 	}
