@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
 	};
 
 	unsigned i;
-	int status;
+	int status = -1;
 
 	char* dbpath = getenv("CMAIL_MASTER_DB");
 	sqlite3* db = NULL;
