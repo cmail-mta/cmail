@@ -105,6 +105,17 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 	char* delete_user=calloc(strlen(DELETE_MAIL_USER)+strlen(user_name)+1, sizeof(char));
 
 	if(!list_user || !fetch_user || !delete_user){
+		if(list_user){
+			free(list_user);
+		}
+
+		if(fetch_user){
+			free(fetch_user);
+		}
+
+		if(delete_user){
+			free(delete_user);
+		}
 		logprintf(log, LOG_ERROR, "Failed to allocate memory for statement text\n");
 		return -1;
 	}
