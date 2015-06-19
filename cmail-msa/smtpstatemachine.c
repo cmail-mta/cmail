@@ -160,7 +160,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			client_data->state=STATE_IDLE;
 			
 			//check auth data
-			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge) < 0){
+			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
 				//login failed
 				sasl_reset_user(&(client_data->sasl_user), true);
 				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
@@ -168,8 +168,6 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 			}
 
-			//TODO handle aliasing at this point (set authorized)
-			client_data->sasl_user.authorized = common_strdup(client_data->sasl_user.authenticated);
 			if(!client_data->sasl_user.authorized){
 				sasl_reset_user(&(client_data->sasl_user), true);
 				logprintf(log, LOG_ERROR, "Failed to allocate memory for authorized user\n");
@@ -525,7 +523,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				else{
 					switch(mail_originate(log, client_data->sasl_user.authorized, &(client_data->current_mail), database)){
 						case 250:
-							logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->sasl_user.authorized, client_data->peer_name);
+							logprintf(log, LOG_INFO, "Originating mail accepted for user %s (auth %s) from %s\n", client_data->sasl_user.authorized, client_data->sasl_user.authenticated, client_data->peer_name);
 							client_send(log, client, "250 OK\r\n");
 							break;
 						case 400:

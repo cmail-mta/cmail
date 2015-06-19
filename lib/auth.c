@@ -63,11 +63,12 @@ int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, 
 }
 
 #ifdef CMAIL_HAVE_DATABASE_TYPE
-int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
+int auth_validate(LOGGER log, DATABASE* database, char* user, char* password, char** authorized_identity){
 	int status, rv=-1;
 	char* user_salt;
 	char* stored_hash;
 	char digest_b16[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE)+1];
+	char* auth_id = NULL;
 
 	if(!user || !password){
 		return -1;
@@ -98,7 +99,18 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password){
 				auth_hash(digest_b16, sizeof(digest_b16), user_salt, stored_hash-user_salt, password, strlen(password));
 
 				if(!strcmp(stored_hash+1, digest_b16)){
-					logprintf(log, LOG_INFO, "Credentials for user %s ok\n", user);
+					auth_id = (char*)sqlite3_column_text(database->query_authdata, 1);
+					logprintf(log, LOG_INFO, "Credentials for user %s OK, authorized identity: %s\n", user, auth_id ? auth_id:user);
+
+					//handle aliasing
+					if(authorized_identity){
+						if(auth_id){
+							*authorized_identity = common_strdup(auth_id);
+						}
+						else{
+							*authorized_identity = common_strdup(user);
+						}
+					}
 					rv=0;
 				}
 				else{
