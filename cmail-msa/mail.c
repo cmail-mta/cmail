@@ -215,14 +215,14 @@ int mail_reset(MAIL* mail){
 	path_reset(&(mail->reverse_path));
 
 	if(mail->data){
-		mail->data[0]=0;
+		mail->data[0] = 0;
 	}
 
-	for(i=0;mail->forward_paths[i]&&i<SMTP_MAX_RECIPIENTS;i++){
+	for(i=0;i<SMTP_MAX_RECIPIENTS && mail->forward_paths[i];i++){
 		pathpool_return(mail->forward_paths[i]);
 	}
 
-	*mail=empty_mail;
+	*mail = empty_mail;
 	return 0;
 }
 
