@@ -1,8 +1,8 @@
 int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user_name, bool is_master){
-	int status=0;
+	int status = 0;
 	char* message_id;
-	unsigned rows=maildrop->count;
-	unsigned index=maildrop->count;
+	unsigned rows = maildrop->count;
+	unsigned index = maildrop->count;
 	unsigned i;
 	POP_MAIL empty_mail = {
 		.database_id = 0,
@@ -14,27 +14,27 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 
 	if(sqlite3_bind_text(stmt, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
 		do{
-			status=sqlite3_step(stmt);
+			status = sqlite3_step(stmt);
 			switch(status){
 				case SQLITE_ROW:
-					if(index>=maildrop->count){
+					if(index >= maildrop->count){
 						//expand the maildrop
-						rows+=CMAIL_MAILDROP_CHUNK;
-						maildrop->mails=realloc(maildrop->mails, rows*sizeof(POP_MAIL));
+						rows += CMAIL_MAILDROP_CHUNK;
+						maildrop->mails = realloc(maildrop->mails, rows * sizeof(POP_MAIL));
 						for(i=index;i<rows;i++){
-							maildrop->mails[i]=empty_mail;
+							maildrop->mails[i] = empty_mail;
 						}
-						maildrop->count=rows;
+						maildrop->count = rows;
 					}
 
-					if(index>=maildrop->count){
+					if(index >= maildrop->count){
 						logprintf(log, LOG_WARNING, "Maildrop reading went out of bounds, this should not have happened\n");
 						break;
 					}
 
-					maildrop->mails[index].database_id=sqlite3_column_int(stmt, 0);
-					maildrop->mails[index].mail_size=sqlite3_column_int(stmt, 1);
-					message_id=(char*)sqlite3_column_text(stmt, 2);
+					maildrop->mails[index].database_id = sqlite3_column_int(stmt, 0);
+					maildrop->mails[index].mail_size = sqlite3_column_int(stmt, 1);
+					message_id = (char*)sqlite3_column_text(stmt, 2);
 					if(message_id){
 						strncpy(maildrop->mails[index].message_id, message_id, POP_MESSAGEID_MAX);
 					}
@@ -46,12 +46,12 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 					break;
 			}
 		}
-		while(status==SQLITE_ROW);
-		maildrop->count=index;
+		while(status == SQLITE_ROW);
+		maildrop->count = index;
 	}
 	else{
 		logprintf(log, LOG_WARNING, "Failed to bind mail query parameter\n");
-		status=-1;
+		status = -1;
 	}
 
 	sqlite3_reset(stmt);
@@ -64,7 +64,7 @@ int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 
 	//atomically modify maildrop lock, bail out if it fails
 	if(sqlite3_bind_int(database->update_lock, 1, lock?1:0) != SQLITE_OK
-			|| sqlite3_bind_text(database->update_lock, 2, user_name, -1, SQLITE_STATIC) !=SQLITE_OK
+			|| sqlite3_bind_text(database->update_lock, 2, user_name, -1, SQLITE_STATIC) != SQLITE_OK
 			|| sqlite3_bind_int(database->update_lock, 3, lock?0:1) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind lock update parameter\n");
 		sqlite3_reset(database->update_lock);
@@ -72,18 +72,18 @@ int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 		return -1;
 	}
 
-	status=sqlite3_step(database->update_lock);
+	status = sqlite3_step(database->update_lock);
 	switch(status){
 		case SQLITE_DONE:
-			status=0;
+			status = 0;
 			//check if lock was updated
-			if(sqlite3_changes(database->conn)!=1){
-				status=-1;
+			if(sqlite3_changes(database->conn) != 1){
+				status = -1;
 			}
 			break;
 		default:
 			logprintf(log, LOG_INFO, "Unhandled return value from lock update: %d\n", status);
-			status=1;
+			status = 1;
 	}
 
 	sqlite3_reset(database->update_lock);
@@ -93,16 +93,16 @@ int maildrop_lock(LOGGER log, DATABASE* database, char* user_name, bool lock){
 }
 
 int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* user_name){
-	int status=1;
+	int status = 1;
 	char* dbfile;
 
-	char* LIST_MAILS_USER="SELECT mail_id, length(mail_data) AS length, mail_ident FROM %s.mailbox WHERE mail_user=? ORDER BY mail_submission ASC;";
-	char* FETCH_MAIL_USER="SELECT mail_data FROM %s.mailbox WHERE mail_id=?;";
-	char* DELETE_MAIL_USER="DELETE FROM %s.mailbox WHERE mail_id=?;";
+	char* LIST_MAILS_USER = "SELECT mail_id, length(mail_data) AS length, mail_ident FROM %s.mailbox WHERE mail_user=? ORDER BY mail_submission ASC;";
+	char* FETCH_MAIL_USER = "SELECT mail_data FROM %s.mailbox WHERE mail_id=?;";
+	char* DELETE_MAIL_USER = "DELETE FROM %s.mailbox WHERE mail_id=?;";
 
-	char* list_user=calloc(strlen(LIST_MAILS_USER)+strlen(user_name)+1, sizeof(char));
-	char* fetch_user=calloc(strlen(FETCH_MAIL_USER)+strlen(user_name)+1, sizeof(char));
-	char* delete_user=calloc(strlen(DELETE_MAIL_USER)+strlen(user_name)+1, sizeof(char));
+	char* list_user = calloc(strlen(LIST_MAILS_USER)+strlen(user_name) + 1, sizeof(char));
+	char* fetch_user = calloc(strlen(FETCH_MAIL_USER)+strlen(user_name) + 1, sizeof(char));
+	char* delete_user = calloc(strlen(DELETE_MAIL_USER)+strlen(user_name) + 1, sizeof(char));
 
 	if(!list_user || !fetch_user || !delete_user){
 		if(list_user){
@@ -120,16 +120,16 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 		return -1;
 	}
 
-	snprintf(list_user, strlen(LIST_MAILS_USER)+strlen(user_name), LIST_MAILS_USER, user_name);
-	snprintf(fetch_user, strlen(FETCH_MAIL_USER)+strlen(user_name), FETCH_MAIL_USER, user_name);
-	snprintf(delete_user, strlen(DELETE_MAIL_USER)+strlen(user_name), DELETE_MAIL_USER, user_name);
+	snprintf(list_user, strlen(LIST_MAILS_USER) + strlen(user_name), LIST_MAILS_USER, user_name);
+	snprintf(fetch_user, strlen(FETCH_MAIL_USER) + strlen(user_name), FETCH_MAIL_USER, user_name);
+	snprintf(delete_user, strlen(DELETE_MAIL_USER) + strlen(user_name), DELETE_MAIL_USER, user_name);
 
 	//test for user databases
 	if(sqlite3_bind_text(database->query_userdatabase, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
 		switch(sqlite3_step(database->query_userdatabase)){
 			case SQLITE_ROW:
 				//attach user database
-				dbfile=(char*)sqlite3_column_text(database->query_userdatabase, 0);
+				dbfile = (char*)sqlite3_column_text(database->query_userdatabase, 0);
 				logprintf(log, LOG_INFO, "User %s has user database %s\n", user_name, dbfile);
 
 				if(sqlite3_bind_text(database->db_attach, 1, dbfile, -1, SQLITE_STATIC) == SQLITE_OK
@@ -137,34 +137,34 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 					switch(sqlite3_step(database->db_attach)){
 						case SQLITE_CANTOPEN:
 							logprintf(log, LOG_ERROR, "Cannot open database %s\n", dbfile);
-							status=-1;
+							status = -1;
 							break;
 						case SQLITE_DONE:
 							logprintf(log, LOG_INFO, "User database %s attached for user %s\n", dbfile, user_name);
 
 							//create user table statements
-							maildrop->list_user=database_prepare(log, database->conn, list_user);
-							maildrop->fetch_user=database_prepare(log, database->conn, fetch_user);
-							maildrop->delete_user=database_prepare(log, database->conn, delete_user);
+							maildrop->list_user = database_prepare(log, database->conn, list_user);
+							maildrop->fetch_user = database_prepare(log, database->conn, fetch_user);
+							maildrop->delete_user = database_prepare(log, database->conn, delete_user);
 
 							if(!maildrop->list_user || !maildrop->fetch_user || !maildrop->delete_user){
 								logprintf(log, LOG_WARNING, "Failed to prepare mail management statement for user database\n");
-								status=-1;
+								status = -1;
 							}
 							else{
-								status=0;
+								status = 0;
 							}
 							break;
 						case SQLITE_ERROR:
 						default:
-							status=-1;
+							status = -1;
 							logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
 							break;
 					}
 				}
 				else{
 					logprintf(log, LOG_WARNING, "Failed to bind attach parameters\n");
-					status=-1;
+					status = -1;
 				}
 
 				sqlite3_reset(database->db_attach);
@@ -175,13 +175,13 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 				break;
 			default:
 				logprintf(log, LOG_WARNING, "Failed to query user database for %s: %s\n", user_name, sqlite3_errmsg(database->conn));
-				status=-1;
+				status = -1;
 				break;
 		}
 	}
 	else{
 		logprintf(log, LOG_WARNING, "Failed to bind user parameter to user database query\n");
-		status=-1;
+		status = -1;
 	}
 
 	sqlite3_reset(database->query_userdatabase);
@@ -195,16 +195,16 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 }
 
 int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* user_name){
-	int status=0;
+	int status = 0;
 
 	//lock maildrop
-	if(maildrop_lock(log, database, user_name, true)<0){
+	if(maildrop_lock(log, database, user_name, true) < 0){
 		logprintf(log, LOG_WARNING, "Maildrop for user %s could not be locked\n", user_name);
 		return -1;
 	}
 
 	//read mail data from master
-	if(maildrop_read(log, database->list_master, maildrop, user_name, true)<0){
+	if(maildrop_read(log, database->list_master, maildrop, user_name, true) < 0){
 		logprintf(log, LOG_WARNING, "Failed to read master maildrop for user %s\n", user_name);
 		status=-1;
 	}
@@ -215,14 +215,14 @@ int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 			break;
 		case 0:
 			//read mail data from user database
-			if(maildrop_read(log, maildrop->list_user, maildrop, user_name, false)<0){
+			if(maildrop_read(log, maildrop->list_user, maildrop, user_name, false) < 0){
 				logprintf(log, LOG_WARNING, "Failed to read user maildrop for %s\n", user_name);
-				status=-1;
+				status = -1;
 			}
 			break;
 		default:
 			logprintf(log, LOG_WARNING, "Failed to attach database for user %s\n", user_name);
-			status=-1;
+			status = -1;
 	}
 
 	logprintf(log, LOG_INFO, "Maildrop for user %s is at %d mails\n", user_name, maildrop->count);
@@ -230,23 +230,23 @@ int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 }
 
 int maildrop_delete(LOGGER log, sqlite3_stmt* stmt, unsigned mail){
-	int status=0;
+	int status = 0;
 
 	if(sqlite3_bind_int(stmt, 1, mail) == SQLITE_OK){
-		status=sqlite3_step(stmt);
+		status = sqlite3_step(stmt);
 		switch(status){
 			case SQLITE_DONE:
-				status=0;
+				status = 0;
 				break;
 			default:
 				logprintf(log, LOG_WARNING, "Unhandled response code when deleting mail (%d)\n", status);
-				status=-1;
+				status = -1;
 				break;
 		}
 	}
 	else{
 		logprintf(log, LOG_WARNING, "Failed to bind mail id to deletion statement\n");
-		status=-1;
+		status = -1;
 	}
 
 	sqlite3_reset(stmt);
@@ -256,21 +256,21 @@ int maildrop_delete(LOGGER log, sqlite3_stmt* stmt, unsigned mail){
 
 int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop){
 	unsigned i;
-	int status=0;
+	int status = 0;
 
 	for(i=0;i<maildrop->count;i++){
 		if(maildrop->mails[i].flag_delete){
 			//delete this mail
 			if(maildrop->mails[i].flag_master){
 				//delete from master
-				if(maildrop_delete(log, database->delete_master, maildrop->mails[i].database_id)<0){
-					status=-1;
+				if(maildrop_delete(log, database->delete_master, maildrop->mails[i].database_id) < 0){
+					status = -1;
 				}
 			}
 			else{
 				//delete from user database
-				if(maildrop_delete(log, maildrop->delete_user, maildrop->mails[i].database_id)<0){
-					status=-1;
+				if(maildrop_delete(log, maildrop->delete_user, maildrop->mails[i].database_id) < 0){
+					status = -1;
 				}
 			}
 		}
@@ -287,11 +287,11 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 		.fetch_user = NULL,
 		.delete_user = NULL
 	};
-	int status=0;
+	int status = 0;
 
 	//lock maildrop
 	if(user_name){
-		if(maildrop_lock(log, database, user_name, false)<0){
+		if(maildrop_lock(log, database, user_name, false) < 0){
 			logprintf(log, LOG_WARNING, "Failed to unlock maildrop for user %s\n", user_name);
 		}
 	}
@@ -330,7 +330,7 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 		free(maildrop->mails);
 	}
 
-	*maildrop=empty_maildrop;
+	*maildrop = empty_maildrop;
 
 	return status;
 }
