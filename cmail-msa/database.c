@@ -222,7 +222,7 @@ int database_refresh(LOGGER log, DATABASE* database){
 }
 
 int database_initialize(LOGGER log, DATABASE* database){
-	char* QUERY_ADDRESS_USER="SELECT address_user, msa_inrouter, msa_outrouter FROM main.addresses JOIN main.msa ON address_user = msa_user WHERE ? LIKE address_expression ORDER BY address_order DESC;";
+	char* QUERY_ADDRESS_USER="SELECT address_user, msa_inrouter, msa_outrouter, user_alias FROM main.addresses JOIN main.msa ON address_user = msa_user JOIN main.users ON address_user = user_name WHERE ? LIKE address_expression ORDER BY address_order DESC;";
 	char* QUERY_USER_ROUTER_INBOUND="SELECT msa_inrouter, CASE msa_inrouter WHEN 'store' THEN user_database ELSE msa_inroute END AS msa_inroute FROM main.msa JOIN main.users ON user_name = msa_user WHERE user_name = ?;";
 	char* QUERY_USER_ROUTER_OUTBOUND="SELECT msa_outrouter, msa_outroute FROM main.msa WHERE msa_user = ?;";
 	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
