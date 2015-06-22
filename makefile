@@ -6,6 +6,7 @@ all:
 	@$(MAKE) -C cmail-mta
 	@$(MAKE) -C cmail-popd
 	@$(MAKE) -C cmail-imapd
+	@$(MAKE) -C cmail-admin
 
 	@-mkdir -p bin
 	@mv cmail-msa/cmail-msa bin/
