@@ -2,6 +2,12 @@ int config_parse(LOGGER log, void* config_data, char* conf_file){
 	char line_buffer[MAX_CFGLINE+1];
 	char* line_data=NULL;
 	int offset;
+
+	if(!conf_file){
+		logprintf(log, LOG_ERROR, "Null pointer passed as config file\n");
+		return -1;
+	}
+
 	FILE* conf_stream = fopen(conf_file, "r");
 
 	if(!conf_stream){

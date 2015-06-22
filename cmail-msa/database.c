@@ -1,13 +1,13 @@
 int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* dbfile, char* name){
-	char* INSERT_USER_MAILBOX="INSERT INTO %s.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
-	char* user_stmt=NULL;
-	int status, rv=0;
+	char* INSERT_USER_MAILBOX = "INSERT INTO %s.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
+	char* user_stmt = NULL;
+	int status, rv = -1;
 	unsigned slot;
 	USER_DATABASE* entry;
 
 	//initialize user storage structure
 	if(!database->mail_storage.users){
-		database->mail_storage.users=calloc(1, sizeof(USER_DATABASE*));
+		database->mail_storage.users = calloc(1, sizeof(USER_DATABASE*));
 		if(!database->mail_storage.users){
 			logprintf(log, LOG_ERROR, "Failed to allocate memory for user storage database structure\n");
 			return -1;
@@ -36,16 +36,15 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 		}
 	}
 
-	entry=database->mail_storage.users[slot];
+	entry = database->mail_storage.users[slot];
 
-	if(sqlite3_bind_text(attach, 1, dbfile, -1, SQLITE_STATIC)==SQLITE_OK
-			&& sqlite3_bind_text(attach, 2, name, -1, SQLITE_STATIC)==SQLITE_OK){
-		status=sqlite3_step(attach);
+	if(sqlite3_bind_text(attach, 1, dbfile, -1, SQLITE_STATIC) == SQLITE_OK
+			&& sqlite3_bind_text(attach, 2, name, -1, SQLITE_STATIC) == SQLITE_OK){
+		status = sqlite3_step(attach);
 
 		switch(status){
 			case SQLITE_CANTOPEN:
 				logprintf(log, LOG_ERROR, "Database %s does not exist\n", dbfile);
-				rv=-1;
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "Attached database %s as %s\n", dbfile, name);
@@ -54,39 +53,36 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 				user_stmt=calloc(strlen(INSERT_USER_MAILBOX)+strlen(name)+2, sizeof(char));
 				if(!user_stmt){
 					logprintf(log, LOG_ERROR, "Failed to allocate temporary statement storage\n");
-					rv=-1;
 					break;
 				}
 
 				snprintf(user_stmt, strlen(INSERT_USER_MAILBOX)+strlen(name)+1, INSERT_USER_MAILBOX, name);
-				entry->mailbox=database_prepare(log, database->conn, user_stmt);
+				entry->mailbox = database_prepare(log, database->conn, user_stmt);
 				free(user_stmt);
 
 				if(!entry->mailbox){
 					logprintf(log, LOG_ERROR, "Failed to create user mailbox insert query\n");
-					rv=-1;
 					break;
 				}
 
 				//fill entry
-				entry->file_name=common_strdup(dbfile);
-				entry->conn_handle=common_strdup(name);
+				entry->file_name = common_strdup(dbfile);
+				entry->conn_handle = common_strdup(name);
 
 				if(!entry->file_name || !entry->conn_handle){
 					logprintf(log, LOG_ERROR, "Failed to allocate user storage structure members\n");
-					rv=-1;
 					break;
 				}
+
+				rv = 0;
 				break;
 			default:
 				logprintf(log, LOG_WARNING, "Uncaught attach response code %d: %s\n", status, sqlite3_errmsg(database->conn));
-				rv=1;
 				break;
 		}
 	}
 	else{
 		logprintf(log, LOG_ERROR, "Failed to bind attach statement parameter\n");
-		rv=-1;
 	}
 
 	sqlite3_reset(attach);
@@ -187,18 +183,14 @@ int database_refresh(LOGGER log, DATABASE* database){
 				//if not attached, attach
 				if(!database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 1))){
 					//attach
-					switch(database_attach(log, database, attach_db, (char*)sqlite3_column_text(select_dbs, 1), (char*)sqlite3_column_text(select_dbs, 0))){
-						case -1:
-							logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
-							status=SQLITE_ERROR;
-							rv=-1;
-							break;
-						case 1:
-							logprintf(log, LOG_ERROR, "Additional Information: %s\n", sqlite3_errmsg(database->conn));
-						default:
-							//database seems to have been attached ok, mark it active
-							database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 1))->active=true;
-							break;
+					if(database_attach(log, database, attach_db, (char*)sqlite3_column_text(select_dbs, 1), (char*)sqlite3_column_text(select_dbs, 0)) < 0){
+						logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
+						status = SQLITE_ERROR;
+						rv = -1;
+					}
+					else{
+						//database seems to have been attached ok, mark it active
+						database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 1))->active = true;
 					}
 				}
 				break;
@@ -230,12 +222,12 @@ int database_refresh(LOGGER log, DATABASE* database){
 }
 
 int database_initialize(LOGGER log, DATABASE* database){
-	char* QUERY_ADDRESS_USER="SELECT address_user, msa_inrouter, msa_outrouter FROM main.addresses JOIN main.msa ON address_user = msa_user WHERE ? LIKE address_expression ORDER BY address_order DESC;";
+	char* QUERY_ADDRESS_USER="SELECT address_user, msa_inrouter, msa_outrouter, user_alias FROM main.addresses JOIN main.msa ON address_user = msa_user JOIN main.users ON address_user = user_name WHERE ? LIKE address_expression ORDER BY address_order DESC;";
 	char* QUERY_USER_ROUTER_INBOUND="SELECT msa_inrouter, CASE msa_inrouter WHEN 'store' THEN user_database ELSE msa_inroute END AS msa_inroute FROM main.msa JOIN main.users ON user_name = msa_user WHERE user_name = ?;";
 	char* QUERY_USER_ROUTER_OUTBOUND="SELECT msa_outrouter, msa_outroute FROM main.msa WHERE msa_user = ?;";
 	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
-	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata FROM main.users WHERE user_name = ?;";
+	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
 
 	//check the database schema version
 	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){

@@ -10,15 +10,15 @@
 #include "../../lib/logger.h"
 #include "../../lib/logger.c"
 
-// database suff
+// database functions
 #include "../../lib/database.h"
 #include "../../lib/database.c"
 
-// common stuff
+// common functions
 #include "../../lib/common.h"
 #include "../../lib/common.c"
 
-// for auth stuff
+// auth functions
 #include "../../lib/auth.h"
 #include "../../lib/auth.c"
 
@@ -27,199 +27,223 @@
 
 #define MAX_PW_LENGTH 256
 
-void gen_salt(char* salt, unsigned n) {
+int generate_salt(char* out, unsigned chars) {
+	const char* salt_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	uint8_t randomness[chars];
+	int i;
 
-	unsigned i, j, counter = 0;
-	int salt_raw;
-	uint8_t salt_arr[n];
-
-	for (j = 0; j < (n / 4); j++) {
-		salt_raw = rand();
-		for (i = 0; i < 4; i++) {
-			salt_arr[counter] = (salt_raw & (0xFF << 8 * i)) >> 8 * i;
-			counter++;
-		}
+	if(common_rand(randomness, chars) < 0){
+		return -1;
 	}
 
-	salt_raw = rand();
-	for (j = 0; j < (n % 4); j++) {
-		salt_arr[counter] = (salt_raw & (0xFF << 8 * j)) >> 8 * j;
-		counter++;
+	for(i=0;i<chars;i++){
+		out[i] = salt_alphabet[randomness[i]%strlen(salt_alphabet)];
 	}
-	base16_encode_update((uint8_t*) salt, n, salt_arr);
+
+	return 0;
 }
 
 int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
+	unsigned salt_len = 10;
 
-	unsigned n = 4;
-	char salt[BASE16_ENCODE_LENGTH(n) +1];
-	char hashed[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE) +1];
-	char auth[sizeof(salt) + sizeof(hashed) +1];
+	char salt[salt_len + 1];
+	char password_hash[BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE) + 1];
+	char auth_data[sizeof(salt) + sizeof(password_hash) + 1];
 
 	memset(salt, 0, sizeof(salt));
-	memset(hashed, 0, sizeof(hashed));
-	memset(auth, 0, sizeof(auth));
+	memset(password_hash, 0, sizeof(password_hash));
+	memset(auth_data, 0, sizeof(auth_data));
 
-	if (password) {
-		gen_salt(salt, n);
-		if (auth_hash(hashed, sizeof(hashed), salt, strlen(salt), password, strlen(password)) < 0) {
+	if(password){
+		if(generate_salt(salt, salt_len) < 0){
+			logprintf(log, LOG_ERROR, "Failed to generate a random salt\n");
+			return 21;
+		}
+
+		logprintf(log, LOG_DEBUG, "Generated salt %s\n", salt);
+
+		if(auth_hash(password_hash, sizeof(password_hash), salt, strlen(salt), password, strlen(password)) < 0) {
 			logprintf(log, LOG_ERROR, "Error hashing password\n");
 			return 21;
 		}
-		snprintf(auth, sizeof(auth), "%s:%s", salt, hashed);
-		return sqlite_set_password(log, db, user, auth);
-	} else {
+
+		snprintf(auth_data, sizeof(auth_data), "%s:%s", salt, password_hash);
+		return sqlite_set_password(log, db, user, auth_data);
+	}
+	else{
 		return sqlite_set_password(log, db, user, NULL);
 	}
 
 }
 
-int set_asked_password(LOGGER log, sqlite3* db, const char* user) {
+int usage(char* fn){
+	printf("cmail-admin-user: Part of the administration tool suite for cmail.\n");
+	printf("Add, modify or delete cmail users.\n");
+	printf("Usage: %s <options> <commands> <arguments>\n", fn);
+	printf("Basic options:\n");
+	printf("\t--verbosity, -v\t\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\t\tSet master database path (Default: %s)\n", DEFAULT_DBPATH);
+	printf("\t--help, -h\t\t\tDisplay this help message\n");
+	printf("Commands:\n");
+	printf("\tadd <username> [<password>]\tAdd an user\n");
+	printf("\tpassword <user> [<pw>]\t\tUpdate a users password\n");
+	printf("\trevoke <user>\t\t\tRevoke user login credentials (Sets NULL password)\n");
+	printf("\tdelete <user>\t\t\tDelete an account\n");
+	printf("\tlist [<filter>]\t\t\tList all active users, optionally filter by <filter>\n");
+	return 1;
+}
 
-	printf("Password: ");
+int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
+	char password[MAX_PW_LENGTH];
+	char* pw = password;
+	
+	memset(password, 0, sizeof(password));
 
-	char pw[MAX_PW_LENGTH];
-	memset(pw, 0, sizeof(pw));
-
-	if (ask_password(pw, MAX_PW_LENGTH) < 0) {
-		logprintf(log, LOG_ERROR, "Maximal password size is %d\n", MAX_PW_LENGTH);
-		return 11;
+	if(argc < 2){
+		logprintf(log, LOG_ERROR, "Missing user name argument\n");
+		return -1;
 	}
 
-	printf("\n");
-	return set_password(log, db, user, pw);
+	else if(argc == 2){
+		fprintf(stderr, "Enter new password (leave blank to disable login): ");
+		if(ask_password(password, MAX_PW_LENGTH) < 0){
+			logprintf(log, LOG_ERROR, "Maximum password length is %d\n", MAX_PW_LENGTH);
+			return 11;
+		}
+	}
+	
+	else{
+		pw = argv[2];	
+	}
+
+	return set_password(log, db, argv[1], pw[0] ? pw:NULL);
 }
 
-int add_user(LOGGER log, sqlite3* db, const char* user) {
-
-	return sqlite_add_user(log, db, user, NULL);
+int mode_add(LOGGER log, sqlite3* db, int argc, char** argv){
+	if(argc < 2){
+		logprintf(log, LOG_ERROR, "Missing user name argument\n\n");
+		return -1;
+	}
+	else{
+		if(sqlite_add_user(log, db, argv[1], NULL)){
+			logprintf(log, LOG_ERROR, "Failed to create user\n");
+			return -1;
+		}
+		return mode_passwd(log, db, argc, argv);
+	}
 }
 
-void usage() {
+int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv){
+	if(argc != 2){
+		logprintf(log, LOG_ERROR, "No user name supplied\n");
+		return -1;
+	}
 
+	return set_password(log, db, argv[1], NULL);
+}
 
-	printf("cmail-admin-user: Administration tool for cmail-mta.\n");
-	printf("usage: cmail-admin-user <options> <commands> <arguments>\n");
-	printf("\n");
-	printf("basic options:\n");
-	printf("\t--verbosity, -v\t\t\t Set verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t\t path to master database\n");
-	printf("\t--help, -h\t\t\t shows this help\n");
-	printf("\t--password, -p\t\t ask for password in add\n");
-	printf("commands:\n");
-	printf("\tadd <username> [<pw>]\t\t adds an user. If -p is set then asked for password.\n");
-	printf("\tset password <user> [<pw>]\t sets the password of the given user (if not given, ask for password\n");
-	printf("\trevoke <user>\t\t\t revokes the access to the given user (sets password to null)\n");
-	printf("\tdelete <user>\t\t\t deletes the given user\n");
-	printf("\tlist [<username>]\t\t list all users or if defined only users like <username>\n");
+int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv){
+	if(argc != 2){
+		logprintf(log, LOG_ERROR, "No user name supplied\n");
+		return -1;
+	}
+	return sqlite_delete_user(log, db, argv[1]);
+}
+
+int mode_list(LOGGER log, sqlite3* db, int argc, char** argv){
+	char* filter = "%";
+	
+	if(argc >= 2){
+		filter = argv[1];
+	}
+
+	return sqlite_get(log, db, filter);
 }
 
 int main(int argc, char* argv[]) {
-
 	LOGGER log = {
 		.stream = stderr,
 		.verbosity = 0
 	};
 
-	DATABASE database = {
-		.conn = NULL
-	};
+	unsigned i;
+	int status = -1;
 
-	int i, status;
-	unsigned pw_flag = 0;
+	char* dbpath = getenv("CMAIL_MASTER_DB");
+	sqlite3* db = NULL;
 
-	char* dbpath = "/var/cmail/master.db3";
-	srand(time(NULL));
+	if(!dbpath){
+		dbpath = DEFAULT_DBPATH;
+	}
 
-	for (i = 1; i < argc; i++) {
+	//parse options
+	for(i=1;i<argc;i++){
+		if(!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")){
+			exit(usage(argv[0]));
+		}
 
-		if (i + 1 < argc && (!strcmp(argv[i], "--dbpath") || !strcmp(argv[i], "-d"))) {
-			dbpath = argv[i + 1];
-			i++;
-		} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
-			usage();
-			return 0;
-		} else if (!strcmp(argv[i], "--password") || !strcmp(argv[i], "-p")) {
-			pw_flag = 1;
-		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
-			log.verbosity = strtoul(argv[i + 1], NULL, 10);
-		} else if (i + 2 < argc && (!strcmp(argv[i], "set") && !strcmp(argv[i + 1], "password"))) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!database.conn) {
-				return 10;
+		else if(!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v")){
+			if(i + 1 < argc){
+				log.verbosity = strtoul(argv[i + 1], NULL, 10);
+				i++;
 			}
-
-			int status;
-			if (i + 3 < argc) {
-				status = set_password(log, database.conn, argv[i + 2], argv[i + 3]);
-			} else {
-				status = set_asked_password(log, database.conn, argv[i + 2]);
+			else{
+				printf("Missing argument to --verbosity\n\n");
+				exit(usage(argv[0]));
 			}
+		}
 
-			sqlite3_close(database.conn);
-			return status;
-
-		} else if (i + 1 < argc && !strcmp(argv[i], "add")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!database.conn) {
-				return 10;
+		else if(!strcmp(argv[i], "--dbpath") || !strcmp(argv[i], "-d")){
+			if(i + 1 < argc){
+				dbpath = argv[i + 1];
+				i++;
 			}
-
-			status = add_user(log, database.conn, argv[i + 1]);
-
-			if (status > 0) {
-				sqlite3_close(database.conn);
-				return status;
+			else{
+				printf("Missing argument to --dbpath\n\n");
+				exit(usage(argv[0]));
 			}
+		}
 
-			if (i + 2 < argc) {
-				status = set_password(log, database.conn, argv[i + 1], argv[i + 2]);
-			} else if (pw_flag) {
-				status = set_asked_password(log, database.conn, argv[i + 1]);
-			}
-
-			sqlite3_close(database.conn);
-			return status;
-		} else if (i + 1 < argc && !strcmp(argv[i], "delete")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!database.conn) {
-				return 10;
-			}
-
-			status = sqlite_delete_user(log, database.conn, argv[i + 1]);
-			sqlite3_close(database.conn);
-			return status;
-		} else if (i +1 < argc && !strcmp(argv[i], "revoke")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!database.conn) {
-				return 10;
-			}
-
-			status = set_password(log, database.conn, argv[i + 1], NULL);
-			return status;
-
-		} else if (!strcmp(argv[i], "list")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
-
-			if (!database.conn) {
-				return 10;
-			}
-			if (i + 1 < argc) {
-				status = sqlite_get(log, database.conn, argv[i + 1]);
-			} else {
-				status = sqlite_get_all(log, database.conn);
-			}
-			sqlite3_close(database.conn);
-			return status;
+		else{
+			logprintf(log, LOG_DEBUG, "Done parsing options at argc %d\n", i);
+			//reusing index i later...
+			break;
 		}
 	}
 
-	printf("Invalid or no arguments.\n");
-	usage();
+	if(!argv[i]){
+		logprintf(log, LOG_ERROR, "No command specified\n\n");
+		exit(usage(argv[0]));
+	}
 
-	return 0;
+	logprintf(log, LOG_INFO, "Opening database at %s\n", dbpath);
+	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+	if(!db){
+		logprintf(log, LOG_ERROR, "Failed to open database at %s, please check the path\n\n", dbpath);
+		exit(usage(argv[0]));
+	}
+
+	//select command
+	if(!strcmp(argv[i], "add")){
+		status = mode_add(log, db, argc - i, argv + i);
+	}
+	else if(!strcmp(argv[i], "delete")){
+		status = mode_delete(log, db, argc - i, argv + i);
+	}
+	else if(!strcmp(argv[i], "revoke")){
+		status = mode_revoke(log, db, argc - i, argv + i);
+	}
+	else if(!strcmp(argv[i], "list")){ 
+		status = mode_list(log, db, argc - i, argv + i);
+	}
+	else if(!strcmp(argv[i], "password") || !strcmp(argv[i], "passwd")){
+		status = mode_passwd(log, db, argc - i, argv + i);
+	}
+	else{
+		logprintf(log, LOG_WARNING, "Unknown command %s\n\n", argv[i]);
+		usage(argv[0]);
+	}
+
+	sqlite3_close(db);
+	return status;
 }

@@ -32,35 +32,6 @@ int sqlite_get(LOGGER log, sqlite3* db, const char* username) {
 	return status;
 }
 
-int sqlite_get_all(LOGGER log, sqlite3* db) {
-
-	char* sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login FROM users";
-
-	sqlite3_stmt* stmt = database_prepare(log, db, sql);
-
-	if (!stmt) {
-		return 2;
-	}
-
-	int status;
-	const char* username;
-	int login;
-	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-
-		username = (const char*) sqlite3_column_text(stmt, 0);
-		login = sqlite3_column_int(stmt, 1);
-
-		printf("%s | %d\n", username, login);
-	}
-
-	sqlite3_finalize(stmt);
-
-	if (status == SQLITE_DONE) {
-		return 0;
-	}
-	return status;
-}
-
 int sqlite_update_user(LOGGER log, sqlite3* db, const char* user, const char* auth, char* sql) {
 
         sqlite3_stmt* stmt = database_prepare(log, db, sql);

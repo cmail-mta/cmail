@@ -42,10 +42,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0
 	};
 
-	DATABASE database = {
-		.conn = NULL
-	};
-
+	sqlite3* db = NULL;
 	int i, status;
 
 	char* dbpath = "/var/cmail/master.db3";
@@ -61,49 +58,49 @@ int main(int argc, char* argv[]) {
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
 		} else if (i + 1 < argc && (!strcmp(argv[i], "add"))) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			int status = sqlite_add_popd(log, database.conn, argv[i + 1]);
+			int status = sqlite_add_popd(log, db, argv[i + 1]);
 
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 
 		}  else if (i + 1 < argc && !strcmp(argv[i], "delete")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			status = sqlite_delete_popd(log, database.conn, argv[i + 1]);
-			sqlite3_close(database.conn);
+			status = sqlite_delete_popd(log, db, argv[i + 1]);
+			sqlite3_close(db);
 			return status;
 		}  else if (i + 1 < argc && !strcmp(argv[i], "unlock")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			status = sqlite_update_popd(log, database.conn, argv[i + 1], 0);
-			sqlite3_close(database.conn);
+			status = sqlite_update_popd(log, db, argv[i + 1], 0);
+			sqlite3_close(db);
 			return status;
 		}  else if (!strcmp(argv[i], "list")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
+			db = database_open(log, dbpath, SQLITE_OPEN_READONLY);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 			if (i + 1 < argc) {
-				status = sqlite_get_popd(log, database.conn, argv[i + 1]);
+				status = sqlite_get_popd(log, db, argv[i + 1]);
 			} else {
-				status = sqlite_get_all_popd(log, database.conn);
+				status = sqlite_get_all_popd(log, db);
 			}
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 		}
 	}

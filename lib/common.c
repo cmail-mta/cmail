@@ -9,6 +9,20 @@ char* common_strdup(char* input){
 	return strncpy(duplicate, input, length); //this is ok because the memory is calloc'd
 }
 
+int common_rand(void* target, size_t bytes){
+	size_t data_read = 0;
+	FILE* pool = fopen(RANDOMNESS_POOL, "r");
+
+	if(!pool){
+		return -1;
+	}
+
+	data_read = fread(target, 1, bytes, pool);
+
+	fclose(pool);
+	return data_read;
+}
+
 char* common_strappf(char* target, unsigned* target_allocated, char* fmt, ...){
 	va_list args, copy;
 

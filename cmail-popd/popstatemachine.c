@@ -44,7 +44,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 			method = strtok(client_data->recv_buffer + 5, " ");
 			if(method){
 				parameter = strtok(NULL, " ");
-				logprintf(log, LOG_DEBUG, "Beginning SASL with method %s parameter %s\n", method?method:"null", parameter?parameter:"null");
+				logprintf(log, LOG_DEBUG, "Beginning SASL with method %s parameter %s\n", method, parameter?parameter:"null");
 				status = sasl_begin(log, &(client_data->auth.ctx), &(client_data->auth.user), method, parameter, &challenge);
 			}
 			else{
@@ -79,7 +79,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 					sasl_reset_ctx(&(client_data->auth.ctx), true);
 
 					//check auth data
-					if(!challenge || auth_validate(log, database, client_data->auth.user.authenticated, challenge) < 0){
+					if(!challenge || auth_validate(log, database, client_data->auth.user.authenticated, challenge, &(client_data->auth.user.authorized)) < 0){
 						//login failed
 						auth_reset(&(client_data->auth));
 						logprintf(log, LOG_INFO, "Client failed to authenticate\n");
@@ -89,8 +89,6 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 					client_data->auth.auth_ok = true; //FIXME is this actually needed?
 
-					//TODO handle aliasing at this point (set authorized)
-					client_data->auth.user.authorized = common_strdup(client_data->auth.user.authenticated);
 					if(!client_data->auth.user.authorized){
 						auth_reset(&(client_data->auth));
 						logprintf(log, LOG_ERROR, "Failed to allocate memory for authorized user\n");
@@ -143,7 +141,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 				return -1;
 			}
 
-			if(auth_validate(log, database, client_data->auth.user.authenticated, client_data->recv_buffer + 5) < 0){
+			if(auth_validate(log, database, client_data->auth.user.authenticated, client_data->recv_buffer + 5, &(client_data->auth.user.authorized)) < 0){
 				//failed to authenticate
 				logprintf(log, LOG_INFO, "Failed to authenticate client\n");
 				auth_reset(&(client_data->auth));
@@ -153,8 +151,6 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 			client_data->auth.auth_ok = true; //FIXME is this actually needed?
 
-			//TODO handle aliasing here
-			client_data->auth.user.authorized = common_strdup(client_data->auth.user.authenticated);
 			if(!client_data->auth.user.authorized){
 				logprintf(log, LOG_ERROR, "Failed to allocate memory for authorization user name\n");
 				auth_reset(&(client_data->auth));

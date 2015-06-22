@@ -48,10 +48,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0
 	};
 
-	DATABASE database = {
-		.conn = NULL
-	};
-
+	sqlite3* db = NULL;
 	int i, status;
 
 	char* dbpath = "/var/cmail/master.db3";
@@ -67,93 +64,93 @@ int main(int argc, char* argv[]) {
 		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
 			log.verbosity = strtoul(argv[i + 1], NULL, 10);
 		} else if (i + 2 < argc && (!strcmp(argv[i], "grant"))) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			int status = sqlite_add_right(log, database.conn, argv[i + 1], argv[i + 2]);
+			int status = sqlite_add_right(log, db, argv[i + 1], argv[i + 2]);
 
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 
 		}  else if (i + 1 < argc && !strcmp(argv[i], "revoke")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
 			if (i + 2 < argc) {
-				status = sqlite_delete_right(log, database.conn, argv[i + 1], argv[i + 2]);
+				status = sqlite_delete_right(log, db, argv[i + 1], argv[i + 2]);
 			} else {
-				status = sqlite_delete_rights(log, database.conn, argv[i + 1]);
+				status = sqlite_delete_rights(log, db, argv[i + 1]);
 			}
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 		} else if (i + 3 < argc &&!strcmp(argv[i], "delete")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
 			if (!strcmp(argv[i + 1], "expression")) {
-				status = sqlite_delete_address_delegation(log, database.conn, argv[i + 2], argv[i + 3]);
+				status = sqlite_delete_address_delegation(log, db, argv[i + 2], argv[i + 3]);
 			} else if (!strcmp(argv[i + 1], "user")) {
-				status = sqlite_delete_user_delegation(log, database.conn, argv[i + 2], argv[i + 3]);
+				status = sqlite_delete_user_delegation(log, db, argv[i + 2], argv[i + 3]);
 			} else {
 				return 120;
 			}
 
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 
 
 		} else if (!strcmp(argv[i], "delegate")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
 			if (i + 3 < argc && !strcmp(argv[i + 1], "address")) {
-				status = sqlite_delegate_address(log, database.conn, argv[i + 2], argv[i + 3]);
+				status = sqlite_delegate_address(log, db, argv[i + 2], argv[i + 3]);
 			} else if (i + 3 < argc && !strcmp(argv[i + 1], "user")) {
-				status = sqlite_delegate_user(log, database.conn, argv[i + 2], argv[i + 3]);
+				status = sqlite_delegate_user(log, db, argv[i + 2], argv[i + 3]);
 			} else {
 				if (i + 1 < argc) {
-					status = sqlite_get_delegated(log, database.conn, argv[i + 1]);
+					status = sqlite_get_delegated(log, db, argv[i + 1]);
 				} else {
-					status = sqlite_get_delegated_all(log, database.conn);
+					status = sqlite_get_delegated_all(log, db);
 				}
 			}
 
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 		}  else if (!strcmp(argv[i], "list")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
+			db = database_open(log, dbpath, SQLITE_OPEN_READONLY);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 			if (i + 1 < argc) {
-				status = sqlite_get_rights(log, database.conn, argv[i + 1]);
+				status = sqlite_get_rights(log, db, argv[i + 1]);
 			} else {
-				status = sqlite_get_all_rights(log, database.conn);
+				status = sqlite_get_all_rights(log, db);
 			}
-			sqlite3_close(database.conn);
+			sqlite3_close(db);
 			return status;
 		} else if (i + 1 < argc &&!strcmp(argv[i], "rlist")) {
-			database.conn = database_open(log, dbpath, SQLITE_OPEN_READONLY);
+			db = database_open(log, dbpath, SQLITE_OPEN_READONLY);
 
-			if (!database.conn) {
+			if (!db) {
 				return 10;
 			}
 
-			status = sqlite_get_rights_by_right(log, database.conn, argv[i + 1]);
-			sqlite3_close(database.conn);
+			status = sqlite_get_rights_by_right(log, db, argv[i + 1]);
+			sqlite3_close(db);
 			return status;
 		}
 	}

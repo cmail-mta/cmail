@@ -110,7 +110,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		method = strtok(client_data->recv_buffer + 5, " ");
 		if(method){
 			parameter = strtok(NULL, " ");
-			logprintf(log, LOG_DEBUG, "Beginning SASL with method %s parameter %s\n", method?method:"null", parameter?parameter:"null");
+			logprintf(log, LOG_DEBUG, "Beginning SASL with method %s parameter %s\n", method, parameter?parameter:"null");
 			status = sasl_begin(log, &(client_data->sasl_context), &(client_data->sasl_user), method, parameter, &challenge);
 		}
 		else{
@@ -160,7 +160,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			client_data->state=STATE_IDLE;
 			
 			//check auth data
-			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge) < 0){
+			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
 				//login failed
 				sasl_reset_user(&(client_data->sasl_user), true);
 				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
@@ -168,8 +168,6 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 			}
 
-			//TODO handle aliasing at this point (set authorized)
-			client_data->sasl_user.authorized = common_strdup(client_data->sasl_user.authenticated);
 			if(!client_data->sasl_user.authorized){
 				sasl_reset_user(&(client_data->sasl_user), true);
 				logprintf(log, LOG_ERROR, "Failed to allocate memory for authorized user\n");
@@ -286,7 +284,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
 		logprintf(log, LOG_DEBUG, "AUTH Status %s, Authentication: %s, Authorization: %s\n", client_data->sasl_context.method!=SASL_INVALID?"active":"inactive", client_data->sasl_user.authenticated ? client_data->sasl_user.authenticated:"none", client_data->sasl_user.authorized ? client_data->sasl_user.authorized:"none");
 		#ifndef CMAIL_NO_TLS
-		logprintf(log, LOG_DEBUG, "TLS State: %s\n", (client->tls_mode==TLS_NONE)?"none":"ok");
+		logprintf(log, LOG_DEBUG, "TLS State: %s\n", tls_modestring(client->tls_mode));
 		#endif
 		return 0;
 	}
@@ -525,7 +523,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				else{
 					switch(mail_originate(log, client_data->sasl_user.authorized, &(client_data->current_mail), database)){
 						case 250:
-							logprintf(log, LOG_INFO, "Originating mail accepted for user %s from %s\n", client_data->sasl_user.authorized, client_data->peer_name);
+							logprintf(log, LOG_INFO, "Originating mail accepted for user %s (auth %s) from %s\n", client_data->sasl_user.authorized, client_data->sasl_user.authenticated, client_data->peer_name);
 							client_send(log, client, "250 OK\r\n");
 							break;
 						case 400:

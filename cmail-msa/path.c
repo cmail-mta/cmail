@@ -111,7 +111,15 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 				}
 
 				//path ok, resolve to user
-				path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 0));
+				//special case forward paths with aliases here because alias resolution needs to happen once
+				if(!is_reverse && sqlite3_column_text(database->query_addresses, 3)){
+					path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 3));
+				}
+				//no alias defined or reverse path -> either aliasing has already happened or there is none
+				else{
+					path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 0));
+				}
+
 				if(!path->resolved_user){
 					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
 					break;

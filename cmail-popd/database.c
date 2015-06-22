@@ -1,5 +1,5 @@
 int database_initialize(LOGGER log, DATABASE* database){
-	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata FROM main.users WHERE user_name = ?;";
+	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
 	char* QUERY_USER_DATABASE="SELECT user_database FROM main.users WHERE user_name = ? AND user_database NOT NULL;";
 	char* UPDATE_POP_LOCK="UPDATE OR FAIL main.popd SET pop_lock=? WHERE pop_user=? AND pop_lock=?;";
 	char* LIST_MAILS_MASTER="SELECT mail_id, length(mail_data) AS length, mail_ident FROM main.mailbox WHERE mail_user=? ORDER BY mail_submission ASC;";

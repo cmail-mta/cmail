@@ -3,11 +3,11 @@ CFLAGS=-Wall -g
 LDLIBS=-lsqlite3 -lnettle
 
 all:
-	cd user && make all
-	cd address && make all
-	cd msa && make all
-	cd permissions && make all
-	cd popd && make all
+	$(MAKE) -C user
+	$(MAKE) -C address
+	$(MAKE) -C msa
+	$(MAKE) -C permissions
+	$(MAKE) -C popd
 
 	mkdir -p bin
 	mv user/cmail-admin-user bin/

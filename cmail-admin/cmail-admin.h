@@ -1,5 +1,3 @@
 #pragma once
 
-typedef struct /*_DATABASE*/ {
-	sqlite3* conn;
-} DATABASE;
+#define DEFAULT_DBPATH "/var/cmail/master.db3"

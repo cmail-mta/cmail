@@ -90,6 +90,9 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 				rv=mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 			}
 			else{
+				//this works regardless of the changes from schema update 2
+				//because users.user_database is aliased into route.argument by the query
+
 				//get user storage database entry
 				user_db=database_userdb(log, database, route.argument);
 				if(!user_db){

@@ -48,7 +48,7 @@ int main(int argc, char** argv){
 	}
 
 	//parse arguments
-	if(args_parse(&args, argc-1, argv+1)<0){
+	if(!args_parse(&args, argc-1, argv+1)){
 		return usage(argv[0]);
 	}
 
