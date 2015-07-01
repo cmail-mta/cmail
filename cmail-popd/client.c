@@ -20,6 +20,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	CLIENT empty_data = {
 		.listener = listener,
 		.recv_offset = 0,
+		.last_action = time(NULL),
 		.state = STATE_AUTH,
 		.maildrop = {
 			.count = 0,
@@ -91,6 +92,19 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 
 	client_send(log, &(clients->conns[client_slot]), "+OK %s POP3 ready\r\n", listener_data->announce_domain);
 	return 0;
+}
+
+bool client_timeout(LOGGER log, CONNECTION* client){
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	unsigned delta = time(NULL) - client_data->last_action;
+
+	if(delta < 0){
+		logprintf(log, LOG_ERROR, "Time reported an error or skipped ahead: %s\n", strerror(errno));
+		return false;
+	}
+
+	logprintf(log, LOG_DEBUG, "Client has activity delta %d seconds\n", delta);
+	return delta > POP_SERVER_TIMEOUT;
 }
 
 int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
@@ -213,6 +227,9 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				//FIXME might handle this more sensibly
 			}
 			else{
+				//update last action timestamp
+				client_data->last_action = time(NULL);
+
 				client_line(log, client, database);
 			}
 		}

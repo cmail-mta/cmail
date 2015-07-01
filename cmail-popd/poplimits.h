@@ -2,3 +2,4 @@
 #define CMAIL_RECEIVE_BUFFER_LENGTH	2048
 #define CMAIL_MAILDROP_CHUNK 		10
 #define POP_MESSAGEID_MAX 		70
+#define POP_SERVER_TIMEOUT		300 //There does not seem to be any standard for this

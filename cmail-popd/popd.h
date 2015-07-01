@@ -7,6 +7,7 @@
 #include "../lib/common.h"
 #define VERSION "cmail-popd 0.1"
 #define CMAIL_MAX_CONCURRENT_CLIENTS 128
+#define CMAIL_SELECT_TIMEOUT 20
 
 #define CMAIL_HAVE_LISTENER_TYPE
 #define CMAIL_HAVE_DATABASE_TYPE
@@ -102,6 +103,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	POPSTATE state;
 	AUTH_DATA auth;
 	MAILDROP maildrop;
+	time_t last_action;
 } CLIENT;
 
 typedef struct /*_POP3_LISTENER*/ {
