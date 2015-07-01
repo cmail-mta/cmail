@@ -1,10 +1,8 @@
 Implement support for dynamically loaded modules
 	Specify API for modules
-Implement client timeouts
 Periodically release unused memory
 Bind parameter filter-local-reverse
 Implement client command rate limiting
 Configurable reject message
-Alias routing README compliancy (route _as_ user)
 Test outbound/inbound handoff/forward routers
 Allow specification of remote port with HANDOFF
