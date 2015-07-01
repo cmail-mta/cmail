@@ -1,5 +1,6 @@
 int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	fd_set readfds;
+	struct timeval select_timeout;
 	int maxfd;
 	int status;
 	unsigned i;
@@ -38,10 +39,14 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 			}
 		}
 
-		//select over fds
-		status=select(maxfd+1, &readfds, NULL, NULL, NULL);
+		//reset timeout
+		select_timeout.tv_sec = CMAIL_SELECT_TIMEOUT;
+		select_timeout.tv_usec = 0;
 
-		if(status<=0){
+		//select over fds
+		status = select(maxfd + 1, &readfds, NULL, NULL, &select_timeout);
+
+		if(status < 0){
 			logprintf(log, LOG_ERROR, "Error in select: %s\n", strerror(errno));
 			break;
 		}
@@ -51,10 +56,17 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 		//check client fds
 		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd>0 && FD_ISSET(clients.conns[i].fd, &readfds)){
-				//handle data
-				//FIXME handle return value
-				client_process(log, &(clients.conns[i]), database, &path_pool);
+			if(clients.conns[i].fd > 0){
+				if(FD_ISSET(clients.conns[i].fd, &readfds)){
+					//handle data
+					//FIXME handle return value
+					client_process(log, &(clients.conns[i]), database, &path_pool);
+				}
+				else if(client_timeout(log, &(clients.conns[i]))){
+					logprintf(log, LOG_WARNING, "Client timed out, disconnecting\n");
+					client_send(log, &(clients.conns[i]), "500 Timed out\r\n");
+					client_close(&(clients.conns[i]));
+				}
 			}
 		}
 

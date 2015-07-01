@@ -1,5 +1,5 @@
 int client_line(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
 	switch(client_data->state){
@@ -22,16 +22,16 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* pa
 
 int client_resolve(LOGGER log, CONNECTION* client){
 	struct sockaddr_storage data;
-	socklen_t len=sizeof(struct sockaddr_storage);
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	socklen_t len = sizeof(struct sockaddr_storage);
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int status;
 
-	if(getpeername(client->fd, (struct sockaddr*)&data, &len)<0){
+	if(getpeername(client->fd, (struct sockaddr*)&data, &len) < 0){
 		logprintf(log, LOG_ERROR, "Failed to get peer name: %s\n", strerror(errno));
 		return -1;
 	}
 
-	status=getnameinfo((struct sockaddr*)&data, len, client_data->peer_name, MAX_FQDN_LENGTH-1, NULL, 0, 0);
+	status=getnameinfo((struct sockaddr*)&data, len, client_data->peer_name, MAX_FQDN_LENGTH - 1, NULL, 0, 0);
 	if(status){
 		logprintf(log, LOG_WARNING, "Failed to resolve peer: %s\n", gai_strerror(status));
 		return -1;
@@ -42,14 +42,39 @@ int client_resolve(LOGGER log, CONNECTION* client){
 	return 0;
 }
 
+bool client_timeout(LOGGER log, CONNECTION* client){
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	unsigned delta = time(NULL) - client_data->last_action;
+
+	if(delta < 0){
+		logprintf(log, LOG_ERROR, "Time reported an error or skipped ahead: %s\n", strerror(errno));
+		return false;
+	}
+
+	logprintf(log, LOG_DEBUG, "Client has activity delta %d seconds\n", delta);
+	/*
+	switch(client_data->state){
+		case STATE_NEW:			
+		case STATE_IDLE:
+		case STATE_AUTH:
+		case STATE_RECIPIENTS:
+		case STATE_DATA:
+	}
+	*/
+
+	//According to RFC 5321 4.5.3.2.7, the server timeout is always 5 minutes and does not depend on client state
+	return delta > SMTP_SERVER_TIMEOUT;
+}
+
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1, flags;
 	LISTENER* listener_data=(LISTENER*)listener->aux_data;
 	CLIENT empty_data = {
-		.listener=listener,
-		.state=STATE_NEW,
-		.recv_offset=0,
-		.peer_name="",
+		.listener = listener,
+		.state = STATE_NEW,
+		.recv_offset = 0,
+		.last_action = time(NULL),
+		.peer_name = "",
 		.current_mail = {
 			.submitter = NULL,
 			.reverse_path = {
@@ -270,6 +295,9 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				//FIXME might handle this more sensibly
 			}
 			else{
+				//update last_action only upon complete lines to kill slowloris style attacks
+				client_data->last_action = time(NULL);
+
 				client_line(log, client, database, path_pool);
 			}
 		}

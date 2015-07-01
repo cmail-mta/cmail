@@ -11,6 +11,7 @@
 
 #include "../lib/common.h"
 #define VERSION 			"cmail-msa 0.1"
+#define CMAIL_SELECT_TIMEOUT		20
 
 #define CMAIL_HAVE_LISTENER_TYPE
 #define CMAIL_HAVE_DATABASE_TYPE
@@ -91,7 +92,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	MAIL current_mail;
 	SASL_USER sasl_user;
 	SASL_CONTEXT sasl_context;
-	/*last_action*/
+	time_t last_action;
 } CLIENT;
 
 typedef struct /*_PATH_POOL*/{
