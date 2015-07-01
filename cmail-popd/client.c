@@ -137,8 +137,6 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 	ssize_t left, bytes, line_length;
 
-	//TODO handle client timeout
-
 	#ifndef CMAIL_NO_TLS
 	do{
 	#endif
