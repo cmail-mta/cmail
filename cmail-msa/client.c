@@ -44,7 +44,7 @@ int client_resolve(LOGGER log, CONNECTION* client){
 
 bool client_timeout(LOGGER log, CONNECTION* client){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
-	unsigned delta = time(NULL) - client_data->last_action;
+	int delta = time(NULL) - client_data->last_action;
 
 	if(delta < 0){
 		logprintf(log, LOG_ERROR, "Time reported an error or skipped ahead: %s\n", strerror(errno));
