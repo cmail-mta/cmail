@@ -40,7 +40,8 @@ int main(int argc, char** argv){
 		},
 		.log = {
 			.stream = stderr,
-			.verbosity = 0
+			.verbosity = 0,
+			.log_secondary = false
 		}
 	};
 
@@ -101,6 +102,9 @@ int main(int argc, char** argv){
 
 		//flush the stream so we do not get everything twice
 		fflush(config.log.stream);
+
+		//stop secondary log output
+		config.log.log_secondary = false;
 
 		switch(daemonize(config.log)){
 			case 0:

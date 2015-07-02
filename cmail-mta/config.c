@@ -96,6 +96,7 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 			return -1;
 		}
 		config->log.stream = log_file;
+		config->log.log_secondary = true;
 		return 0;
 	}
 	return -1;

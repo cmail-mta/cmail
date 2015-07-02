@@ -1,10 +1,12 @@
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <ctype.h>
 
 typedef struct /*_LOGGER*/ {
 	FILE* stream;
 	unsigned verbosity;
+	bool log_secondary;
 } LOGGER;
 
 #define LOG_ERROR 	0

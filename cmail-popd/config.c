@@ -164,7 +164,8 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 			logprintf(config->log, LOG_ERROR, "Failed to open logfile %s for appending\n", params);
 			return -1;
 		}
-		config->log.stream=log_file;
+		config->log.stream = log_file;
+		config->log.log_secondary = true;
 		return 0;
 	}
 	return -1;
