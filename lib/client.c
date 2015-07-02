@@ -23,8 +23,8 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 				bytes_written=send(client->fd, data+bytes_sent, bytes_left, 0);
 				break;
 			case TLS_NEGOTIATE:
-				logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progess\n");
-				break;
+				logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progress\n");
+				return bytes_sent;
 			case TLS_ONLY:
 				bytes_written=gnutls_record_send(client->tls_session, data+bytes_sent, bytes_left);
 				break;
