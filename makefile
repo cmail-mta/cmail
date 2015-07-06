@@ -59,6 +59,14 @@ rtldumps:
 	mv cmail-mta/*.expand rtldumps/
 	mv cmail-popd/*.expand rtldumps/
 
+cppcheck:
+	@printf "Running cppcheck on cmail-msa\n"
+	cppcheck --enable=all cmail-msa/msa.c
+	@printf "\nRunning cppcheck on cmail-mta\n"
+	cppcheck --enable=all cmail-mta/mta.c
+	@printf "\nRunning cppcheck on cmail-popd\n"
+	cppcheck --enable=all cmail-popd/popd.c
+
 clean:
 	rm bin/*
 
