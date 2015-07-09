@@ -35,7 +35,6 @@ master database structure
 		This feature should only be used to provide two
 		independent logins to a mailbox. Deleting the original
 		user deletes all mail associated with it.
-		THIS FEATURE IS CURRENTLY NOT IMPLEMENTED
 
 	'addresses' table
 	-----------------
