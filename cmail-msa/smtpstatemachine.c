@@ -499,11 +499,16 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				logprintf(log, LOG_WARNING, "End of mail, data section exceeded size limitation, rejecting\n");
 				client_send(log, client, "552 Size limit exceeded\r\n");
 			}
+			//check for too many hops
+			else if(client_data->current_mail.hop_count > CMAIL_MAX_HOPS){
+				logprintf(log, LOG_WARNING, "Mail exceeded maximum hop count of %d", CMAIL_MAX_HOPS);
+				client_send(log, client, "554 Too many hops\r\n");
+			}
 			else{
 				//end of mail
 				logprintf(log, LOG_INFO, "End of mail data, routing\n");
-				//TODO call plugins here
 
+				//TODO call plugins here
 				if(!client_data->sasl_user.authenticated){
 					switch(mail_route(log, &(client_data->current_mail), database)){
 						case 250:
@@ -542,6 +547,20 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		}
 	}
 	else{
+		//detect end of header & count hops
+		if(client_data->current_mail.header_offset == 0){
+			//header end
+			if(client_data->recv_buffer[0] == 0){
+				client_data->current_mail.header_offset = client_data->current_mail.data_offset;
+				logprintf(log, LOG_DEBUG, "End of header detected at %d\n", client_data->current_mail.header_offset);
+			}
+			//count Received: headers
+			else if(!strncmp(client_data->recv_buffer, "Received: ", 10)){
+				client_data->current_mail.hop_count++;
+				logprintf(log, LOG_DEBUG, "Mail is now at %d hops\n", client_data->current_mail.hop_count);
+			}
+		}
+
 		//FIXME use return value (might indicate message too long)
 		return mail_line(log, &(client_data->current_mail), client_data->recv_buffer);
 	}
