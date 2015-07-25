@@ -224,6 +224,7 @@ int pop_xyzzy(LOGGER log, CONNECTION* client, DATABASE* database){
 	#endif
 	logprintf(log, LOG_DEBUG, "Auth state: %s, Method: %s\n", client_data->auth.auth_ok ? "true":"false", client_data->auth.method==AUTH_USER ? "USER":"SASL");
 	logprintf(log, LOG_DEBUG, "Authentication: %s, Authorization: %s\n", client_data->auth.user.authenticated ? client_data->auth.user.authenticated:"null", client_data->auth.user.authorized ? client_data->auth.user.authorized:"null");
+	logprintf(log, LOG_DEBUG, "Connection score: %d\n", client_data->connection_score);
 	client_send(log, client, "+OK Nothing happens\r\n");
 	return 0;
 }

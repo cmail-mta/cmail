@@ -8,6 +8,7 @@
 #define VERSION "cmail-popd 0.1"
 #define CMAIL_MAX_CONCURRENT_CLIENTS 128
 #define CMAIL_SELECT_TIMEOUT 20
+#define CMAIL_FAILSCORE_LIMIT -5
 
 #define CMAIL_HAVE_LISTENER_TYPE
 #define CMAIL_HAVE_DATABASE_TYPE
@@ -104,6 +105,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	AUTH_DATA auth;
 	MAILDROP maildrop;
 	time_t last_action;
+	int connection_score;
 } CLIENT;
 
 typedef struct /*_POP3_LISTENER*/ {

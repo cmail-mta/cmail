@@ -32,7 +32,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 				sasl_cancel(&(client_data->auth.ctx));
 				auth_reset(&(client_data->auth));
 				client_send(log, client, "-ERR Invalid state\r\n");
-				return 0;
+				return -1;
 			}
 		}
 
@@ -107,7 +107,9 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 
 					client_data->state = STATE_TRANSACTION;
 					client_send(log, client, "+OK Lock and load\r\n");
-					return 0;
+
+					//decrease the failscore
+					return 1;
 			}
 
 			logprintf(log, LOG_ERROR, "Invalid branch reached in AUTH\n");
@@ -146,7 +148,9 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 				logprintf(log, LOG_INFO, "Failed to authenticate client\n");
 				auth_reset(&(client_data->auth));
 				client_send(log, client, "-ERR Login failed\r\n");
-				return 0;
+
+				//increase failscore
+				return -1;
 			}
 
 			client_data->auth.auth_ok = true; //FIXME is this actually needed?
@@ -168,7 +172,9 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 			logprintf(log, LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
 			client_data->state = STATE_TRANSACTION;
 			client_send(log, client, "+OK Lock and load\r\n");
-			return 0;
+
+			//decrease the failscore
+			return 1;
 		}
 	#ifndef CMAIL_NO_TLS
 	}
@@ -187,12 +193,14 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 		if(client->tls_mode != TLS_NONE || client_data->listener->tls_mode != TLS_NEGOTIATE){
 			logprintf(log, LOG_WARNING, "Client tried STARTTLS at wrong time\n");
 			client_send(log, client, "-ERR Not possible now\r\n");
-			return 0;
+			return -1;
 		}
 
 		client_send(log, client, "+OK Start TLS negotiation\r\n");
 
 		client->tls_mode = TLS_NEGOTIATE;
+
+		//FIXME this should be properly handled with a conditional
 		return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif

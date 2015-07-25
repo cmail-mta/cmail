@@ -21,6 +21,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.listener = listener,
 		.recv_offset = 0,
 		.last_action = time(NULL),
+		.connection_score = 0,
 		.state = STATE_AUTH,
 		.maildrop = {
 			.count = 0,
@@ -228,7 +229,15 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				//update last action timestamp
 				client_data->last_action = time(NULL);
 
-				client_line(log, client, database);
+				client_data->connection_score += client_line(log, client, database);
+
+				//kick the client after too many failed commands
+				if(client_data->connection_score < CMAIL_FAILSCORE_LIMIT){
+					logprintf(log, LOG_WARNING, "Disconnecting client because of bad connection score\n");
+					client_send(log, client, "-ERR Too many failed commands\r\n");
+					client_close(log, client, database);
+					return 0;
+				}
 			}
 		}
 	}
