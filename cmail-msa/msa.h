@@ -13,6 +13,7 @@
 #define VERSION 			"cmail-msa 0.1"
 #define CMAIL_SELECT_TIMEOUT		20
 #define CMAIL_FAILSCORE_LIMIT		-10
+#define CMAIL_MAX_HOPS			30
 
 #define CMAIL_HAVE_LISTENER_TYPE
 #define CMAIL_HAVE_DATABASE_TYPE
@@ -61,6 +62,8 @@ typedef struct /*_MAIL_STRUCT*/ {
 	char* protocol;
 	char message_id[CMAIL_MESSAGEID_MAX+1];
 	unsigned data_max;
+	unsigned hop_count;
+	unsigned header_offset;
 } MAIL;
 
 typedef enum /*_SMTP_STATE*/ {

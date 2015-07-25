@@ -92,6 +92,8 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			.data_offset = 0,
 			.data_allocated = 0,
 			.data_max = listener_data->max_size,
+			.hop_count = 0,
+			.header_offset = 0,
 			.data = NULL
 		},
 		.sasl_user = {

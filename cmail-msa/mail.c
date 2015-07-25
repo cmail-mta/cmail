@@ -206,7 +206,9 @@ int mail_reset(MAIL* mail){
 		//FIXME this might pose a security risk, settings to UNKNOWN might be better.
 		//Setting to NULL breaks the constraint when inserting
 		.protocol = mail->protocol,
-		.message_id = ""
+		.message_id = "",
+		.hop_count = 0,
+		.header_offset = 0
 	};
 
 	empty_mail.data_allocated=mail->data_allocated;
