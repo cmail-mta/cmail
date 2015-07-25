@@ -135,8 +135,6 @@ int protocol_read(LOGGER log, CONNECTION* conn, int timeout){
 					conn_data->recv_buffer[conn_data->recv_offset+i]=0;
 					logprintf(log, LOG_DEBUG, "Input buffer sentence %s\n", conn_data->recv_buffer);
 
-					current_multiline=false;
-
 					//crude length check
 					if(conn_data->recv_offset+i<4){//3x digit, 1xdelim, text
 						logprintf(log, LOG_ERROR, "SMTP reply too short\n");

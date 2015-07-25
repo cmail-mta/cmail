@@ -54,7 +54,7 @@ bool client_timeout(LOGGER log, CONNECTION* client){
 	logprintf(log, LOG_DEBUG, "Client has activity delta %d seconds\n", delta);
 	/*
 	switch(client_data->state){
-		case STATE_NEW:			
+		case STATE_NEW:
 		case STATE_IDLE:
 		case STATE_AUTH:
 		case STATE_RECIPIENTS:
@@ -74,6 +74,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.state = STATE_NEW,
 		.recv_offset = 0,
 		.last_action = time(NULL),
+		.connection_score = 0,
 		.peer_name = "",
 		.current_mail = {
 			.submitter = NULL,
@@ -178,10 +179,10 @@ int client_close(CONNECTION* client){
 
 	#ifndef CMAIL_NO_TLS
 	//shut down the tls session
-	if(client->tls_mode!=TLS_NONE){
+	if(client->tls_mode != TLS_NONE){
 		gnutls_bye(client->tls_session, GNUTLS_SHUT_RDWR);
 		gnutls_deinit(client->tls_session);
-		client->tls_mode=TLS_NONE;
+		client->tls_mode = TLS_NONE;
 	}
 	#endif
 
@@ -194,8 +195,8 @@ int client_close(CONNECTION* client){
 	//reset authentication
 	sasl_reset_user(&(client_data->sasl_user), true);
 
-	//return the conpool slot
-	client->fd=-1;
+	//return the connpool slot
+	client->fd = -1;
 
 	return 0;
 }
@@ -296,7 +297,15 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				//update last_action only upon complete lines to kill slowloris style attacks
 				client_data->last_action = time(NULL);
 
-				client_line(log, client, database, path_pool);
+				client_data->connection_score += client_line(log, client, database, path_pool);
+
+				//disconnect the client after too many failed commands
+				if(client_data->connection_score < CMAIL_FAILSCORE_LIMIT){
+					logprintf(log, LOG_WARNING, "Disconnecting client because of bad connection score\n");
+					client_send(log, client, "500 Too many failed commands\r\n");
+					client_close(client);
+					return 0;
+				}
 			}
 		}
 	}

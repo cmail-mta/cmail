@@ -17,6 +17,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->resolved_user?(mail->forward_paths[i]->resolved_user):"outbound");
 		if(mail->forward_paths[i]->resolved_user){
 			//inbound mail, apply inrouter
+			//TODO RFC5321 4.4 (P59) says partial accepted recipient list should 200 and send failure notifications
 			switch(route_inbound(log, database, mail, mail->forward_paths[i])){
 				case 0:
 					break;

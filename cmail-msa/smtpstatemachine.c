@@ -122,7 +122,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_ERROR, "Invalid state (No negotiation but data) reached in AUTH, returning to IDLE\r\n");
 		client_data->state=STATE_IDLE;
 		client_send(log, client, "500 Invalid state\r\n");
-		return 0;
+		return -1;
 	}
 
 	switch(status){
@@ -138,7 +138,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			sasl_reset_ctx(&(client_data->sasl_context), true);
 			client_send(log, client, "454 Internal Error\r\n");
 			client_data->state=STATE_IDLE;
-			return -1;
+			return 0;
 		case SASL_ERROR_DATA:
 			logprintf(log, LOG_ERROR, "SASL failed to parse data\r\n");
 			sasl_reset_ctx(&(client_data->sasl_context), true);
@@ -158,14 +158,16 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		case SASL_DATA_OK:
 			sasl_reset_ctx(&(client_data->sasl_context), true);
 			client_data->state=STATE_IDLE;
-			
+
 			//check auth data
 			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
 				//login failed
 				sasl_reset_user(&(client_data->sasl_user), true);
 				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
 				client_send(log, client, "535 Authentication failed\r\n");
-				return 0;
+
+				//increase the failscore
+				return -1;
 			}
 
 			if(!client_data->sasl_user.authorized){
@@ -174,10 +176,10 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				client_send(log, client, "454 Internal Error\r\n");
 				return 0;
 			}
-			
+
 			logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->sasl_user.authenticated);
 			client_send(log, client, "235 Authenticated\r\n");
-			
+
 			//update the protocol version
 			#ifndef CMAIL_NO_TLS
 			switch(client_data->listener->tls_mode){
@@ -196,7 +198,9 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			#else
 			client_data->current_mail.protocol="esmtpa";
 			#endif
-			return 0;
+
+			//decrease the failscore
+			return 1;
 	}
 
 	logprintf(log, LOG_ERROR, "Invalid branch reached in AUTH\n");
@@ -232,7 +236,9 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		if(client_data->listener->tls_mode!=TLS_NEGOTIATE){
 			logprintf(log, LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
 			client_send(log, client, "503 Not advertised\r\n");
-			return 0;
+
+			//increase the failscore
+			return -1;
 		}
 
 		logprintf(log, LOG_INFO, "Client wants to negotiate TLS\n");
@@ -242,6 +248,8 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		client_send(log, client, "220 Go ahead\r\n");
 
 		client->tls_mode=TLS_NEGOTIATE;
+
+		//this is somewhat dodgy and should probably be replaced by a proper conditional
 		return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
@@ -251,14 +259,14 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			case AUTH_NONE:
 				logprintf(log, LOG_WARNING, "Client tried to auth on a non-auth listener\n");
 				client_send(log, client, "503 Not advertised\r\n");
-				return 0;
+				return -1;
 			case AUTH_TLSONLY:
 				#ifndef CMAIL_NO_TLS
 				if(client->tls_mode!=TLS_ONLY){
 				#endif
 					logprintf(log, LOG_WARNING, "Non-TLS client tried to auth on auth-tlsonly listener\n");
 					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is market obsolete
-					return 0;
+					return -1;
 				#ifndef CMAIL_NO_TLS
 				}
 				#endif
@@ -266,7 +274,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				if(client_data->sasl_user.authenticated){
 					logprintf(log, LOG_WARNING, "Authenticated client tried to authenticate again\n");
 					client_send(log, client, "503 Already authenticated\r\n");
-					return 0;
+					return -1;
 				}
 				//continue
 				break;
@@ -286,6 +294,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		#ifndef CMAIL_NO_TLS
 		logprintf(log, LOG_DEBUG, "TLS State: %s\n", tls_modestring(client->tls_mode));
 		#endif
+		logprintf(log, LOG_DEBUG, "Connection score: %d\n", client_data->connection_score);
 		return 0;
 	}
 
@@ -299,14 +308,14 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	if(!strncasecmp(client_data->recv_buffer, "rcpt ", 5)){
 		logprintf(log, LOG_INFO, "Client tried to use RCPT in IDLE\n");
 		client_send(log, client, "503 Bad sequence of commands\r\n");
-		return 0;
+		return -1;
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "mail from:", 10)){
 		if(listener_data->auth_require && !client_data->sasl_user.authenticated){
 			logprintf(log, LOG_WARNING, "Client tried mail command without authentication on strict auth listener\n");
 			client_send(log, client, "530 Authentication required\r\n");
-			return 0;
+			return -1;
 		}
 
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
@@ -326,19 +335,19 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				//reject router
 				logprintf(log, LOG_DEBUG, "Originating mail rejected due to router setting\n");
 				client_send(log, client, "550 User not allowed to originate mail\r\n");
-				return 0;
+				return -1;
 			default:
 				//resolution failed
 				logprintf(log, LOG_INFO, "Failed to resolve reverse path\n");
 				client_send(log, client, "451 Path rejected\r\n");
-				return -1;
+				return 0;
 		}
 
 		if(client_data->sasl_user.authenticated){
 			if(route_outbound(log, database, client_data->sasl_user.authorized, &(client_data->current_mail.reverse_path))<0){
 				//sending for this user/path combination prohibited
 				client_send(log, client, "550 Authenticated user cannot use this path\r\n");
-				return 0;
+				return -1;
 			}
 		}
 
@@ -353,7 +362,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			|| !strncasecmp(client_data->recv_buffer, "expn ", 5)){
 		logprintf(log, LOG_WARNING, "Client tried to verify / expand an address, unsupported\n");
 		client_send(log, client, "502 Not implemented\r\n");
-		return 0;
+		return -1;
 	}
 
 	logprintf(log, LOG_INFO, "Command not recognized in state IDLE: %s\n", client_data->recv_buffer);
@@ -379,7 +388,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			//too many recipients, fail this one
 			logprintf(log, LOG_INFO, "Mail exceeded recipient limit\n");
 			client_send(log, client, "452 Too many recipients\r\n");
-			return 0;
+			return -1;
 		}
 
 		//get path from pool
@@ -388,7 +397,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			logprintf(log, LOG_ERROR, "Failed to get path, failing recipient\n");
 			client_send(log, client, "452 Recipients pool maxed out\r\n");
 			//FIXME should state transition back to idle here?
-			return 0;
+			return -1;
 		}
 
 		if(path_parse(log, client_data->recv_buffer+8, current_path)<0){
@@ -405,7 +414,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 				//reject by router decision
 				client_send(log, client, "551 User does not accept mail\r\n");
 				pathpool_return(current_path);
-				return 0;
+				return -1;
 			default:
 				client_send(log, client, "451 Path rejected\r\n");
 				pathpool_return(current_path);
@@ -420,7 +429,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			if(!client_data->sasl_user.authenticated){
 				client_send(log, client, "551 Unknown user\r\n");
 				pathpool_return(current_path);
-				return 0;
+				return -1;
 			}
 		}
 
@@ -429,7 +438,9 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 
 		client_data->current_mail.forward_paths[i]=current_path;
 		client_send(log, client, "250 Accepted\r\n");
-		return 0;
+
+		//decrease the failscore
+		return 1;
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "quit", 4)){
@@ -455,7 +466,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 	if(!strncasecmp(client_data->recv_buffer, "auth", 4)){
 		logprintf(log, LOG_INFO, "Client tried to use AUTH in RECIPIENTS\n");
 		client_send(log, client, "503 Bad sequence of commands\r\n");
-		return 0;
+		return -1;
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "data", 4)){
@@ -484,23 +495,26 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 }
 
 int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	if(client_data->recv_buffer[0]=='.'){
+	if(client_data->recv_buffer[0] == '.'){
 		if(client_data->recv_buffer[1]){
 			logprintf(log, LOG_INFO, "Data line with leading dot, fixing\n");
 			//skip leading dot
 			//FIXME use return value (might indicate message too long)
-			return mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1);
+			if(mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1) < 0){
+				logprintf(log, LOG_WARNING, "Failed to store mail data line\n");
+			}
+			return 0;
 		}
 		else{
+			//end of mail data signalled
 			//check if mail was too big
-			if(client_data->current_mail.data_max && client_data->current_mail.data_offset>client_data->current_mail.data_max){
+			if(client_data->current_mail.data_max && client_data->current_mail.data_offset > client_data->current_mail.data_max){
 				logprintf(log, LOG_WARNING, "End of mail, data section exceeded size limitation, rejecting\n");
 				client_send(log, client, "552 Size limit exceeded\r\n");
 			}
 			else{
-				//end of mail
 				logprintf(log, LOG_INFO, "End of mail data, routing\n");
 				//TODO call plugins here
 
@@ -543,7 +557,10 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 	else{
 		//FIXME use return value (might indicate message too long)
-		return mail_line(log, &(client_data->current_mail), client_data->recv_buffer);
+		if(mail_line(log, &(client_data->current_mail), client_data->recv_buffer) < 0){
+			logprintf(log, LOG_WARNING, "Failed to store mail data line\n");
+		}
+		return 0;
 	}
 
 	return 0;
