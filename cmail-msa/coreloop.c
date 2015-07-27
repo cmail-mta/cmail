@@ -68,11 +68,15 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 					client_close(&(clients.conns[i]));
 				}
 			}
+			else{
+				//periodically release unused memory
+				client_memtimeout(log, &(clients.conns[i]));
+			}
 		}
 
 		//check listen fds
 		for(i=0;i<listeners.count;i++){
-			if(listeners.conns[i].fd>0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
+			if(listeners.conns[i].fd > 0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
 				//handle new client
 				//FIXME handle return value
 				client_accept(log, &(listeners.conns[i]), &clients);
@@ -82,12 +86,14 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 	//close connected clients
 	for(i=0;i<clients.count;i++){
-		if(clients.conns[i].fd>=0){
+		if(clients.conns[i].fd >= 0){
 			client_close(&(clients.conns[i]));
 		}
+
+		//free allocated data
+		client_free(log, &(clients.conns[i]));
 	}
 
-	//TODO free connpool aux_data structures
 	connpool_free(&clients);
 	pathpool_free(&path_pool);
 

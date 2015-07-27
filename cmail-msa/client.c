@@ -20,6 +20,30 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* pa
 	return 0;
 }
 
+int client_free(LOGGER log, CONNECTION* client){
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+
+	logprintf(log, LOG_DEBUG, "Freeing client data\n");
+	mail_reset(&(client_data->current_mail));
+	if(client_data->current_mail.data){
+		free(client_data->current_mail.data);
+		client_data->current_mail.data = NULL;
+		client_data->current_mail.data_allocated = 0;
+	}
+	return 0;
+}
+
+int client_memtimeout(LOGGER log, CONNECTION* client){
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	int delta = time(NULL) - client_data->last_action;
+
+	if(client_data->current_mail.data && delta > CMAIL_MEMORY_TIMEOUT){
+		client_free(log, client);
+	}
+
+	return 0;
+}
+
 int client_resolve(LOGGER log, CONNECTION* client){
 	struct sockaddr_storage data;
 	socklen_t len = sizeof(struct sockaddr_storage);
