@@ -29,6 +29,8 @@ int main(int argc, char** argv){
 			.update_lock = NULL,
 			.list_master = NULL,
 			.fetch_master = NULL,
+			.mark_deletion = NULL,
+			.unmark_deletions = NULL,
 			.delete_master = NULL,
 			.db_attach = NULL,
 			.db_detach = NULL

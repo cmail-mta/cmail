@@ -98,7 +98,7 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 
 	char* LIST_MAILS_USER = "SELECT mail_id, length(mail_data) AS length, mail_ident FROM %s.mailbox WHERE mail_user=? ORDER BY mail_submission ASC;";
 	char* FETCH_MAIL_USER = "SELECT mail_data FROM %s.mailbox WHERE mail_id=?;";
-	char* DELETE_MAIL_USER = "DELETE FROM %s.mailbox WHERE mail_id=?;";
+	char* DELETE_MAIL_USER = "DELETE FROM %s.mailbox WHERE mail_id IN (SELECT mail FROM temp.deletions WHERE user = ? AND userdb = 1);";
 
 	char* list_user = calloc(strlen(LIST_MAILS_USER)+strlen(user_name) + 1, sizeof(char));
 	char* fetch_user = calloc(strlen(FETCH_MAIL_USER)+strlen(user_name) + 1, sizeof(char));
@@ -229,51 +229,103 @@ int maildrop_acquire(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	return status;
 }
 
-int maildrop_delete(LOGGER log, sqlite3_stmt* stmt, unsigned mail){
-	int status = 0;
+int maildrop_mark(LOGGER log, DATABASE* database, char* user_name, int mail_id, bool in_master){
+	int rv = 0;
 
-	if(sqlite3_bind_int(stmt, 1, mail) == SQLITE_OK){
-		status = sqlite3_step(stmt);
-		switch(status){
+	if(sqlite3_bind_text(database->mark_deletion, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK
+			&& sqlite3_bind_int(database->mark_deletion, 2, mail_id) == SQLITE_OK
+			&& sqlite3_bind_int(database->mark_deletion, 3, in_master ? 0:1) == SQLITE_OK){
+		switch(sqlite3_step(database->mark_deletion)){
 			case SQLITE_DONE:
-				status = 0;
+			case SQLITE_OK:
+				logprintf(log, LOG_DEBUG, "Marked mail %d %s as deleted (user %s)\n", mail_id, in_master? "in master":"in userdb", user_name);
 				break;
 			default:
-				logprintf(log, LOG_WARNING, "Unhandled response code when deleting mail (%d)\n", status);
-				status = -1;
+				logprintf(log, LOG_WARNING, "Failed to mark mail as deleted: %s\n", sqlite3_errmsg(database->conn));
+				rv = -1;
 				break;
 		}
 	}
 	else{
-		logprintf(log, LOG_WARNING, "Failed to bind mail id to deletion statement\n");
+		logprintf(log, LOG_ERROR, "Failed to bind parameter to deletion mark query\n");
+		rv = -1;
+	}
+
+	sqlite3_reset(database->mark_deletion);
+	sqlite3_clear_bindings(database->mark_deletion);
+	return rv;
+}
+
+int maildrop_unmark(LOGGER log, DATABASE* database, char* user_name){
+	int rv = 0;
+
+	if(sqlite3_bind_text(database->unmark_deletions, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
+		switch(sqlite3_step(database->unmark_deletions)){
+			case SQLITE_DONE:
+			case SQLITE_OK:
+				logprintf(log, LOG_DEBUG, "Deletions table for %s cleared\n", user_name);
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Failed to clear deletion table: %s\n", sqlite3_errmsg(database->conn));
+				rv = -1;
+				break;
+		}
+	}
+	else{
+		logprintf(log, LOG_ERROR, "Failed to bind deletion user name parameter\n");
+		rv = -1;
+	}
+
+	sqlite3_reset(database->unmark_deletions);
+	sqlite3_clear_bindings(database->unmark_deletions);
+	return rv;
+}
+
+int maildrop_delete(LOGGER log, sqlite3_stmt* deletion_stmt, char* user_name){
+	int rv = 0;
+
+	if(sqlite3_bind_text(deletion_stmt, 1, user_name, -1, SQLITE_STATIC) == SQLITE_OK){
+		switch(sqlite3_step(deletion_stmt)){
+			case SQLITE_DONE:
+			case SQLITE_OK:
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Failed to perform deletion\n");
+				rv = -1;
+				break;
+		}
+	}
+	else{
+		logprintf(log, LOG_ERROR, "Failed to bind deletion user name parameter\n");
+		rv = -1;
+	}
+
+	sqlite3_reset(deletion_stmt);
+	sqlite3_clear_bindings(deletion_stmt);
+	return rv;
+}
+
+int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* user_name){
+	int status = 0;
+
+	//delete mails from master
+	if(maildrop_delete(log, database->delete_master, user_name) < 0){
+		logprintf(log, LOG_ERROR, "Failed to delete marked mails from master database: %s\n", sqlite3_errmsg(database->conn));
 		status = -1;
 	}
 
-	sqlite3_reset(stmt);
-	sqlite3_clear_bindings(stmt);
-	return status;
-}
-
-int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop){
-	unsigned i;
-	int status = 0;
-
-	for(i=0;i<maildrop->count;i++){
-		if(maildrop->mails[i].flag_delete){
-			//delete this mail
-			if(maildrop->mails[i].flag_master){
-				//delete from master
-				if(maildrop_delete(log, database->delete_master, maildrop->mails[i].database_id) < 0){
-					status = -1;
-				}
-			}
-			else{
-				//delete from user database
-				if(maildrop_delete(log, maildrop->delete_user, maildrop->mails[i].database_id) < 0){
-					status = -1;
-				}
-			}
+	if(maildrop->delete_user){
+		if(maildrop_delete(log, maildrop->delete_user, user_name) < 0){
+			logprintf(log, LOG_ERROR, "Failed to delete marked mails from user database: %s\n", sqlite3_errmsg(database->conn));
+			status = -1;
 		}
+	}
+	else{
+		logprintf(log, LOG_DEBUG, "Not deleting from user database, none attached\n");
+	}
+
+	if(!status){
+		logprintf(log, LOG_INFO, "Deletions performed\n");
 	}
 
 	return status;
@@ -288,6 +340,12 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 		.delete_user = NULL
 	};
 	int status = 0;
+
+	//reset deletion table
+	if(maildrop_unmark(log, database, user_name) < 0){
+		logprintf(log, LOG_ERROR, "Failed to reset deletion table\n");
+		status = -1;
+	}
 
 	//lock maildrop
 	if(user_name){

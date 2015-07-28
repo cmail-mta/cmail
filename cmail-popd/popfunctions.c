@@ -170,7 +170,7 @@ int pop_quit(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	if(client_data->state==STATE_TRANSACTION){
 		//update the maildrop
-		if(maildrop_update(log, database, &(client_data->maildrop))<0){
+		if(maildrop_update(log, database, &(client_data->maildrop), client_data->auth.user.authorized)<0){
 			client_send(log, client, "-ERR Failed to update the maildrop\r\n");
 		}
 		else{
@@ -197,15 +197,27 @@ int pop_dele(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 		return -1;
 	}
 
-	client_data->maildrop.mails[mail-1].flag_delete=true;
+	//add a mark in the deletion table
+	if(maildrop_mark(log, database, client_data->auth.user.authorized, client_data->maildrop.mails[mail-1].database_id, client_data->maildrop.mails[mail-1].flag_master) < 0){
+		logprintf(log, LOG_ERROR, "Failed to mark message as deleted: %s");
+	}
+
+	client_data->maildrop.mails[mail-1].flag_delete = true;
 	client_send(log, client, "+OK Marked for deletion\r\n");
 
 	return 0;
 }
 
 int pop_rset(LOGGER log, CONNECTION* client, DATABASE* database){
-	unsigned i;
+	unsigned i = 0;
 	CLIENT* client_data = (CLIENT*)client->aux_data;
+
+	//reset all deletion marks in the table
+	if(maildrop_unmark(log, database, client_data->auth.user.authorized) < 0){
+		logprintf(log, LOG_ERROR, "Failed to reset the deletion marks\n");
+		client_send(log, client, "-ERR Internal error resetting\r\n");
+		return 0;
+	}
 
 	for(i=0;i<client_data->maildrop.count;i++){
 		client_data->maildrop.mails[i].flag_delete = false;
