@@ -1,6 +1,6 @@
 int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 
 	logprintf(log, LOG_DEBUG, "Client requested capability listing\n");
 
@@ -32,12 +32,12 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 }
 
 int pop_stat(LOGGER log, CONNECTION* client, DATABASE* database){
-	unsigned maildrop_bytes=0, i;
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	unsigned maildrop_bytes = 0, i;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	//calculate maildrop size
 	for(i=0;i<client_data->maildrop.count;i++){
-		maildrop_bytes+=client_data->maildrop.mails[i].mail_size;
+		maildrop_bytes += client_data->maildrop.mails[i].mail_size;
 	}
 
 	client_send(log, client, "+OK %d %d\r\n", client_data->maildrop.count, maildrop_bytes);
@@ -46,25 +46,25 @@ int pop_stat(LOGGER log, CONNECTION* client, DATABASE* database){
 
 int pop_list(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	unsigned i;
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	if(mail==0){
+	if(mail == 0){
 		//list all mail, multiline
 		client_send(log, client, "+OK Scan listing follows\r\n");
 		for(i=0;i<client_data->maildrop.count;i++){
 			if(!client_data->maildrop.mails[i].flag_delete){
-				client_send(log, client, "%d %d\r\n", i+1, client_data->maildrop.mails[i].mail_size);
+				client_send(log, client, "%d %d\r\n", i + 1, client_data->maildrop.mails[i].mail_size);
 			}
 		}
 		client_send(log, client, ".\r\n");
 	}
-	else if(mail<=client_data->maildrop.count){
-		if(client_data->maildrop.mails[mail-1].flag_delete){
+	else if(mail <= client_data->maildrop.count){
+		if(client_data->maildrop.mails[mail - 1].flag_delete){
 			client_send(log, client, "-ERR Mail marked for deletion\r\n");
 			return -1;
 		}
 		else{
-			client_send(log, client, "+OK %d %d\r\n", mail, client_data->maildrop.mails[mail-1].mail_size);
+			client_send(log, client, "+OK %d %d\r\n", mail, client_data->maildrop.mails[mail - 1].mail_size);
 		}
 	}
 	else{
@@ -77,25 +77,25 @@ int pop_list(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 
 int pop_uidl(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	unsigned i;
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	if(mail==0){
+	if(mail == 0){
 		//list all mail, multiline
 		client_send(log, client, "+OK UID listing follows\r\n");
 		for(i=0;i<client_data->maildrop.count;i++){
 			if(!client_data->maildrop.mails[i].flag_delete){
-				client_send(log, client, "%d %s\r\n", i+1, client_data->maildrop.mails[i].message_id);
+				client_send(log, client, "%d %s\r\n", i + 1, client_data->maildrop.mails[i].message_id);
 			}
 		}
 		client_send(log, client, ".\r\n");
 	}
-	else if(mail<=client_data->maildrop.count){
-		if(client_data->maildrop.mails[mail-1].flag_delete){
+	else if(mail <= client_data->maildrop.count){
+		if(client_data->maildrop.mails[mail - 1].flag_delete){
 			client_send(log, client, "-ERR Mail marked for deletion\r\n");
 			return -1;
 		}
 		else{
-			client_send(log, client, "+OK %d %s\r\n", mail, client_data->maildrop.mails[mail-1].message_id);
+			client_send(log, client, "+OK %d %s\r\n", mail, client_data->maildrop.mails[mail - 1].message_id);
 		}
 	}
 	else{
@@ -107,42 +107,42 @@ int pop_uidl(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 }
 
 int pop_retr(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 	sqlite3_stmt* fetch_stmt;
-	char* mail_data=NULL;
-	char* mail_bytestuff=NULL;
+	char* mail_data = NULL;
+	char* mail_bytestuff = NULL;
 
 	if(mail == 0 || mail>client_data->maildrop.count){
 		client_send(log, client, "-ERR No such mail\r\n");
 		return -1;
 	}
-	else if(client_data->maildrop.mails[mail-1].flag_delete){
+	else if(client_data->maildrop.mails[mail - 1].flag_delete){
 		client_send(log, client, "-ERR Mail marked for deletion\r\n");
 		return -1;
 	}
 
-	if(client_data->maildrop.mails[mail-1].flag_master){
-		fetch_stmt=database->fetch_master;
+	if(client_data->maildrop.mails[mail - 1].flag_master){
+		fetch_stmt = database->fetch_master;
 	}
 	else{
-		fetch_stmt=client_data->maildrop.fetch_user;
+		fetch_stmt = client_data->maildrop.fetch_user;
 	}
 
-	if(sqlite3_bind_int(fetch_stmt, 1, client_data->maildrop.mails[mail-1].database_id) == SQLITE_OK){
+	if(sqlite3_bind_int(fetch_stmt, 1, client_data->maildrop.mails[mail - 1].database_id) == SQLITE_OK){
 		switch(sqlite3_step(fetch_stmt)){
 			case SQLITE_ROW:
 				client_send(log, client, "+OK Here it comes\r\n");
-				mail_data=(char*)sqlite3_column_text(fetch_stmt, 0);
-				if(mail_data[0]=='.'){
+				mail_data = (char*)sqlite3_column_text(fetch_stmt, 0);
+				if(mail_data[0] == '.'){
 					client_send(log, client, ".");
 				}
 				do{
-					mail_bytestuff=strstr(mail_data, "\r\n.");
+					mail_bytestuff = strstr(mail_data, "\r\n.");
 					if(mail_bytestuff){
 						//logprintf(log, LOG_DEBUG, "Sending %d intermediate bytes\n", mail_bytestuff-mail_data);
-						client_send_raw(log, client, mail_data, mail_bytestuff-mail_data);
+						client_send_raw(log, client, mail_data, mail_bytestuff - mail_data);
 						client_send(log, client, "\r\n..");
-						mail_data=mail_bytestuff+3;
+						mail_data=mail_bytestuff + 3;
 					}
 					else{
 						//logprintf(log, LOG_DEBUG, "Sending %d bytes message data\n", strlen(mail_data));
@@ -166,11 +166,11 @@ int pop_retr(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 }
 
 int pop_quit(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	if(client_data->state==STATE_TRANSACTION){
+	if(client_data->state == STATE_TRANSACTION){
 		//update the maildrop
-		if(maildrop_update(log, database, &(client_data->maildrop), client_data->auth.user.authorized)<0){
+		if(maildrop_update(log, database, &(client_data->maildrop), client_data->auth.user.authorized) < 0){
 			client_send(log, client, "-ERR Failed to update the maildrop\r\n");
 		}
 		else{
@@ -185,24 +185,24 @@ int pop_quit(LOGGER log, CONNECTION* client, DATABASE* database){
 }
 
 int pop_dele(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	if(mail>client_data->maildrop.count || mail<1){
+	if(mail > client_data->maildrop.count || mail < 1){
 		client_send(log, client, "-ERR No such mail\r\n");
 		return -1;
 	}
 
-	if(client_data->maildrop.mails[mail-1].flag_delete){
+	if(client_data->maildrop.mails[mail - 1].flag_delete){
 		client_send(log, client, "-ERR Message already deleted\r\n");
 		return -1;
 	}
 
 	//add a mark in the deletion table
-	if(maildrop_mark(log, database, client_data->auth.user.authorized, client_data->maildrop.mails[mail-1].database_id, client_data->maildrop.mails[mail-1].flag_master) < 0){
+	if(maildrop_mark(log, database, client_data->auth.user.authorized, client_data->maildrop.mails[mail - 1].database_id, client_data->maildrop.mails[mail - 1].flag_master) < 0){
 		logprintf(log, LOG_ERROR, "Failed to mark message as deleted: %s");
 	}
 
-	client_data->maildrop.mails[mail-1].flag_delete = true;
+	client_data->maildrop.mails[mail - 1].flag_delete = true;
 	client_send(log, client, "+OK Marked for deletion\r\n");
 
 	return 0;
