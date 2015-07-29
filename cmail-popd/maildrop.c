@@ -348,10 +348,8 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	}
 
 	//lock maildrop
-	if(user_name){
-		if(maildrop_lock(log, database, user_name, false) < 0){
-			logprintf(log, LOG_WARNING, "Failed to unlock maildrop for user %s\n", user_name);
-		}
+	if(maildrop_lock(log, database, user_name, false) < 0){
+		logprintf(log, LOG_WARNING, "Failed to unlock maildrop for user %s\n", user_name);
 	}
 
 	//free user statements
