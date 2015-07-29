@@ -30,6 +30,6 @@ BEGIN TRANSACTION;
 		value	TEXT
 	);
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '4');
+	INSERT INTO meta (key, value) VALUES ('schema_version', '8');
 
 COMMIT;
