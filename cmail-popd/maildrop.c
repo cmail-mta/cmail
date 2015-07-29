@@ -314,11 +314,15 @@ int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* us
 		status = -1;
 	}
 
+	logprintf(log, LOG_INFO, "Deleted %d mails from master database\n", sqlite3_changes(database->conn));
+
 	if(maildrop->delete_user){
 		if(maildrop_delete(log, maildrop->delete_user, user_name) < 0){
 			logprintf(log, LOG_ERROR, "Failed to delete marked mails from user database: %s\n", sqlite3_errmsg(database->conn));
 			status = -1;
 		}
+
+		logprintf(log, LOG_INFO, "Deleted %d mails from user database\n", sqlite3_changes(database->conn));
 	}
 	else{
 		logprintf(log, LOG_DEBUG, "Not deleting from user database, none attached\n");
@@ -347,7 +351,7 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 		status = -1;
 	}
 
-	//lock maildrop
+	//unlock maildrop
 	if(maildrop_lock(log, database, user_name, false) < 0){
 		logprintf(log, LOG_WARNING, "Failed to unlock maildrop for user %s\n", user_name);
 	}
