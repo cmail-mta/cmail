@@ -14,7 +14,7 @@ case $1 in
 		printf "\tuser\t\tmodify users\n"
 		;;
 	*)
-		./cmail-admin-$1 ${@:2}
+		cmail-admin-$1 ${@:2}
 
 
 esac
