@@ -13,4 +13,4 @@ user cmail
 group cmail
 
 # Master database location
-database DBFILE 
+database MASTERDB 
