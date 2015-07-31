@@ -1,6 +1,6 @@
 # Logging facilities
 verbosity 3
-logfile cmail-mta.log
+logfile LOGFILE
 
 announce BANNER
 bounce_from postmaster@BANNER
@@ -18,5 +18,4 @@ user cmail
 group cmail
 
 # Master database location
-database ../master.db3
-
+database MASTERDB

@@ -1,4 +1,4 @@
-PREFIX?=/usr/sbin
+PREFIX?=/usr/local/sbin
 LOGDIR?=/var/log/cmail
 CONFDIR?=/etc/cmail
 DBDIR?=$(CONFDIR)/databases
@@ -17,15 +17,19 @@ all:
 	@mv cmail-popd/cmail-popd bin/
 	# mv cmail-imapd/cmail-imapd bin/
 
-install:
+install: all
 	@printf "Installing to %s\n" "$(PREFIX)"
 	install -m 0755 bin/cmail-msa "$(PREFIX)"
 	install -m 0755 bin/cmail-mta "$(PREFIX)"
 	install -m 0755 bin/cmail-popd "$(PREFIX)"
 	#install -m 0755 bin/cmail-imapd "$(PREFIX)"
 
+	$(MAKE) -C cmail-admin install
+
 init:
-	@printf "*** Creating cmail user\n"
+	@printf "*** Testing for sqlite3 CLI binary\n"
+	@sqlite3 --version
+	@printf "\n*** Creating cmail user\n"
 	-adduser --disabled-login cmail
 	@printf "\n*** Creating configuration directories\n"
 	mkdir -p "$(LOGDIR)"
@@ -34,7 +38,9 @@ init:
 	chown root:cmail "$(DBDIR)"
 	chmod 770 "$(DBDIR)"
 	@printf "\n*** Copying example configuration files to %s\n" "$(CONFDIR)"
-	cp example-configs/*.conf "$(CONFDIR)"
+	cp example-configs/*.conf.src "$(CONFDIR)"
+	@printf "\n*** Updating the sample configuration files with dynamic defaults\n"
+	sed -e 's,LOGFILE,$(LOGDIR)/msa.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/msa.conf.src" > $(CONFDIR)/msa.conf 
 	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
 	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
 	chown root:cmail "$(DBDIR)/master.db3"
@@ -48,6 +54,8 @@ tls-init: init
 	@printf "\n*** Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
 	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
 	chmod 600 "$(CONFDIR)/keys"/*
+	@printf "\n*** Remember to add the generated certificates/keys to the configuration in %s" "$(CONFDIR)"
+	@printf "\n*** eg. bind * 25 cert=%s key=%s ciphers=NORMAL:%%LATEST_RECORD_VERSION:-VERS-SSL3.0" "$(CONFDIR)/keys/temp.cert" "$(CONFDIR)/keys/temp.key"
 
 rtldumps:
 	@-rm -rf rtldumps
@@ -69,5 +77,3 @@ cppcheck:
 
 clean:
 	rm bin/*
-
-

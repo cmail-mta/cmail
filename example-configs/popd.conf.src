@@ -1,0 +1,16 @@
+# Logging facilities
+verbosity 3
+logfile LOGFILE
+
+# Interface bind configuration
+bind * 110 tlsrequire announce=BANNER
+bind :: 110 tlsrequire announce=BANNER
+bind * 995 tlsonly announce=BANNER
+bind :: 995 tlsonly announce=BANNER
+
+# Privilege dropping
+user cmail
+group cmail
+
+# Master database location
+database DBFILE 

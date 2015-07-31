@@ -1,6 +1,15 @@
-Example setup
-
 # Prerequisite: Install the required libraries
+
+USER SETUP
+1. Clone the repo
+2. Run make install
+3. Run make tls-init
+4. Edit the installed sample configuration files (default is /etc/cmail)
+5. Configure your firewall
+6. Run the modules
+7. Test the setup
+
+DEVELOPMENT SETUP
 (root)	adduser cmail		#create new user
 (root)	passwd -l cmail		#no login for this user
 (root)	su cmail

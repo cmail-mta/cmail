@@ -17,5 +17,8 @@ all:
 	mv popd/cmail-admin-popd bin/
 	cp cmail-admin bin/
 
+install: all
+	install -m 0755 bin/* "$(PREFIX)"
+
 clean:
 	rm bin/*

@@ -1,0 +1,18 @@
+# Logging facilities
+verbosity 3
+logfile LOGFILE
+
+# Interface bind configuration
+bind * 25 announce=BANNER size=5242880
+bind :: 25 announce=BANNER size=5242880
+bind * 465 tlsonly size=5242880 announce=BANNER
+bind :: 465 tlsonly size=5242880 announce=BANNER
+bind * 587 auth=tlsonly,strict size=5242880 announce=BANNER
+bind :: 587 auth=tlsonly,strict size=5242880 announce=BANNER
+
+# Privilege dropping
+user cmail
+group cmail
+
+# Master database location
+database MASTERDB
