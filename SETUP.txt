@@ -8,7 +8,8 @@ USER SETUP
 5. Edit the installed sample configuration files (default is /etc/cmail)
 6. Configure your firewall
 7. Run the modules
-8. Test the setup
+8. Configure the system via the cmail-admin tools
+9. Test the setup
 
 DEVELOPMENT SETUP
 (root)	adduser cmail		#create new user
