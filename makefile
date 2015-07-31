@@ -17,7 +17,7 @@ all:
 	@mv cmail-popd/cmail-popd bin/
 	# mv cmail-imapd/cmail-imapd bin/
 
-install: all
+install:
 	@printf "Installing to %s\n" "$(PREFIX)"
 	install -m 0755 bin/cmail-msa "$(PREFIX)"
 	install -m 0755 bin/cmail-mta "$(PREFIX)"
