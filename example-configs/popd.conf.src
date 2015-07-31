@@ -3,10 +3,10 @@ verbosity 3
 logfile LOGFILE
 
 # Interface bind configuration
-bind * 110 tlsrequire announce=BANNER
-bind :: 110 tlsrequire announce=BANNER
-bind * 995 tlsonly announce=BANNER
-bind :: 995 tlsonly announce=BANNER
+bind * 110 tlsrequire announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind :: 110 tlsrequire announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind * 995 tlsonly announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind :: 995 tlsonly announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
 
 # Privilege dropping
 user cmail

@@ -41,11 +41,12 @@ init:
 	cp example-configs/*.conf.src "$(CONFDIR)"
 	@printf "\n*** Updating the sample configuration files with dynamic defaults\n"
 	sed -e 's,LOGFILE,$(LOGDIR)/msa.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/msa.conf.src" > $(CONFDIR)/msa.conf 
+	sed -e 's,LOGFILE,$(LOGDIR)/mta.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/mta.conf.src" > $(CONFDIR)/mta.conf 
+	sed -e 's,LOGFILE,$(LOGDIR)/popd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/popd.conf.src" > $(CONFDIR)/popd.conf 
 	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
 	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
 	chown root:cmail "$(DBDIR)/master.db3"
 	chmod 770 "$(DBDIR)/master.db3"
-	# This target needs sqlite3 installed, TODO: mention this somewhere
 
 tls-init: init
 	@printf "\n*** Creating certificate storage directory in %s/keys\n" "$(CONFDIR)"
@@ -54,8 +55,9 @@ tls-init: init
 	@printf "\n*** Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
 	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
 	chmod 600 "$(CONFDIR)/keys"/*
-	@printf "\n*** Remember to add the generated certificates/keys to the configuration in %s" "$(CONFDIR)"
-	@printf "\n*** eg. bind * 25 cert=%s key=%s ciphers=NORMAL:%%LATEST_RECORD_VERSION:-VERS-SSL3.0" "$(CONFDIR)/keys/temp.cert" "$(CONFDIR)/keys/temp.key"
+	@printf "\n*** Updating the configuration files in %s\n" "$(CONFDIR)"
+	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/msa.conf"
+	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/popd.conf"
 
 rtldumps:
 	@-rm -rf rtldumps

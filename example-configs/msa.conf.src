@@ -3,12 +3,12 @@ verbosity 3
 logfile LOGFILE
 
 # Interface bind configuration
-bind * 25 announce=BANNER size=5242880
-bind :: 25 announce=BANNER size=5242880
-bind * 465 tlsonly size=5242880 announce=BANNER
-bind :: 465 tlsonly size=5242880 announce=BANNER
-bind * 587 auth=tlsonly,strict size=5242880 announce=BANNER
-bind :: 587 auth=tlsonly,strict size=5242880 announce=BANNER
+bind * 25 announce=BANNER size=5242880 #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind :: 25 announce=BANNER size=5242880 #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind * 465 tlsonly size=5242880 announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind :: 465 tlsonly size=5242880 announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind * 587 auth=tlsonly,strict size=5242880 announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind :: 587 auth=tlsonly,strict size=5242880 announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
 
 # Privilege dropping
 user cmail
