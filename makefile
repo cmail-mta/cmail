@@ -1,4 +1,4 @@
-PREFIX?=/usr/local/sbin
+export PREFIX?=/usr/local/sbin
 LOGDIR?=/var/log/cmail
 CONFDIR?=/etc/cmail
 DBDIR?=$(CONFDIR)/databases
