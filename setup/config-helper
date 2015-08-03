@@ -1,0 +1,30 @@
+#/usr/bin/env bash
+set -x
+
+CMAIL_MASTER_DB=${CMAIL_MASTER_DB:-"/etc/cmail/databases/master.db3"}
+
+whiptail(){
+	printf "Using whiptail at %s\n" "$WHIPTAIL_BIN"
+	$WHIPTAIL_BIN "$@" 3>&2 2>&1 1>&3	
+}
+
+init(){
+	if [ ! -f "$CMAIL_MASTER_DB" ]; then
+		printf "Could not find master database - please supply a CMAIL_MASTER_DB environment variable\n"
+		return 1
+	fi
+
+	WHIPTAIL_BIN=$(which whiptail)
+	if [ "$?" != "0" ]; then
+		printf "Could not find a working whiptail - please install it\n"
+		return 1
+	fi
+
+	return 0
+}
+
+init
+
+while [ "$?" = "0" ]; do
+	ACTION=$(whiptail --title "Initial configuration" --menu "Select an action" 25 78 5 "Add User" "Add a user to the system" "Edit user" "Edit an existing user" "Add address" "Add an address" "Edit address" "Edit an existing address")
+done
