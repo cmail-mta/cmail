@@ -20,7 +20,9 @@
 
 #include "popd.c"
 
-void usage() {
+#define PROGRAM_NAME "cmail-admin-popd"
+
+int usage(char* fn) {
 
 
 	printf("cmail-admin-popd: Administration tool for cmail-popd.\n");
@@ -33,84 +35,103 @@ void usage() {
 	printf("\tunlock <user> \t  unlocks the given user.\n");
 	printf("\tlist [<user>] list all popd entries or if defined only popd entries like <user>\n");
 	printf("\n");
+
+	return 1;
+}
+
+#include "../lib/common.c"
+
+int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+	
+	if (argc < 2) {
+		logprintf(log, LOG_ERROR, "Missing user\n\n");
+		return -1;
+	}
+	
+	return sqlite_add_popd(log, db, argv[1]);
+
+}
+
+int mode_delete(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+	if (argc < 2) {
+		logprintf(log, LOG_ERROR, "Missing user\n\n");
+		return -1;
+	}
+
+	return sqlite_delete_popd(log, db, argv[1]); 
+}
+
+int mode_unlock(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+
+	if (argc < 2) {
+		logprintf(log, LOG_ERROR, "Missing user\n\n");
+		return -1;
+	}
+
+	return sqlite_update_popd(log, db, argv[1], 0);
+}
+
+int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+	char* filter = "%";
+	
+	if (argc > 1) {
+		filter = argv[1];
+	}
+	
+	return sqlite_get_popd(log, db, filter);
 }
 
 int main(int argc, char* argv[]) {
-
-	LOGGER log = {
-		.stream = stderr,
-		.verbosity = 0
-	};
-
-	sqlite3* db = NULL;
-	int i, status;
-
 	char* dbpath = getenv("CMAIL_MASTER_DB");
 
 	if (!dbpath) {
 		dbpath = DEFAULT_DBPATH;
 	}
 
-	for (i = 1; i < argc; i++) {
+	add_args();
 
-		if (i + 1 < argc && (!strcmp(argv[i], "--dbpath") || !strcmp(argv[i], "-d"))) {
-			dbpath = argv[i + 1];
-			i++;
-		} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
-			usage();
-			return 0;
-		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
-			log.verbosity = strtoul(argv[i + 1], NULL, 10);
-		} else if (i + 1 < argc && (!strcmp(argv[i], "add"))) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+	char* cmds[argc * sizeof(char*)];
+	int cmdsc = args_parse(argc, argv, cmds);
 
-			if (!db) {
-				return 10;
-			}
+	LOGGER log = {
+		.stream = stderr,
+		.verbosity = verbosity
+	};
 
-			int status = sqlite_add_popd(log, db, argv[i + 1]);
-
-			sqlite3_close(db);
-			return status;
-
-		}  else if (i + 1 < argc && !strcmp(argv[i], "delete")) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!db) {
-				return 10;
-			}
-
-			status = sqlite_delete_popd(log, db, argv[i + 1]);
-			sqlite3_close(db);
-			return status;
-		}  else if (i + 1 < argc && !strcmp(argv[i], "unlock")) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!db) {
-				return 10;
-			}
-
-			status = sqlite_update_popd(log, db, argv[i + 1], 0);
-			sqlite3_close(db);
-			return status;
-		}  else if (!strcmp(argv[i], "list")) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READONLY);
-
-			if (!db) {
-				return 10;
-			}
-			if (i + 1 < argc) {
-				status = sqlite_get_popd(log, db, argv[i + 1]);
-			} else {
-				status = sqlite_get_popd(log, db, "%");
-			}
-			sqlite3_close(db);
-			return status;
-		}
+	if (cmdsc < 0) {
+		return 1;
 	}
 
-	printf("Invalid or no arguments.\n");
-	usage();
+	sqlite3* db = NULL;
 
-	return 0;
+	if (!cmdsc) {
+		logprintf(log, LOG_ERROR, "No command specified\n\n");
+		exit(usage(argv[0]));
+	}
+
+	logprintf(log, LOG_INFO, "Opening database at %s\n", dbpath);
+	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+
+	if (!db) {
+		exit(usage(argv[0]));
+	}
+
+	int status = 20;
+
+	if (!strcmp(cmds[0], "add")) {
+		status = mode_add(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "delete")) {
+		status = mode_delete(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "unlock")) {
+		status = mode_unlock(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "list")) {
+		status = mode_list(log, db, cmdsc, cmds);
+	} else {
+
+		printf("Invalid or no arguments.\n");
+		usage(argv[0]);
+	}
+
+	sqlite3_close(db);
+	return status;
 }

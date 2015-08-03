@@ -4,7 +4,7 @@ LDLIBS=-lsqlite3
 
 all: cmail-admin-popd
 
-cmail-admin-pop: cmail-admin-popd.c
+cmail-admin-popd: cmail-admin-popd.c ../lib/easy_args.c
 
 clean:
 	rm cmail-admin-popd
