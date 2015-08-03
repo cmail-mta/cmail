@@ -45,7 +45,11 @@ int main(int argc, char* argv[]) {
 	sqlite3* db = NULL;
 	int i, status;
 
-	char* dbpath = "/var/cmail/master.db3";
+	char* dbpath = getenv("CMAIL_MASTER_DB");
+
+	if (!dbpath) {
+		dbpath = DEFAULT_DBPATH;
+	}
 
 	for (i = 1; i < argc; i++) {
 
