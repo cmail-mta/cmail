@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 			if (i + 1 < argc) {
 				status = sqlite_get_popd(log, db, argv[i + 1]);
 			} else {
-				status = sqlite_get_all_popd(log, db);
+				status = sqlite_get_popd(log, db, "%");
 			}
 			sqlite3_close(db);
 			return status;

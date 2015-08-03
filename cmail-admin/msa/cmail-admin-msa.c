@@ -20,8 +20,9 @@
 
 #include "msa.c"
 
-void usage() {
+#define PROGRAM_NAME "cmail-admin-msa"
 
+int usage(char* fn) {
 
 	printf("cmail-admin-msa: Administration tool for cmail-msa.\n");
 	printf("usage:\n");
@@ -37,90 +38,116 @@ void usage() {
 	printf("\toutrouter\trouting options for outgoing\n");
 	printf("\tinrouter\trouting options for incoming\n");
 	printf("For more see documentation.\n");
+
+	return 10;
 }
 
+int mode_add(LOGGER log, sqlite3* db, int argc, char** argv) {
+
+	if (argc != 2) {
+		logprintf(log, LOG_ERROR, "No user name supplied\n");
+		return -1;
+	}
+	return sqlite_add_msa_default(log, db, argv[1]);
+}
+
+int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv) {
+	if (argc != 2) {
+		logprintf(log, LOG_ERROR, "No user name supplied\n");
+		return -1;
+	}
+	
+	return sqlite_delete_msa(log, db, argv[1]);
+}
+
+int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
+	char* filter = "%";
+
+	if (argc >= 2) {
+		filter = argv[1];
+	}
+	
+	return sqlite_get_msa(log, db, filter);
+}
+
+int mode_update(LOGGER log, sqlite3* db, int argc, char** argv) {
+	
+	const char* arguments = NULL;
+	if (argc < 2 ) {
+		logprintf(log, LOG_ERROR, "No router supplied\n");
+		return -1;
+	} else if (argc < 3 ) {
+		logprintf(log, LOG_ERROR, "No user supplied\n");
+		return -2;
+	} else if (argc < 4) {
+		logprintf(log, LOG_ERROR, "No router type supplied\n");
+		return -3;
+	} else {
+		arguments = argv[4];
+	}
+
+	return sqlite_update_msa(log, db, argv[1], argv[2], argv[3], arguments);
+}
+
+// common stuff for parsing (needs usage method above)
+#include "../lib/common.c"
+
 int main(int argc, char* argv[]) {
-
-	LOGGER log = {
-		.stream = stderr,
-		.verbosity = 0
-	};
-
-	sqlite3* db = NULL;
-
-	int i, status;
-
 	char* dbpath = getenv("CMAIL_MASTER_DB");
 
 	if (!dbpath) {
 		dbpath = DEFAULT_DBPATH;
 	}
 
-	for (i = 1; i < argc; i++) {
+	// argument parsing
+	add_args();
 
-		if (i + 1 < argc && (!strcmp(argv[i], "--dbpath") || !strcmp(argv[i], "-d"))) {
-			dbpath = argv[i + 1];
-			i++;
-		} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
-			usage();
-			return 0;
-		} else if (i + 1 < argc && (!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v"))) {
-			log.verbosity = strtoul(argv[i + 1], NULL, 10);
-		} else if (i + 1 < argc && (!strcmp(argv[i], "add"))) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+	char* cmds[argc * sizeof(char*)];
+	int cmdsc = args_parse(argc, argv, cmds);
 
-			if (!db) {
-				return 10;
-			}
-
-			int status = sqlite_add_msa_default(log, db, argv[i + 1]);
-
-			sqlite3_close(db);
-			return status;
-
-		}  else if (i + 1 < argc && !strcmp(argv[i], "delete")) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!db) {
-				return 10;
-			}
-
-			status = sqlite_delete_msa(log, db, argv[i + 1]);
-			sqlite3_close(db);
-			return status;
-		}  else if (i + 3 < argc && !strcmp(argv[i], "update")) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
-
-			if (!db) {
-				return 10;
-			}
-			const char* arguments = NULL;
-
-			if (i + 4 < argc) {
-				arguments = argv[i+4];
-			}
-
-			status = sqlite_update_msa(log, db, argv[i + 1], argv[i + 2], argv[i + 3], arguments);
-			sqlite3_close(db);
-			return status;
-		}  else if (!strcmp(argv[i], "list")) {
-			db = database_open(log, dbpath, SQLITE_OPEN_READONLY);
-
-			if (!db) {
-				return 10;
-			}
-			if (i + 1 < argc) {
-				status = sqlite_get_msa(log, db, argv[i + 1]);
-			} else {
-				status = sqlite_get_all_msa(log, db);
-			}
-			sqlite3_close(db);
-			return status;
-		}
+	// check for errors in parsing
+	if (cmdsc < 0) {
+		return 1;
 	}
 
-	printf("Invalid or no arguments.\n");
-	usage();
+	LOGGER log = {
+		.stream = stderr,
+		.verbosity = verbosity
+	};
 
-	return 0;
+	sqlite3* db = NULL;
+
+	// check for commands
+	if (!cmdsc) {
+		logprintf(log, LOG_ERROR, "No command specified\n\n");
+		exit(usage(argv[0]));
+	}
+
+	logprintf(log, LOG_INFO, "Opening database at %s\n", dbpath);
+	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+
+	// check for database opening errors
+	if (!db) {
+		exit(usage(argv[0]));
+	}
+
+	int status = 20;
+
+	if (!strcmp(cmds[0], "add")) {
+		status = mode_add(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "delete")) {
+		status = mode_list(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "update")) {
+		status = mode_update(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "list")) {
+		status = mode_list(log, db, cmdsc, cmds);
+	} else {
+
+		logprintf(log, LOG_WARNING, "Unkown command %s\n\n", cmds[0]);
+		usage(argv[0]);
+	}
+
+	sqlite3_close(db);
+
+	return status;
 }

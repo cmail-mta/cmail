@@ -4,7 +4,7 @@ LDLIBS=-lsqlite3
 
 all: cmail-admin-address
 
-cmail-admin-address: cmail-admin-address.c
+cmail-admin-address: cmail-admin-address.c ../lib/easy_args.c
 
 clean:
 	rm cmail-admin-address

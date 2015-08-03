@@ -25,13 +25,8 @@
 #include "getpass.c"
 #include "user.c"
 
-#include "../lib/easy_args.h"
-
 #define MAX_PW_LENGTH 256
-
-// argument options
-int verbosity = 0;
-char* dbpath = DEFAULT_DBPATH;
+#define PROGRAM_NAME "cmail-admin-user"
 
 int generate_salt(char* out, unsigned chars) {
 	const char* salt_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -98,6 +93,8 @@ int usage(char* fn){
 	printf("\tlist [<filter>]\t\t\tList all active users, optionally filter by <filter>\n");
 	return 1;
 }
+
+#include "../lib/common.c"
 
 int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
 	char password[MAX_PW_LENGTH];
@@ -166,24 +163,6 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv){
 	return sqlite_get(log, db, filter);
 }
 
-int help(int argc, char* argv[]) {
-	usage("cmail-admin-user");
-
-	return -1;
-}
-
-int set_verbosity(int argc, char* argv[]) {
-
-	verbosity = strtoul(argv[1], NULL, 10);
-
-	return 0;
-}
-
-int set_dbpath(int argc, char* argv[]) {
-	dbpath = argv[1];
-
-	return 0;
-}
 
 int main(int argc, char* argv[]) {
 	dbpath = getenv("CMAIL_MASTER_DB");
@@ -193,9 +172,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// argument parsing
-	args_addArgument("-v", "--verbosity", set_verbosity, 1);
-	args_addArgument("-h", "--help", help, 0);
-	args_addArgument("-d", "--dbpath", set_dbpath, 1);
+	add_args();
 
 	char* cmds[argc * sizeof(char*)];
 	int cmdsc = args_parse(argc, argv, cmds);
