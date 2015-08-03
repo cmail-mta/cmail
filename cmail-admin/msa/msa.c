@@ -31,7 +31,7 @@ int sqlite_get_msa(LOGGER log, sqlite3* db, const char* username) {
 		inroute = (const char*) sqlite3_column_text(stmt, 2);
 		outrouter = (const char*) sqlite3_column_text(stmt, 3);
 		outroute = (const char*) sqlite3_column_text(stmt, 4);
-		printf("%20s | %10s | %15s | %10s | %15s\n", user, inrouter, inroute, outrouter, outroute);
+		printf("%20s | %10s | %15s | %10s | %15s\n", user, inrouter, inroute ? inroute : "", outrouter, outroute ? outroute : "");
 	}
 
 	sqlite3_finalize(stmt);
