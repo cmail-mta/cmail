@@ -227,19 +227,19 @@ int main(int argc, char* argv[]) {
 
 	//select command
 	if(!strcmp(cmds[0], "add")){
-		status = mode_add(log, db, cmdsc - 1, cmds + 1);
+		status = mode_add(log, db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "delete")){
-		status = mode_delete(log, db, cmdsc - 1, cmds + 1);
+		status = mode_delete(log, db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "revoke")){
-		status = mode_revoke(log, db, cmdsc - 1, cmds + 1);
+		status = mode_revoke(log, db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "list")){ 
-		status = mode_list(log, db, cmdsc - 1, cmds + 1);
+		status = mode_list(log, db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "password") || !strcmp(cmds[0], "passwd")){
-		status = mode_passwd(log, db, cmdsc - 1, cmds + 1);
+		status = mode_passwd(log, db, cmdsc, cmds);
 	}
 	else{
 		logprintf(log, LOG_WARNING, "Unknown command %s\n\n", cmds[0]);
