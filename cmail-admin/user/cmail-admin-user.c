@@ -25,7 +25,13 @@
 #include "getpass.c"
 #include "user.c"
 
+#include "../lib/easy_args.h"
+
 #define MAX_PW_LENGTH 256
+
+// argument options
+int verbosity = 0;
+char* dbpath = DEFAULT_DBPATH;
 
 int generate_salt(char* out, unsigned chars) {
 	const char* salt_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -160,58 +166,54 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv){
 	return sqlite_get(log, db, filter);
 }
 
+int help(int argc, char* argv[]) {
+	usage("cmail-admin-user");
+
+	return -1;
+}
+
+int set_verbosity(int argc, char* argv[]) {
+
+	verbosity = strtoul(argv[1], NULL, 10);
+
+	return 0;
+}
+
+int set_dbpath(int argc, char* argv[]) {
+	dbpath = argv[1];
+
+	return 0;
+}
+
 int main(int argc, char* argv[]) {
-	LOGGER log = {
-		.stream = stderr,
-		.verbosity = 0
-	};
-
-	unsigned i;
-	int status = -1;
-
-	char* dbpath = getenv("CMAIL_MASTER_DB");
-	sqlite3* db = NULL;
-
+	dbpath = getenv("CMAIL_MASTER_DB");
+	
 	if(!dbpath){
 		dbpath = DEFAULT_DBPATH;
 	}
 
-	//parse options
-	for(i=1;i<argc;i++){
-		if(!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")){
-			exit(usage(argv[0]));
-		}
+	// argument parsing
+	args_addArgument("-v", "--verbosity", set_verbosity, 1);
+	args_addArgument("-h", "--help", help, 0);
+	args_addArgument("-d", "--dbpath", set_dbpath, 1);
 
-		else if(!strcmp(argv[i], "--verbosity") || !strcmp(argv[i], "-v")){
-			if(i + 1 < argc){
-				log.verbosity = strtoul(argv[i + 1], NULL, 10);
-				i++;
-			}
-			else{
-				printf("Missing argument to --verbosity\n\n");
-				exit(usage(argv[0]));
-			}
-		}
+	char* cmds[argc * sizeof(char*)];
+	int cmdsc = args_parse(argc, argv, cmds);
 
-		else if(!strcmp(argv[i], "--dbpath") || !strcmp(argv[i], "-d")){
-			if(i + 1 < argc){
-				dbpath = argv[i + 1];
-				i++;
-			}
-			else{
-				printf("Missing argument to --dbpath\n\n");
-				exit(usage(argv[0]));
-			}
-		}
-
-		else{
-			logprintf(log, LOG_DEBUG, "Done parsing options at argc %d\n", i);
-			//reusing index i later...
-			break;
-		}
+	LOGGER log = {
+		.stream = stderr,
+		.verbosity = verbosity
+	};
+	
+	if (cmdsc < 0) {
+		return 1;
 	}
 
-	if(!argv[i]){
+	int status = -1;
+
+	sqlite3* db = NULL;
+
+	if(!cmdsc){
 		logprintf(log, LOG_ERROR, "No command specified\n\n");
 		exit(usage(argv[0]));
 	}
@@ -219,28 +221,28 @@ int main(int argc, char* argv[]) {
 	logprintf(log, LOG_INFO, "Opening database at %s\n", dbpath);
 	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
 	if(!db){
-		logprintf(log, LOG_ERROR, "Failed to open database at %s, please check the path\n\n", dbpath);
+		//logprintf(log, LOG_ERROR, "Failed to open database at %s, please check the path\n\n", dbpath);
 		exit(usage(argv[0]));
 	}
 
 	//select command
-	if(!strcmp(argv[i], "add")){
-		status = mode_add(log, db, argc - i, argv + i);
+	if(!strcmp(cmds[0], "add")){
+		status = mode_add(log, db, cmdsc - 1, cmds + 1);
 	}
-	else if(!strcmp(argv[i], "delete")){
-		status = mode_delete(log, db, argc - i, argv + i);
+	else if(!strcmp(cmds[0], "delete")){
+		status = mode_delete(log, db, cmdsc - 1, cmds + 1);
 	}
-	else if(!strcmp(argv[i], "revoke")){
-		status = mode_revoke(log, db, argc - i, argv + i);
+	else if(!strcmp(cmds[0], "revoke")){
+		status = mode_revoke(log, db, cmdsc - 1, cmds + 1);
 	}
-	else if(!strcmp(argv[i], "list")){ 
-		status = mode_list(log, db, argc - i, argv + i);
+	else if(!strcmp(cmds[0], "list")){ 
+		status = mode_list(log, db, cmdsc - 1, cmds + 1);
 	}
-	else if(!strcmp(argv[i], "password") || !strcmp(argv[i], "passwd")){
-		status = mode_passwd(log, db, argc - i, argv + i);
+	else if(!strcmp(cmds[0], "password") || !strcmp(cmds[0], "passwd")){
+		status = mode_passwd(log, db, cmdsc - 1, cmds + 1);
 	}
 	else{
-		logprintf(log, LOG_WARNING, "Unknown command %s\n\n", argv[i]);
+		logprintf(log, LOG_WARNING, "Unknown command %s\n\n", cmds[0]);
 		usage(argv[0]);
 	}
 
