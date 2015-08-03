@@ -42,12 +42,16 @@ int sqlite_get_address(LOGGER log, sqlite3* db, const char* expression) {
 	const char* user;
 	const char* address;
 	int order;
+
+	printf("%5s | %20s | %30s\n%s\n", "Order", "User", "address", 
+			"------+----------------------+-------------------------------");
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
 
 		address = (const char*) sqlite3_column_text(stmt, 0);
 		user = (const char*) sqlite3_column_text(stmt, 1);
 		order = sqlite3_column_int(stmt, 2);
-		printf("%d | %s | %s\n", order, user, address);
+		printf("%5d | %20s | %30s\n", order, user, address);
 	}
 
 	sqlite3_finalize(stmt);

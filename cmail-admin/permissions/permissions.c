@@ -4,11 +4,13 @@ int sqlite_exec_select(LOGGER log, sqlite3_stmt* stmt) {
 	const char* user;
 	const char* right;
 
+	printf("%20s | %10s\n%s\n", "User", "Permission", "---------------------+-----------");
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
 
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		right = (const char*) sqlite3_column_text(stmt, 1);
-		printf("%s | %s\n", user, right);
+		printf("%20s | %10s\n", user, right);
 	}
 
 	sqlite3_finalize(stmt);

@@ -17,11 +17,15 @@ int sqlite_get(LOGGER log, sqlite3* db, const char* username) {
 	int status;
 	const char* user;
 	int login;
+
+	// print header
+	printf("%20s | Can login?\n%33s\n", "User", "--------------------+-----------");
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
 
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		login = sqlite3_column_int(stmt, 1);
-		printf("%s | %d\n", user, login);
+		printf("%20s | %d\n", user, login);
 	}
 
 	sqlite3_finalize(stmt);

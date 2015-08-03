@@ -18,11 +18,13 @@ int sqlite_get_popd(LOGGER log, sqlite3* db, const char* username) {
 	const char* user;
 	int lock;
 
+	printf("%20s | %5s\n%s\n", "User", "Lock", "---------------------+------");
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
 
 		user = (const char*) sqlite3_column_text(stmt, 0);
 		lock = sqlite3_column_int(stmt, 1);
-		printf("%s | %d\n", user, lock);
+		printf("%20s | %5d\n", user, lock);
 	}
 
 	sqlite3_finalize(stmt);

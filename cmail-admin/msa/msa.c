@@ -21,6 +21,9 @@ int sqlite_get_msa(LOGGER log, sqlite3* db, const char* username) {
 	const char* outrouter;
 	const char* outroute;
 
+	printf("%20s | %10s | %15s | %10s | %15s\n%s\n", "User", "inrouter", "inroute", "outrouter", "outroute",
+			"---------------------+------------+-----------------+------------+----------------");
+
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
 
 		user = (const char*) sqlite3_column_text(stmt, 0);
@@ -28,7 +31,7 @@ int sqlite_get_msa(LOGGER log, sqlite3* db, const char* username) {
 		inroute = (const char*) sqlite3_column_text(stmt, 2);
 		outrouter = (const char*) sqlite3_column_text(stmt, 3);
 		outroute = (const char*) sqlite3_column_text(stmt, 4);
-		printf("%s | %s | %s | %s | %s\n", user, inrouter, inroute, outrouter, outroute);
+		printf("%20s | %10s | %15s | %10s | %15s\n", user, inrouter, inroute, outrouter, outroute);
 	}
 
 	sqlite3_finalize(stmt);
