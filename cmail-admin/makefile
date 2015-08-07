@@ -1,4 +1,5 @@
 .PHONY: clean
+MKDIR?=mkdir -p
 CFLAGS=-Wall -g
 LDLIBS=-lsqlite3 -lnettle
 
@@ -18,7 +19,7 @@ all:
 	cp cmail-admin bin/
 
 install:
-	install -m 0755 bin/* "$(PREFIX)"
+	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
 
 clean:
 	$(RM) bin/*

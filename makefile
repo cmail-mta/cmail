@@ -1,7 +1,8 @@
 export PREFIX?=/usr/local/sbin
-LOGDIR?=/var/log/cmail
-CONFDIR?=/etc/cmail
-DBDIR?=$(CONFDIR)/databases
+export MKDIR?=mkdir -p
+LOGDIR?=$(DESTDIR)/var/log/cmail
+CONFDIR?=$(DESTDIR)/etc/cmail
+DBDIR?=$(DESTDIR)$(CONFDIR)/databases
 .PHONY: clean install init tls-init rtldumps
 
 all:
@@ -18,11 +19,11 @@ all:
 	# mv cmail-imapd/cmail-imapd bin/
 
 install:
-	@printf "Installing to %s\n" "$(PREFIX)"
-	install -m 0755 bin/cmail-msa "$(PREFIX)"
-	install -m 0755 bin/cmail-mta "$(PREFIX)"
-	install -m 0755 bin/cmail-popd "$(PREFIX)"
-	#install -m 0755 bin/cmail-imapd "$(PREFIX)"
+	@printf "Installing to %s%s\n" "$(DESTDIR)" "$(PREFIX)"
+	install -m 0755 bin/cmail-msa "$(DESTDIR)$(PREFIX)"
+	install -m 0755 bin/cmail-mta "$(DESTDIR)$(PREFIX)"
+	install -m 0755 bin/cmail-popd "$(DESTDIR)$(PREFIX)"
+	#install -m 0755 bin/cmail-imapd "$(DESTDIR)$(PREFIX)"
 
 	$(MAKE) -C cmail-admin install
 
@@ -64,7 +65,7 @@ rtldumps:
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-msa
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-mta
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-popd
-	$(MKDIR) -p rtldumps
+	$(MKDIR) rtldumps
 	mv cmail-msa/*.expand rtldumps/
 	mv cmail-mta/*.expand rtldumps/
 	mv cmail-popd/*.expand rtldumps/
