@@ -9,7 +9,7 @@ all:
 	$(MAKE) -C permissions
 	$(MAKE) -C popd
 
-	mkdir -p bin
+	$(MKDIR) bin
 	mv user/cmail-admin-user bin/
 	mv address/cmail-admin-address bin/
 	mv msa/cmail-admin-msa bin/
@@ -21,4 +21,4 @@ install:
 	install -m 0755 bin/* "$(PREFIX)"
 
 clean:
-	rm bin/*
+	$(RM) bin/*

@@ -11,7 +11,7 @@ all:
 	@$(MAKE) -C cmail-imapd
 	@$(MAKE) -C cmail-admin
 
-	@-mkdir -p bin
+	$(MKDIR) bin
 	@mv cmail-msa/cmail-msa bin/
 	@mv cmail-mta/cmail-mta bin/
 	@mv cmail-popd/cmail-popd bin/
@@ -32,9 +32,9 @@ init:
 	@printf "\n*** Creating cmail user\n"
 	-adduser --disabled-login cmail
 	@printf "\n*** Creating configuration directories\n"
-	mkdir -p "$(LOGDIR)"
-	mkdir -p "$(CONFDIR)"
-	mkdir -p "$(DBDIR)"
+	$(MKDIR) "$(LOGDIR)"
+	$(MKDIR) "$(CONFDIR)"
+	$(MKDIR) "$(DBDIR)"
 	chown root:cmail "$(DBDIR)"
 	chmod 770 "$(DBDIR)"
 	@printf "\n*** Copying example configuration files to %s\n" "$(CONFDIR)"
@@ -50,7 +50,7 @@ init:
 
 tls-init: init
 	@printf "\n*** Creating certificate storage directory in %s/keys\n" "$(CONFDIR)"
-	mkdir -p "$(CONFDIR)/keys"
+	$(MKDIR) "$(CONFDIR)/keys"
 	chmod 700 "$(CONFDIR)/keys"
 	@printf "\n*** Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
 	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
@@ -64,7 +64,7 @@ rtldumps:
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-msa
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-mta
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-popd
-	@-mkdir -p rtldumps
+	$(MKDIR) -p rtldumps
 	mv cmail-msa/*.expand rtldumps/
 	mv cmail-mta/*.expand rtldumps/
 	mv cmail-popd/*.expand rtldumps/
@@ -78,4 +78,4 @@ cppcheck:
 	cppcheck --enable=all cmail-popd/popd.c
 
 clean:
-	rm bin/*
+	$(RM) bin/*
