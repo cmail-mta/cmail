@@ -23,9 +23,9 @@ int set_dbpath(int argc, char* argv[]) {
 }
 
 int add_args() {
-	args_addArgument("-d", "--dbpath", set_dbpath, 1);
-	args_addArgument("-h", "--help", help, 0);
-	args_addArgument("-v", "--verbosity", set_verbosity, 1);
+	eargs_addArgument("-d", "--dbpath", set_dbpath, 1);
+	eargs_addArgument("-h", "--help", help, 0);
+	eargs_addArgument("-v", "--verbosity", set_verbosity, 1);
 
 	return 0;
 }

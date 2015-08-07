@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 	add_args();
 
 	char* cmds[argc * sizeof(char*)];
-	int cmdsc = args_parse(argc, argv, cmds);
+	int cmdsc = eargs_parse(argc, argv, cmds);
 
 	LOGGER log = {
 		.stream = stderr,
