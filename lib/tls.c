@@ -124,6 +124,10 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 			//read dhparams from file
 			logprintf(log, LOG_DEBUG, "Reading Diffie-Hellman parameters from %s\n", dh_params_file);
 			file_size = common_read_file(dh_params_file, &file_buffer);
+			gnutls_datum_t dh_param_data = {
+				.data = file_buffer,
+				.size = file_size
+			};
 
 			if(file_size < 0 || !file_buffer){
 				logprintf(log, LOG_ERROR, "Failed to read Diffie-Hellman parameters from file\n");
@@ -131,7 +135,7 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 			}
 
 			//FIXME this segfaults currently
-			if(gnutls_dh_params_import_pkcs3(listener->tls_dhparams, (gnutls_datum_t*) file_buffer, GNUTLS_X509_FMT_PEM)){
+			if(gnutls_dh_params_import_pkcs3(listener->tls_dhparams, &dh_param_data, GNUTLS_X509_FMT_PEM)){
 				logprintf(log, LOG_ERROR, "Failed to import Diffie-Hellman parameters, check file format (should be PEM)\n");
 				return -1;
 			}
