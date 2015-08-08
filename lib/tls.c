@@ -93,7 +93,10 @@ int tls_init_serverpeer(LOGGER log, CONNECTION* client, gnutls_priority_t tls_pr
 }
 
 #ifdef CMAIL_HAVE_LISTENER_TYPE
-int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, char* priorities){
+int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, char* dh_params_file, char* priorities){
+		ssize_t file_size = 0;
+		uint8_t* file_buffer = NULL;
+
 		logprintf(log, LOG_DEBUG, "Initializing TLS priorities\n");
 		if(gnutls_priority_init(&(listener->tls_priorities), (priorities)?priorities:"NORMAL", NULL)){
 			logprintf(log, LOG_ERROR, "Failed to initialize TLS priorities\n");
@@ -112,10 +115,38 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 			return -1;
 		}
 
-		//FIXME error check this lot
-		logprintf(log, LOG_DEBUG, "Generating Diffie-Hellman parameters\n");
-        	gnutls_dh_params_init(&(listener->tls_dhparams));
-	        gnutls_dh_params_generate2(listener->tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, TLS_PARAM_STRENGTH));
+		if(gnutls_dh_params_init(&(listener->tls_dhparams))){
+			logprintf(log, LOG_ERROR, "Failed to initialize Diffie-Hellman parameters\n");
+			return -1;
+		}
+
+		if(dh_params_file){
+			//read dhparams from file
+			logprintf(log, LOG_DEBUG, "Reading Diffie-Hellman parameters from %s\n", dh_params_file);
+			file_size = common_read_file(dh_params_file, &file_buffer);
+
+			if(file_size < 0 || !file_buffer){
+				logprintf(log, LOG_ERROR, "Failed to read Diffie-Hellman parameters from file\n");
+				return -1;
+			}
+
+			//FIXME this segfaults currently
+			if(gnutls_dh_params_import_pkcs3(listener->tls_dhparams, (gnutls_datum_t*) file_buffer, GNUTLS_X509_FMT_PEM)){
+				logprintf(log, LOG_ERROR, "Failed to import Diffie-Hellman parameters, check file format (should be PEM)\n");
+				return -1;
+			}
+
+			free(file_buffer);
+		}
+		else{
+			//generate new diffie-hellman parameters (kind of slow)
+			logprintf(log, LOG_DEBUG, "Generating Diffie-Hellman parameters\n");
+			if(gnutls_dh_params_generate2(listener->tls_dhparams, gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, TLS_PARAM_STRENGTH))){
+				logprintf(log, LOG_ERROR, "Failed to generate Diffie-Hellman parameters\n");
+				return -1;
+			}
+		}
+
 		gnutls_certificate_set_dh_params(listener->tls_cert, listener->tls_dhparams);
 		return 0;
 }
