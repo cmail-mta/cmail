@@ -21,5 +21,8 @@ all:
 install:
 	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
 
+uninstall:
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-admin*
+
 clean:
 	$(RM) bin/*

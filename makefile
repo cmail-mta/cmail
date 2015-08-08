@@ -24,8 +24,14 @@ install:
 	install -m 0755 bin/cmail-mta "$(DESTDIR)$(PREFIX)"
 	install -m 0755 bin/cmail-popd "$(DESTDIR)$(PREFIX)"
 	#install -m 0755 bin/cmail-imapd "$(DESTDIR)$(PREFIX)"
-
 	$(MAKE) -C cmail-admin install
+
+uninstall:
+	@printf "Removing daemon binaries from %s%s\n" "$(DESTDIR)" "$(PREFIX)"
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-msa
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-mta
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-popd
+	$(MAKE) -C cmail-admin uninstall
 
 init:
 	@printf "*** Testing for sqlite3 CLI binary\n"
