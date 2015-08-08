@@ -66,6 +66,16 @@ tls-init: init
 	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/msa.conf"
 	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/popd.conf"
 
+uninit:
+	@printf "\n*** Removing databases from %s\n" "$(DBDIR)"
+	$(RM) -r $(DBDIR)
+	@printf "\n*** Removing logfiles from %s\n" "$(LOGDIR)"
+	$(RM) -r $(LOGDIR)
+	@printf "\n*** Removing configuration data from %s\n" "$(CONFDIR)"
+	$(RM) -r $(CONFDIR)
+	@printf "\n*** Removing cmail user\n"
+	userdel cmail
+
 rtldumps:
 	@-rm -rf rtldumps
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-msa
