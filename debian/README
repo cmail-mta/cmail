@@ -1,6 +1,7 @@
-The Debian Package cmail-mta
-----------------------------
+The Debian Package cmail
+------------------------
 
-Comments regarding the Package
+Provides a mail server suite utilizing SQLite databases
+as backend storage.
 
- -- root <root@unknown>  Sat, 18 Jul 2015 14:24:27 +0000
+ -- mpease <me@mpease.de>, cbdev <cb@cbcdn.com>;  Sat, 8 Aug 2015

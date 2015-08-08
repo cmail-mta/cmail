@@ -1,21 +1,18 @@
-Source: cmail-mta
-Section: unknown
+Source: cmail
+Section: Mail
 Priority: extra
 Maintainer: root <root@unknown>
 Build-Depends: debhelper (>= 8.0.0), libnettle-dev, libgnutls28-dev, libsqlite3-dev, libadns1-dev
 Standards-Version: 3.9.3
 Homepage: https://cmail.rocks
-#Vcs-Git: git://git.debian.org/collab-maint/cmail-mta.git
+Vcs-Git: http://git.services.cbcdn.com/cmail/
 #Vcs-Browser: http://git.debian.org/?p=collab-maint/cmail-mta.git;a=summary
 
-Package: cmail-mta
+Package: cmail
 Architecture: any
 	multiarch:foreign
 Depends: libnettle, libgnutls28, sqlite3, libadns1
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
-
-Package: cmail-mta-doc
-Architecture: all
-Description: documentation for cmail-mta
- <insert long description, indented with spaces>
+Description: Mail processing suite with SQLite backend
+ The cmail suite provides the functionality of a mail server
+ suite (SMTP server/client, POP server), focusing on
+ ease of configuration and light weight.

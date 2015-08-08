@@ -1,6 +1,6 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: cmail-mta
-Source: <url://example.com>
+Upstream-Name: cmail
+Source: <http://cmail.rocks/>
 
 Files: *
 Copyright: 2015, The cmail-mta project
