@@ -1,4 +1,5 @@
 .PHONY: clean
+MKDIR?=mkdir -p
 CFLAGS=-Wall -g
 LDLIBS=-lsqlite3 -lnettle
 
@@ -9,7 +10,7 @@ all:
 	$(MAKE) -C permissions
 	$(MAKE) -C popd
 
-	mkdir -p bin
+	$(MKDIR) bin
 	mv user/cmail-admin-user bin/
 	mv address/cmail-admin-address bin/
 	mv msa/cmail-admin-msa bin/
@@ -18,7 +19,10 @@ all:
 	cp cmail-admin bin/
 
 install:
-	install -m 0755 bin/* "$(PREFIX)"
+	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
+
+uninstall:
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-admin*
 
 clean:
-	rm bin/*
+	$(RM) bin/*

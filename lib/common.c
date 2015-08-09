@@ -57,6 +57,45 @@ char* common_strappf(char* target, unsigned* target_allocated, char* fmt, ...){
 	return target;
 }
 
+ssize_t common_read_file(char* filename, uint8_t** out){
+	uint8_t* buffer = NULL;
+	FILE* handle = NULL;
+	long file_size = 0;
+
+	*out = NULL;
+
+	handle = fopen(filename, "rb");
+	if(!handle){
+		return -1;
+	}
+
+	fseek(handle, 0, SEEK_END);
+	file_size = ftell(handle);
+	rewind(handle);
+
+	if(file_size < 0){
+		fclose(handle);
+		return -1;
+	}
+
+	buffer = calloc(file_size + 2, 1);
+	if(!buffer){
+		fclose(handle);
+		return -1;
+	}
+
+	if(fread(buffer, file_size, 1, handle) != 1){
+		free(buffer);
+		fclose(handle);
+		return -1;
+	}
+
+	fclose(handle);
+
+	*out = buffer;
+	return file_size;
+}
+
 ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
 	//This function needs to be called on a buffer until it returns 0,
 	//otherwise, the append_offset points to the end of the "olddata" buffer

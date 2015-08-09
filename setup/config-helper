@@ -27,4 +27,12 @@ init
 
 while [ "$?" = "0" ]; do
 	ACTION=$(whiptail --title "Initial configuration" --menu "Select an action" 25 78 5 "Add User" "Add a user to the system" "Edit user" "Edit an existing user" "Add address" "Add an address" "Edit address" "Edit an existing address")
+
+	#TODO
+	# User
+	#  - msa/Routing
+	#  - popd access
+	#  Address
+	#  - User mapping
+	#  - Order
 done
