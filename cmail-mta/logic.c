@@ -6,14 +6,13 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 
 	unsigned bounce_allocated = 0;
 	char* bounce_message = NULL;
-
 	time_t unix_time = time(NULL);
-	struct tm* local_time = localtime(&unix_time);
 
 	logprintf(log, LOG_INFO, "Entering bounce handling logic\n");
 
-	//create time string
-	if(!local_time || !strftime(time_buffer, sizeof(time_buffer)-1, "%a, %d %b %Y %T %z", local_time)){
+	//create timestring
+	if(common_tprintf("%a, %d %b %Y %T %z", unix_time, time_buffer, sizeof(time_buffer) - 1) < 0){
+		logprintf(log, LOG_ERROR, "Failed to get current time, buffer length probably not suitable\n");
 		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
 	}
 

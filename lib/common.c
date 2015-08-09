@@ -57,6 +57,20 @@ char* common_strappf(char* target, unsigned* target_allocated, char* fmt, ...){
 	return target;
 }
 
+int common_tprintf(char* format, time_t time, char* buffer, size_t buffer_length){
+	struct tm* local_time = localtime(&time);
+	if(!local_time){
+		return -1;
+	}
+
+	if(strftime(buffer, buffer_length, format, local_time) == 0){
+		//buffer too short
+		return -2;
+	}
+
+	return 0;
+}
+
 ssize_t common_read_file(char* filename, uint8_t** out){
 	uint8_t* buffer = NULL;
 	FILE* handle = NULL;

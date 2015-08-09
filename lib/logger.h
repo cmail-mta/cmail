@@ -2,11 +2,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <ctype.h>
+#define LOGGER_TIMESTRING_LEN 80
 
 typedef struct /*_LOGGER*/ {
 	FILE* stream;
 	unsigned verbosity;
 	bool log_secondary;
+	bool print_timestamp;
 } LOGGER;
 
 #define LOG_ERROR 	0

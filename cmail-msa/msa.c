@@ -41,7 +41,8 @@ int main(int argc, char** argv){
 		.log = {
 			.stream = stderr,
 			.verbosity = 0,
-			.log_secondary = false
+			.log_secondary = false,
+			.print_timestamp = true
 		}
 	};
 
