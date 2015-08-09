@@ -4,23 +4,8 @@
 #include <sqlite3.h>
 #include <time.h>
 
+#define CMAIL_ADMIN_AUTH
 #include "../cmail-admin.h"
-
-// logger support
-#include "../../lib/logger.h"
-#include "../../lib/logger.c"
-
-// database functions
-#include "../../lib/database.h"
-#include "../../lib/database.c"
-
-// common functions
-#include "../../lib/common.h"
-#include "../../lib/common.c"
-
-// auth functions
-#include "../../lib/auth.h"
-#include "../../lib/auth.c"
 
 #include "getpass.c"
 #include "user.c"

@@ -6,18 +6,6 @@
 
 #include "../cmail-admin.h"
 
-// logger support
-#include "../../lib/logger.h"
-#include "../../lib/logger.c"
-
-// database suff
-#include "../../lib/database.h"
-#include "../../lib/database.c"
-
-// common stuff
-#include "../../lib/common.h"
-#include "../../lib/common.c"
-
 #include "address.c"
 
 #define PROGRAM_NAME "cmail-admin-address"
