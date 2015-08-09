@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 	// argument parsing
 	add_args();
 
-	char* cmds[argc * sizeof(char*)];
+	char* cmds[argc];
 	int cmdsc = eargs_parse(argc, argv, cmds);
 
 	LOGGER log = {

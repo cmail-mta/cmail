@@ -71,36 +71,6 @@ int sqlite_get_delegated(LOGGER log, sqlite3* db, const char* username) {
 	return sqlite_get_delegated_addresses(log, db, username);
 }
 
-int sqlite_get_delegated_all(LOGGER log, sqlite3* db) {
-
-	char* sql_user = "SELECT api_user, api_delegate FROM api_user_delegates";
-	char* sql_address = "SELECT api_user, api_expression FROM api_address_delegates";
-	int status;
-
-	sqlite3_stmt* stmt_user = database_prepare(log, db, sql_user);
-	if (!stmt_user) {
-		return 2;
-	}
-
-	printf("Delegated users:\n");
-	status = sqlite_exec_select(log, stmt_user);
-
-	if (status > 0) {
-		return status;
-	}
-
-	sqlite3_stmt* stmt_address = database_prepare(log, db, sql_address);
-
-	if (!stmt_address) {
-		return 2;
-	}
-
-	printf("\nDelegated address space:\n");
-
-	return sqlite_exec_select(log, stmt_address);
-
-}
-
 int sqlite_get_rights(LOGGER log, sqlite3* db, const char* username) {
 
 
@@ -137,18 +107,6 @@ int sqlite_get_rights_by_right(LOGGER log, sqlite3* db, const char* right) {
 
 	return sqlite_exec_select(log, stmt);
 
-}
-
-int sqlite_get_all_rights(LOGGER log, sqlite3* db) {
-
-	char* sql = "SELECT api_user, api_right FROM api_access";
-	sqlite3_stmt* stmt = database_prepare(log, db, sql);
-
-	if (!stmt) {
-		return 2;
-	}
-
-	return sqlite_exec_select(log, stmt);
 }
 
 int sqlite_delete_rights(LOGGER log, sqlite3* db, const char* user) {
