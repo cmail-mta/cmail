@@ -131,11 +131,9 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 
 	MAILPATH* forward_path = (mail->forward_paths[1]) ? NULL:mail->forward_paths[0];
 
-	time_t unix_time=time(NULL);
-	struct tm* local_time=localtime(&unix_time);
-
 	//create timestring
-	if(!local_time || !strftime(time_buffer, sizeof(time_buffer)-1, "%a, %d %b %Y %T %z", local_time)){
+	if(common_tprintf("%a, %d %b %Y %T %z", time(NULL), time_buffer, sizeof(time_buffer) - 1) < 0){
+		logprintf(log, LOG_ERROR, "Failed to get current time, buffer length probably not suitable\n");
 		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
 	}
 

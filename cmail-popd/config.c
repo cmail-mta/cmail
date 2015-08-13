@@ -1,25 +1,26 @@
 int config_bind(CONFIGURATION* config, char* directive, char* params){
-	char* tokenize_line=NULL;
-	char* token=NULL;
+	char* tokenize_line = NULL;
+	char* token = NULL;
 
-	char* bindhost=NULL;
-	char* port=NULL;
+	char* bindhost = NULL;
+	char* port = NULL;
 
 	#ifndef CMAIL_NO_TLS
-	TLSMODE tls_mode=TLS_NONE;
-	char* tls_keyfile=NULL;
-	char* tls_certfile=NULL;
-	char* tls_priorities=NULL;
+	TLSMODE tls_mode = TLS_NONE;
+	char* tls_keyfile = NULL;
+	char* tls_certfile = NULL;
+	char* tls_priorities = NULL;
+	char* tls_dh_paramfile = NULL;
 	#endif
 
-	int listener_slot=-1;
+	int listener_slot = -1;
 	LISTENER settings = {
 		#ifndef CMAIL_NO_TLS
 		.tls_require = false,
 		#endif
 		.announce_domain = "cmail-popd"
 	};
-	LISTENER* listener_data=NULL;
+	LISTENER* listener_data = NULL;
 
 	//tokenize line
 	bindhost=strtok_r(params, " ", &tokenize_line);
@@ -27,26 +28,29 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		token=strtok_r(NULL, " ", &tokenize_line);
 		if(token){
 			if(!port){
-				port=token;
+				port = token;
 			}
 			else if(!strncmp(token, "announce=", 9)){
-				settings.announce_domain=token+9;
+				settings.announce_domain = token + 9;
 			}
 			#ifndef CMAIL_NO_TLS
 			else if(!strncmp(token, "cert=", 5)){
-				tls_certfile=token+5;
+				tls_certfile = token + 5;
 			}
 			else if(!strncmp(token, "key=", 4)){
-				tls_keyfile=token+4;
+				tls_keyfile = token + 4;
 			}
 			else if(!strncmp(token, "ciphers=", 8)){
-				tls_priorities=token+8;
+				tls_priorities = token + 8;
+			}
+			else if(!strncmp(token, "dhparams=", 9)){
+				tls_dh_paramfile = token + 9;
 			}
 			else if(!strcmp(token, "tlsonly")){
-				tls_mode=TLS_ONLY;
+				tls_mode = TLS_ONLY;
 			}
 			else if(!strcmp(token, "tlsrequire")){
-				settings.tls_require=true;
+				settings.tls_require = true;
 			}
 			#endif
 			else{
@@ -61,11 +65,11 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			tls_mode=TLS_NEGOTIATE;
 		}
 
-		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_priorities)<0){
+		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities)<0){
 			return -1;
 		}
 	}
-	else if(tls_keyfile || tls_certfile){
+	else if(tls_keyfile || tls_certfile || tls_mode != TLS_NONE){
 		logprintf(config->log, LOG_ERROR, "Need both certificate and key for TLS\n");
 		return -1;
 	}

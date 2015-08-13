@@ -1,12 +1,12 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          cmail-popd
-# Required-Start:    $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
+# Required-Start:    $local_fs $network $named $remote_fs $syslog
+# Required-Stop:     $local_fs $network $named $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: POP3 server
-# Description:       cmail-popd provides POP3 access to cmail-mta mailboxes
+# Description:       cmail-popd provides POP3 access to cmail mailboxes
 ### END INIT INFO
 
 # Author: Jan Duepmeier <jan@cmail.rocks>

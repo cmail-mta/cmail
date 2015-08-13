@@ -6,26 +6,12 @@
 
 #include "../cmail-admin.h"
 
-// logger support
-#include "../../lib/logger.h"
-#include "../../lib/logger.c"
-
-// database suff
-#include "../../lib/database.h"
-#include "../../lib/database.c"
-
-// common stuff
-#include "../../lib/common.h"
-#include "../../lib/common.c"
-
 #include "address.c"
 
 #define PROGRAM_NAME "cmail-admin-address"
 
 int usage(char* fn) {
-
-
-	printf("cmail-admin-address: Administration tool for cmail-mta.\n");
+	printf("%s: Administration tool for cmail.\n", PROGRAM_NAME);
 	printf("usage:\n");
 	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
@@ -99,7 +85,7 @@ int main(int argc, char* argv[]) {
 	// argument parsing
 	add_args();
 
-	char* cmds[argc * sizeof(char*)];
+	char* cmds[argc];
 	int cmdsc = eargs_parse(argc, argv, cmds);
 
 	LOGGER log = {

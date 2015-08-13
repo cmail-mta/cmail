@@ -6,18 +6,6 @@
 
 #include "../cmail-admin.h"
 
-// logger support
-#include "../../lib/logger.h"
-#include "../../lib/logger.c"
-
-// database suff
-#include "../../lib/database.h"
-#include "../../lib/database.c"
-
-// common stuff
-#include "../../lib/common.h"
-#include "../../lib/common.c"
-
 #include "popd.c"
 
 #define PROGRAM_NAME "cmail-admin-popd"
@@ -90,7 +78,7 @@ int main(int argc, char* argv[]) {
 
 	add_args();
 
-	char* cmds[argc * sizeof(char*)];
+	char* cmds[argc];
 	int cmdsc = eargs_parse(argc, argv, cmds);
 
 	LOGGER log = {

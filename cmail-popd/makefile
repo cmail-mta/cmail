@@ -11,4 +11,4 @@ run: all
 	valgrind --leak-check=full ./cmail-popd popd.conf nodetach
 
 clean:
-	rm cmail-popd
+	$(RM) cmail-popd
