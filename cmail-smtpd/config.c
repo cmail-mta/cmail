@@ -18,7 +18,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	LISTENER settings = {
 		.fixed_user = NULL,
 		.max_size = 0,
-		.announce_domain = "cmail-msa",
+		.announce_domain = "cmail-smtpd",
 		.auth_offer = AUTH_NONE,
 		.auth_require = false
 	};

@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include "../lib/common.h"
-#define VERSION 			"cmail-msa 0.1"
+#define VERSION 			"cmail-smtpd 0.1"
 #define CMAIL_SELECT_TIMEOUT		20
 #define CMAIL_FAILSCORE_LIMIT		-10
 #define CMAIL_MAX_HOPS			30

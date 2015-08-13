@@ -6,7 +6,7 @@ cmail-mta
 	libnettle-dev		(Comes with libgnutls)
 	libsqlite3-dev
 
-cmail-msa
+cmail-smtpd
 	libgnutls28-dev		When compiling without CMAIL_NO_TLS
 	libnettle-dev		(Comes with libgnutls)
 	libsqlite3-dev

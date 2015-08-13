@@ -9,7 +9,7 @@ case $1 in
 		echo ""
 		echo "available modules:"
 		printf "\taddress\t\tmodify addresses\n"
-		printf "\tmsa\t\tmodify msa configuration\n"
+		printf "\tsmtpd\t\tmodify smtpd configuration\n"
 		printf "\tpermissions\tmodify permissions\n"
 		printf "\tuser\t\tmodify users\n"
 		;;

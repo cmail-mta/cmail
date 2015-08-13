@@ -9,7 +9,7 @@ Detailed information is best found on our website at
 
 cmail modules
 -------------
-cmail-msa	Mail Submission Agent, accepts incoming mail
+cmail-smtpd	Mail Submission Agent, accepts incoming mail
 cmail-mta	Mail Transfer Agent, delivers outgoing mail
 cmail-imapd	IMAP server, provides access to local mailboxes
 cmail-popd	POP3 server, provides access to local mailboxes

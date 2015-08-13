@@ -1,4 +1,4 @@
-export PREFIX?=/usr/local/sbin
+export PREFIX?=/usr/sbin
 export MKDIR?=mkdir -p
 LOGDIR?=$(DESTDIR)/var/log/cmail
 CONFDIR?=$(DESTDIR)/etc/cmail
@@ -6,29 +6,26 @@ DBDIR?=$(DESTDIR)$(CONFDIR)/databases
 .PHONY: clean install init tls-init rtldumps
 
 all:
-	@$(MAKE) -C cmail-msa
+	@$(MAKE) -C cmail-smtpd
 	@$(MAKE) -C cmail-mta
 	@$(MAKE) -C cmail-popd
 	@$(MAKE) -C cmail-imapd
 	@$(MAKE) -C cmail-admin
 
 	$(MKDIR) bin
-	@mv cmail-msa/cmail-msa bin/
+	@mv cmail-smtpd/cmail-smtpd bin/
 	@mv cmail-mta/cmail-mta bin/
 	@mv cmail-popd/cmail-popd bin/
 	# mv cmail-imapd/cmail-imapd bin/
 
 install:
 	@printf "Installing to %s%s\n" "$(DESTDIR)" "$(PREFIX)"
-	install -m 0755 bin/cmail-msa "$(DESTDIR)$(PREFIX)"
-	install -m 0755 bin/cmail-mta "$(DESTDIR)$(PREFIX)"
-	install -m 0755 bin/cmail-popd "$(DESTDIR)$(PREFIX)"
-	#install -m 0755 bin/cmail-imapd "$(DESTDIR)$(PREFIX)"
+	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
 	$(MAKE) -C cmail-admin install
 
 uninstall:
 	@printf "Removing daemon binaries from %s%s\n" "$(DESTDIR)" "$(PREFIX)"
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-msa
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-smtpd
 	$(RM) $(DESTDIR)$(PREFIX)/cmail-mta
 	$(RM) $(DESTDIR)$(PREFIX)/cmail-popd
 	$(MAKE) -C cmail-admin uninstall
@@ -47,7 +44,7 @@ init:
 	@printf "\n*** Copying example configuration files to %s\n" "$(CONFDIR)"
 	cp example-configs/*.conf.src "$(CONFDIR)"
 	@printf "\n*** Updating the sample configuration files with dynamic defaults\n"
-	sed -e 's,LOGFILE,$(LOGDIR)/msa.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/msa.conf.src" > $(CONFDIR)/msa.conf 
+	sed -e 's,LOGFILE,$(LOGDIR)/cmail-smtpd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/smtpd.conf.src" > $(CONFDIR)/smtpd.conf 
 	sed -e 's,LOGFILE,$(LOGDIR)/mta.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/mta.conf.src" > $(CONFDIR)/mta.conf 
 	sed -e 's,LOGFILE,$(LOGDIR)/popd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/popd.conf.src" > $(CONFDIR)/popd.conf 
 	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
@@ -63,7 +60,7 @@ tls-init: init
 	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
 	chmod 600 "$(CONFDIR)/keys"/*
 	@printf "\n*** Updating the configuration files in %s\n" "$(CONFDIR)"
-	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/msa.conf"
+	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/smtpd.conf"
 	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/popd.conf"
 
 uninit:
@@ -78,17 +75,17 @@ uninit:
 
 rtldumps:
 	@-rm -rf rtldumps
-	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-msa
+	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-smtpd
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-mta
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-popd
 	$(MKDIR) rtldumps
-	mv cmail-msa/*.expand rtldumps/
+	mv cmail-smtpd/*.expand rtldumps/
 	mv cmail-mta/*.expand rtldumps/
 	mv cmail-popd/*.expand rtldumps/
 
 cppcheck:
-	@printf "Running cppcheck on cmail-msa\n"
-	cppcheck --enable=all cmail-msa/msa.c
+	@printf "Running cppcheck on cmail-smtpd\n"
+	cppcheck --enable=all cmail-smtpd/smtpd.c
 	@printf "\nRunning cppcheck on cmail-mta\n"
 	cppcheck --enable=all cmail-mta/mta.c
 	@printf "\nRunning cppcheck on cmail-popd\n"
