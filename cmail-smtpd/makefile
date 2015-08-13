@@ -11,4 +11,4 @@ run: all
 	valgrind --leak-check=full ./cmail-smtpd devel-smtpd.conf nodetach
 
 clean:
-	rm cmail-smtpd
+	$(RM) cmail-smtpd

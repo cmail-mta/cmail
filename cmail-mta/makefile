@@ -11,4 +11,4 @@ run: all
 	valgrind --leak-check=full ./cmail-mta mta.conf nodetach
 
 clean:
-	rm cmail-mta
+	$(RM) cmail-mta

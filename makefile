@@ -93,3 +93,8 @@ cppcheck:
 
 clean:
 	$(RM) bin/*
+	@$(MAKE) -C cmail-smtpd clean
+	@$(MAKE) -C cmail-mta clean
+	@$(MAKE) -C cmail-popd clean
+	@$(MAKE) -C cmail-imapd clean
+	@$(MAKE) -C cmail-admin clean
