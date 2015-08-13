@@ -5,8 +5,8 @@ logfile LOGFILE
 # Interface bind configuration
 bind * 110 tlsrequire announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
 bind :: 110 tlsrequire announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
-bind * 995 tlsonly announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
-bind :: 995 tlsonly announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0
+bind * 995 announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0 tlsonly
+bind :: 995 announce=BANNER #cert=TLSCERT key=TLSKEY ciphers=NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0 tlsonly
 
 # Privilege dropping
 user cmail
