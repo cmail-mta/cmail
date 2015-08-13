@@ -69,7 +69,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			return -1;
 		}
 	}
-	else if(tls_keyfile || tls_certfile){
+	else if(tls_keyfile || tls_certfile || tls_mode != TLS_NONE){
 		logprintf(config->log, LOG_ERROR, "Need both certificate and key for TLS\n");
 		return -1;
 	}
