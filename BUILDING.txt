@@ -1,6 +1,6 @@
 Build prerequisites
 
-cmail-mta
+cmail-dispatchd
 	libadns1-dev
 	libgnutls28-dev		When compiling without CMAIL_NO_TLS
 	libnettle-dev		(Comes with libgnutls)

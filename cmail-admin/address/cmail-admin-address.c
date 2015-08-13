@@ -11,9 +11,7 @@
 #define PROGRAM_NAME "cmail-admin-address"
 
 int usage(char* fn) {
-
-
-	printf("cmail-admin-address: Administration tool for cmail-mta.\n");
+	printf("%s: Administration tool for cmail.\n", PROGRAM_NAME);
 	printf("usage:\n");
 	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\t path to master database\n");

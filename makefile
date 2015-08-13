@@ -7,14 +7,14 @@ DBDIR?=$(DESTDIR)$(CONFDIR)/databases
 
 all:
 	@$(MAKE) -C cmail-smtpd
-	@$(MAKE) -C cmail-mta
+	@$(MAKE) -C cmail-dispatchd
 	@$(MAKE) -C cmail-popd
 	@$(MAKE) -C cmail-imapd
 	@$(MAKE) -C cmail-admin
 
 	$(MKDIR) bin
 	@mv cmail-smtpd/cmail-smtpd bin/
-	@mv cmail-mta/cmail-mta bin/
+	@mv cmail-dispatchd/cmail-dispatchd bin/
 	@mv cmail-popd/cmail-popd bin/
 	# mv cmail-imapd/cmail-imapd bin/
 
@@ -26,8 +26,11 @@ install:
 uninstall:
 	@printf "Removing daemon binaries from %s%s\n" "$(DESTDIR)" "$(PREFIX)"
 	$(RM) $(DESTDIR)$(PREFIX)/cmail-smtpd
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-mta
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-dispatchd
 	$(RM) $(DESTDIR)$(PREFIX)/cmail-popd
+	#remove old binaries
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-msa
+	$(RM) $(DESTDIR)$(PREFIX)/cmail-mta
 	$(MAKE) -C cmail-admin uninstall
 
 init:
@@ -45,8 +48,8 @@ init:
 	cp example-configs/*.conf.src "$(CONFDIR)"
 	@printf "\n*** Updating the sample configuration files with dynamic defaults\n"
 	sed -e 's,LOGFILE,$(LOGDIR)/cmail-smtpd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/smtpd.conf.src" > $(CONFDIR)/smtpd.conf 
-	sed -e 's,LOGFILE,$(LOGDIR)/mta.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/mta.conf.src" > $(CONFDIR)/mta.conf 
-	sed -e 's,LOGFILE,$(LOGDIR)/popd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/popd.conf.src" > $(CONFDIR)/popd.conf 
+	sed -e 's,LOGFILE,$(LOGDIR)/cmail-dispatchd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/dispatchd.conf.src" > $(CONFDIR)/dispatchd.conf 
+	sed -e 's,LOGFILE,$(LOGDIR)/cmail-popd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/popd.conf.src" > $(CONFDIR)/popd.conf 
 	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
 	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
 	chown root:cmail "$(DBDIR)/master.db3"
@@ -76,25 +79,25 @@ uninit:
 rtldumps:
 	@-rm -rf rtldumps
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-smtpd
-	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-mta
+	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-dispatchd
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-popd
 	$(MKDIR) rtldumps
 	mv cmail-smtpd/*.expand rtldumps/
-	mv cmail-mta/*.expand rtldumps/
+	mv cmail-dispatchd/*.expand rtldumps/
 	mv cmail-popd/*.expand rtldumps/
 
 cppcheck:
 	@printf "Running cppcheck on cmail-smtpd\n"
 	cppcheck --enable=all cmail-smtpd/smtpd.c
-	@printf "\nRunning cppcheck on cmail-mta\n"
-	cppcheck --enable=all cmail-mta/mta.c
+	@printf "\nRunning cppcheck on cmail-dispatchd\n"
+	cppcheck --enable=all cmail-dispatchd/dispatchd.c
 	@printf "\nRunning cppcheck on cmail-popd\n"
 	cppcheck --enable=all cmail-popd/popd.c
 
 clean:
 	$(RM) bin/*
 	@$(MAKE) -C cmail-smtpd clean
-	@$(MAKE) -C cmail-mta clean
+	@$(MAKE) -C cmail-dispatchd clean
 	@$(MAKE) -C cmail-popd clean
 	@$(MAKE) -C cmail-imapd clean
 	@$(MAKE) -C cmail-admin clean
