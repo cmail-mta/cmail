@@ -1,0 +1,11 @@
+[Unit]
+Description=cmail-mta
+
+[Service]
+Type=forking
+TimeoutStartSec=0
+PIDFile=/var/run/cmail-mta.pid
+ExecStart=/usr/sbin/cmail-mta /etc/cmail/mta.conf
+
+[Install]
+WantedBy=multi-user.target
