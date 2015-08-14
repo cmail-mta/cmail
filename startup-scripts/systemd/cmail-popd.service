@@ -1,0 +1,11 @@
+[Unit]
+Description=POP3 Server daemon (cmail-popd)
+
+[Service]
+Type=simple
+TimeoutStartSec=0
+ExecStart=/usr/sbin/cmail-popd /etc/cmail/popd.conf nodetach
+Requires=network-online.target
+
+[Install]
+WantedBy=multi-user.target

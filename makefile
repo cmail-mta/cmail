@@ -101,3 +101,7 @@ clean:
 	@$(MAKE) -C cmail-popd clean
 	@$(MAKE) -C cmail-imapd clean
 	@$(MAKE) -C cmail-admin clean
+
+cleanup-bins:
+	$(RM) $(which cmail-mta)
+	$(RM) $(which cmail-msa)

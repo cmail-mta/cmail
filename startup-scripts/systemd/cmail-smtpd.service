@@ -1,0 +1,11 @@
+[Unit]
+Description=SMTP server daemon (cmail-smtpd)
+
+[Service]
+Type=simple
+TimeoutStartSec=0
+ExecStart=/usr/sbin/cmail-smtpd /etc/cmail/smtpd.conf nodetach
+Requires=network-online.target
+
+[Install]
+WantedBy=multi-user.target
