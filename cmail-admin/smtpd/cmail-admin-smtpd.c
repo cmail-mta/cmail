@@ -8,11 +8,11 @@
 
 #include "msa.c"
 
-#define PROGRAM_NAME "cmail-admin-msa"
+#define PROGRAM_NAME "cmail-admin-smtpd"
 
 int usage(char* fn) {
 
-	printf("cmail-admin-msa: Administration tool for cmail-msa.\n");
+	printf("%s: Administration tool for cmail-smtpd.\n", PROGRAM_NAME);
 	printf("usage:\n");
 	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\t path to master database\n");

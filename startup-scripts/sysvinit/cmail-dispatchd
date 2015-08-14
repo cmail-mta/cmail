@@ -1,12 +1,12 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          cmail-mta
+# Provides:          cmail-dispatchd
 # Required-Start:    $local_fs $network $named $remote_fs $syslog
 # Required-Stop:     $local_fs $network $named $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: smtp client
-# Description:       cmail-mta is the outbound SMTP client component of the cmail-mta project
+# Description:       cmail-dispatchd is the outbound SMTP client component of the cmail project
 ### END INIT INFO
 
 # Author: Jan Duepmeier <jan@cmail.rocks>
@@ -16,9 +16,9 @@
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="Outbound SMTP client"
-NAME=cmail-msa
-DAEMON=/usr/sbin/cmail-mta
-DAEMON_ARGS="/etc/cmail/mta.conf"
+NAME=cmail-dispatchd
+DAEMON=/usr/sbin/cmail-dispatchd
+DAEMON_ARGS="/etc/cmail/dispatchd.conf"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 

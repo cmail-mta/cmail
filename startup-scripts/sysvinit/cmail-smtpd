@@ -1,12 +1,12 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          cmail-msa
+# Provides:          cmail-smtpd
 # Required-Start:    $local_fs $network $named $remote_fs $syslog
 # Required-Stop:     $local_fs $network $named $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: SMTP server (cmail-msa)
-# Description:       cmail-msa is the SMTP server module of the cmail-mta project
+# Short-Description: SMTP server (cmail-smtpd)
+# Description:       cmail-smtpd is the SMTP server module of the cmail project
 ### END INIT INFO
 
 # Author: Jan Duepmeier <jan@cmail.rocks>
@@ -15,10 +15,10 @@
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="SMTP server"
-NAME=cmail-msa
-DAEMON=/usr/sbin/cmail-msa
-DAEMON_ARGS="/etc/cmail/msa.conf"
+DESC="SMTP daemon"
+NAME=cmail-smtpd
+DAEMON=/usr/sbin/cmail-smtpd
+DAEMON_ARGS="/etc/cmail/smtpd.conf"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
