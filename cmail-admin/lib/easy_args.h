@@ -41,9 +41,13 @@ int eargs_addArgument(char* argShort, char* argLong, void* func, unsigned argume
  * 	Array for the output arguments. Array must be initialized and 
  * 	have at least enough memory for containing all arguments from
  * 	argv.
+ * @param void* config
+ * 	Pointer of the config struct. This struct is passed to the
+ * 	functions argument functions. It must be defined by the user of
+ * 	this code
  *
  * @return int
  * 	Returns the number of strings in the output array.
  *
  */
-int eargs_parse(int argc, char** argv, char** output);
+int eargs_parse(int argc, char** argv, char** output, void* config);

@@ -76,21 +76,25 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-	char* dbpath = getenv("CMAIL_MASTER_DB");
+	struct config config = {
+		.verbosity = 0,
+		.dbpath = getenv("CMAIL_MASTER_DB")
+	};
+	
 
-	if (!dbpath) {
-		dbpath = DEFAULT_DBPATH;
+	if (!config.dbpath) {
+		config.dbpath = DEFAULT_DBPATH;
 	}
 
 	// argument parsing
 	add_args();
 
 	char* cmds[argc];
-	int cmdsc = eargs_parse(argc, argv, cmds);
+	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
 	LOGGER log = {
 		.stream = stderr,
-		.verbosity = verbosity
+		.verbosity = config.verbosity
 	};
 
 	if (cmdsc < 0) {
@@ -98,8 +102,9 @@ int main(int argc, char* argv[]) {
 	}
 
 	sqlite3* db = NULL;
-
-	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+	
+	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
 
 	if (!db) {
 		return 10;
