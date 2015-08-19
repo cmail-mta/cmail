@@ -103,6 +103,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.current_mail = {
 			.submitter = NULL,
 			.reverse_path = {
+				.delimiter_position = 0,
 				.in_transaction = false,
 				.path = "",
 				.resolved_user = NULL

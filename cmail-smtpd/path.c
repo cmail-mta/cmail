@@ -1,16 +1,16 @@
 //TODO test this thoroughly
 int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	//See http://cr.yp.to/smtp/address.html for hints on address parsing
-	bool quotes=false, done_parsing=false;
-	unsigned out_pos=0, in_pos=0;
+	bool quotes = false, done_parsing = false;
+	unsigned out_pos = 0, in_pos = 0;
 
 	//skip leading spaces
-	for(;isspace(pathspec[0]);pathspec++){
+	for(; isspace(pathspec[0]); pathspec++){
 	}
 
 	logprintf(log, LOG_DEBUG, "Parsing path %s\n", pathspec);
 
-	for(in_pos=0;!done_parsing && out_pos<SMTP_MAX_PATH_LENGTH-1 && pathspec[in_pos];in_pos++){
+	for(in_pos = 0; !done_parsing && out_pos < (SMTP_MAX_PATH_LENGTH - 1) && pathspec[in_pos]; in_pos++){
 		switch(pathspec[in_pos]){
 			case '@':
 				if(out_pos == 0){
@@ -23,7 +23,8 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 					}
 				}
 				else{
-					//copy to out buffer
+					//copy to out buffer and update delimiter position
+					path->delimiter_position = out_pos;
 					path->path[out_pos++] = pathspec[in_pos];
 				}
 				break;
@@ -39,7 +40,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 				//actually, in this implementation, there are at least
 				//2 \0 bytes in that case, so this is a non-issue.
 				//FIXME allow only printable/space characters here
-				if(pathspec[in_pos+1]){
+				if(pathspec[in_pos + 1]){
 					in_pos++;
 					if(isprint(pathspec[in_pos])){
 						path->path[out_pos++] = pathspec[in_pos];
@@ -73,7 +74,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 
 	path->path[out_pos] = 0;
 
-	logprintf(log, LOG_DEBUG, "Result is %s\n", path->path);
+	logprintf(log, LOG_DEBUG, "Result is %s, delimiter is at %d\n", path->path, path->delimiter_position);
 	return 0;
 }
 
@@ -153,6 +154,7 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 
 void path_reset(MAILPATH* path){
 	MAILPATH reset_path = {
+		.delimiter_position = 0,
 		.in_transaction = false,
 		.path = "",
 		.resolved_user = NULL

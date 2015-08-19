@@ -49,6 +49,7 @@ typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
 
 typedef struct /*_MAIL_PATH*/ {
 	bool in_transaction;
+	unsigned delimiter_position;
 	char path[SMTP_MAX_PATH_LENGTH];
 	char* resolved_user;				//HEAP'd
 } MAILPATH;
