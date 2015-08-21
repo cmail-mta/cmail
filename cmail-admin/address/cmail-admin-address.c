@@ -59,13 +59,13 @@ int mode_switch(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 		logprintf(log, LOG_ERROR,"Missing arguments\n\n");
 		return -1;
 	}
-	
+
 	return sqlite_switch(log, db, argv[1], argv[2]);
 
 }
 
 int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
-	
+
 	char* filter = "%";
 
 	if (argc > 1) {
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0,
 		.dbpath = getenv("CMAIL_MASTER_DB")
 	};
-	
+
 
 	if (!config.dbpath) {
 		config.dbpath = DEFAULT_DBPATH;
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	sqlite3* db = NULL;
-	
+
 	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
 	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
 

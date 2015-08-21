@@ -51,7 +51,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 		//check client fds
 		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd > 0){ 
+			if(clients.conns[i].fd > 0){
 				if(FD_ISSET(clients.conns[i].fd, &readfds)){
 					//handle data
 					//FIXME handle return value

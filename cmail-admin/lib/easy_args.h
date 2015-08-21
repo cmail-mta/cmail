@@ -1,13 +1,13 @@
 #pragma once
 
-/* 
+/*
  * Adds an argument to the parsing list.
  *
- * @param char* argShort 
+ * @param char* argShort
  * 	Short version for the identifier (example: "-d"). NULL value means no checking.
- * @param char* argLong 
+ * @param char* argLong
  * 	Long version of the identifier (example: "--debug"). NULL value means no checking.
- * @param void* func 
+ * @param void* func
  * 	Callback function which will called when one of the identifiers is found.
  *	Signature must be:
  *
@@ -38,7 +38,7 @@ int eargs_addArgument(char* argShort, char* argLong, void* func, unsigned argume
  * 	Array with arguments.
  *
  * @param char** output
- * 	Array for the output arguments. Array must be initialized and 
+ * 	Array for the output arguments. Array must be initialized and
  * 	have at least enough memory for containing all arguments from
  * 	argv.
  * @param void* config

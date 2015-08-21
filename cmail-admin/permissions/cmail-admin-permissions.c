@@ -36,12 +36,12 @@ int usage(char* fn) {
 #include "../lib/common.c"
 
 int mode_grant(LOGGER log, sqlite3* db, int argc, char** argv) {
-	
+
 	if (argc < 3) {
 		logprintf(log, LOG_ERROR, "Not enough arguments for grant\n\n");
 		return 20;
 	}
-	
+
 	return sqlite_add_right(log, db, argv[1], argv[2]);
 }
 
@@ -86,12 +86,12 @@ int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv) {
 
 int mode_delegate(LOGGER log, sqlite3* db, int argc, char** argv) {
 	int status = 0;
-	
+
 	if (argc < 2) {
 		status = sqlite_get_delegated(log, db, "%");
 	// add delegated address
 	} else if (!strcmp(argv[1], "address")) {
-	
+
 		// list delegated addresses
 		if (argc < 3) {
 			status = sqlite_get_delegated_addresses(log, db, "%");
@@ -132,12 +132,12 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
 }
 
 int mode_rlist(LOGGER log, sqlite3* db, int argc, char** argv) {
-	
+
 	if (argc < 2) {
 		logprintf(log, LOG_ERROR, "Permission to list is missing\n\n");
 		return 20;
 	}
-	
+
 	return sqlite_get_rights_by_right(log, db, argv[1]);
 }
 
@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0,
 		.dbpath = getenv("CMAIL_MASTER_DB")
 	};
-	
+
 
 	if (!config.dbpath) {
 		config.dbpath = DEFAULT_DBPATH;
@@ -188,9 +188,9 @@ int main(int argc, char* argv[]) {
 	}  else if (!strcmp(cmds[0], "revoke")) {
 		status = mode_revoke(log, db, cmdsc, cmds);
 	} else if (!strcmp(cmds[0], "delete")) {
-		status = mode_delete(log, db, cmdsc, cmds);	
+		status = mode_delete(log, db, cmdsc, cmds);
 	} else if (!strcmp(cmds[0], "delegate")) {
-		status = mode_delegate(log, db, cmdsc, cmds);	
+		status = mode_delegate(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "list")) {
 		status = mode_list(log, db, cmdsc, cmds);
 	} else if (!strcmp(cmds[0], "rlist")) {

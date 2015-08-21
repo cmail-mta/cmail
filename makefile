@@ -47,9 +47,9 @@ init:
 	@printf "\n*** Copying example configuration files to %s\n" "$(CONFDIR)"
 	cp example-configs/*.conf.src "$(CONFDIR)"
 	@printf "\n*** Updating the sample configuration files with dynamic defaults\n"
-	sed -e 's,LOGFILE,$(LOGDIR)/cmail-smtpd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/smtpd.conf.src" > $(CONFDIR)/smtpd.conf 
-	sed -e 's,LOGFILE,$(LOGDIR)/cmail-dispatchd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/dispatchd.conf.src" > $(CONFDIR)/dispatchd.conf 
-	sed -e 's,LOGFILE,$(LOGDIR)/cmail-popd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/popd.conf.src" > $(CONFDIR)/popd.conf 
+	sed -e 's,LOGFILE,$(LOGDIR)/cmail-smtpd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/smtpd.conf.src" > $(CONFDIR)/smtpd.conf
+	sed -e 's,LOGFILE,$(LOGDIR)/cmail-dispatchd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/dispatchd.conf.src" > $(CONFDIR)/dispatchd.conf
+	sed -e 's,LOGFILE,$(LOGDIR)/cmail-popd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/popd.conf.src" > $(CONFDIR)/popd.conf
 	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
 	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
 	chown root:cmail "$(DBDIR)/master.db3"

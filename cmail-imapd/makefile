@@ -1,4 +1,4 @@
 all:
 	#TODO: add actions
 
-clean: 
+clean:

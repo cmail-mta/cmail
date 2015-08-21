@@ -6,7 +6,7 @@ Path resolver
 		local path/nonlocal path
 			authenticated/unauthenticated
 				multiple possibilities/single possibility
-		
+
 	Reverse
 		reject router
 		authenticated/unauthenticated
