@@ -30,12 +30,12 @@ int usage(char* fn) {
 #include "../lib/common.c"
 
 int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
-	
+
 	if (argc < 2) {
 		logprintf(log, LOG_ERROR, "Missing user\n\n");
 		return -1;
 	}
-	
+
 	return sqlite_add_popd(log, db, argv[1]);
 
 }
@@ -46,7 +46,7 @@ int mode_delete(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 		return -1;
 	}
 
-	return sqlite_delete_popd(log, db, argv[1]); 
+	return sqlite_delete_popd(log, db, argv[1]);
 }
 
 int mode_unlock(LOGGER log, sqlite3* db, int argc, char* argv[]) {
@@ -61,11 +61,11 @@ int mode_unlock(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 
 int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 	char* filter = "%";
-	
+
 	if (argc > 1) {
 		filter = argv[1];
 	}
-	
+
 	return sqlite_get_popd(log, db, filter);
 }
 
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0,
 		.dbpath = getenv("CMAIL_MASTER_DB")
 	};
-	
+
 
 	if (!config.dbpath) {
 		config.dbpath = DEFAULT_DBPATH;

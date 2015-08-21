@@ -44,7 +44,7 @@ int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv) {
 		logprintf(log, LOG_ERROR, "No user name supplied\n");
 		return -1;
 	}
-	
+
 	return sqlite_delete_msa(log, db, argv[1]);
 }
 
@@ -54,12 +54,12 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
 	if (argc >= 2) {
 		filter = argv[1];
 	}
-	
+
 	return sqlite_get_msa(log, db, filter);
 }
 
 int mode_update(LOGGER log, sqlite3* db, int argc, char** argv) {
-	
+
 	const char* arguments = NULL;
 	if (argc < 2 ) {
 		logprintf(log, LOG_ERROR, "No router supplied\n");

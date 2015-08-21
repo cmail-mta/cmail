@@ -203,11 +203,11 @@ cmail.user = {
 		};
 
 		if (gui.elem("form_type").value === "new") {
-			
+
 			if (gui.elem("user_alias").value != "") {
 				user["user_alias"] = gui.elem("user_alias").value;
 			}
-			
+
 			ajax.asyncPost(cmail.api_url + "users/?add", JSON.stringify(user), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 			});

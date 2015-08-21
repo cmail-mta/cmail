@@ -1,7 +1,7 @@
 Welcome to cmail!
 
 cmail aims to provide all functionality needed for internet mail processing
-(aka, a mail server), while reducing the traditional complexities involved in 
+(aka, a mail server), while reducing the traditional complexities involved in
 configuration, adaptation and administration.
 
 Detailed information is best found on our website at

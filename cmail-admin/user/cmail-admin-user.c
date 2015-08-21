@@ -84,7 +84,7 @@ int usage(char* fn){
 int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
 	char password[MAX_PW_LENGTH];
 	char* pw = password;
-	
+
 	memset(password, 0, sizeof(password));
 
 	if(argc < 2){
@@ -99,9 +99,9 @@ int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
 			return 11;
 		}
 	}
-	
+
 	else{
-		pw = argv[2];	
+		pw = argv[2];
 	}
 
 	return set_password(log, db, argv[1], pw[0] ? pw:NULL);
@@ -140,7 +140,7 @@ int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv){
 
 int mode_list(LOGGER log, sqlite3* db, int argc, char** argv){
 	char* filter = "%";
-	
+
 	if(argc >= 2){
 		filter = argv[1];
 	}
@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
 		.verbosity = 0,
 		.dbpath = getenv("CMAIL_MASTER_DB")
 	};
-	
+
 	if(!config.dbpath){
 		config.dbpath = DEFAULT_DBPATH;
 	}
@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
 		.stream = stderr,
 		.verbosity = config.verbosity
 	};
-	
+
 	if (cmdsc < 0) {
 		return 1;
 	}
@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
 	else if(!strcmp(cmds[0], "revoke")){
 		status = mode_revoke(log, db, cmdsc, cmds);
 	}
-	else if(!strcmp(cmds[0], "list")){ 
+	else if(!strcmp(cmds[0], "list")){
 		status = mode_list(log, db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "password") || !strcmp(cmds[0], "passwd")){

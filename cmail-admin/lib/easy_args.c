@@ -42,7 +42,7 @@ int eargs_addArgument(char* argShort, char* argLong, void* func, unsigned argume
 }
 
 int eargs_clearItem(struct ArgumentItem* item) {
-	
+
 	// free when last item else recursive
 	if (item->next) {
 		eargs_clearItem(item->next);
@@ -81,11 +81,11 @@ int eargs_parseItem(int argc, char** cmds, void* config) {
 
 		// check if argShort matches or if argLong matches (NULL will be excluded)
 		if ((item->argShort && !strcmp(cmds[0], item->argShort)) || (item->argLong && !strcmp(cmds[0], item->argLong))) {
-		
+
 			// check if enough arguments are available
 			if (argc > item->arguments) {
-			
-				
+
+
 				// call function
 				int (*p)(int argc, char** argv, void* config) = item->func;
 				if (p(argc, cmds, config) < 0) {
@@ -98,7 +98,7 @@ int eargs_parseItem(int argc, char** cmds, void* config) {
 				return -2;
 			}
 		}
-		
+
 		item = item->next;
 	}
 
