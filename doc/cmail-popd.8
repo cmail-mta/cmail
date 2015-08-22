@@ -1,0 +1,70 @@
+.TH CMAIL-POPD 8 "August 2015" "v0.1"
+.SH NAME
+cmail-popd \- POP3 server component of cmail
+.SH SYNOPSIS
+.B cmail-popd [nodetach] [nodrop] 
+.I config-file
+.SH DESCRIPTION
+.B cmail-popd
+provides POP3 access to mailboxes within the cmail internet mail
+processing suite.
+.SH OPTIONS
+.TP 
+.B nodrop  
+Do not drop root privileges after all actions requiring them 
+(binding ports, reading cryptographic keys) have been performed.
+.TP
+.B nodetach
+Do not detach (daemonize) from the controlling terminal 
+.TP
+.I "config-file"
+Run the daemon using the specified configuration file
+.SH FILES
+.I /etc/cmail/popd.conf
+.RS
+Default location of configuration file when installed systemwide
+.SH DIAGNOSTICS
+To enable increasingly verbose log output,
+include a
+.RS
+.B verbosity 
+.I N
+.RE
+directive in your specified configuration file, where
+.I N
+is one of
+.RS
+.B 0
+	Errors and Warnings only
+.RE
+.RS
+.B 1
+	Informational messages
+.RE
+.RS
+.B 2
+	Currently not used
+.RE
+.RS
+.B 3
+	Debug messages
+.RE
+.RS
+.B 4
+	All input and output
+.RE
+.SH BUGS
+For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.
+.SH AUTHOR
+Fabian "cbdev" Stumpf <fjs at fabianstumpf dot de>
+.SH "SEE ALSO"
+Online documentation and homepage at http://cmail.rocks/
+.PP
+.BR cmail-smtpd (8),
+.BR cmail-dispatchd (8),
+.BR cmail-master-database (5),
+.BR cmail-admin-popd (8)
+.BR cmail-admin-user (8),
+.BR cmail-admin-address (8),
+.BR cmail-admin-smtpd (8),
+
