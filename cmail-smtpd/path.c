@@ -88,7 +88,12 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	path->path[out_pos] = 0;
 
 	if(comment){
-		logprintf(log, LOG_WARNING, "Path contained an unterminated comment\n");
+		logprintf(log, LOG_WARNING, "Path contains unterminated comment\n");
+		return -1;
+	}
+
+	if(!path->delimiter_position){
+		logprintf(log, LOG_WARNING, "Path contains only local part\n");
 		return -1;
 	}
 
