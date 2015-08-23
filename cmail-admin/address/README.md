@@ -16,7 +16,7 @@ Syntax: ``` add <expression> <username> [<order>] ```
 
 This adds an address to the list.
 
-Every address is assigned to an user (added with the [cmail-admin-user](../user/README.md) tool).
+Every address is assigned to an user (added with the [cmail-admin-user](../user/) tool).
 The address expression _< expression >_ can be a full address (like ``` test@test.com ```)
 or an SQL string pattern (see https://www.sqlite.org/lang_expr.html#like).
 
