@@ -20,6 +20,7 @@ class Auth {
 		$this->rights = array();
 	}
 
+	// save
 	public function __sleep() {
 
 		return array("rights", "user", "delegates_user", "delegates_address", "authorized");
@@ -90,6 +91,7 @@ class Auth {
 			return false;
 		}
 
+		// check if users is delegated
 		$users = $this->getDelegateUsers();
 
 		foreach($users as $delegate) {
@@ -106,11 +108,12 @@ class Auth {
 	 * @return list of users
 	 */
 	public function getDelegateUsers() {
-
+		// cache?
 		if (!is_null($this->delegates_user)) {
 			return $this->delegates_user;
 		}
 
+		// not allowed?
 		if (!$this->isAuthorized()) {
 			return array();
 		}
@@ -139,10 +142,12 @@ class Auth {
 	 */
 	public function getDelegateAddresses() {
 
+		// cache
 		if (!is_null($this->delegates_addresses)) {
 			return $this->delegates_addresses;
 		}
 
+		// not allowed?
 		if (!$this->isAuthorized()) {
 			return array();
 		}
@@ -193,6 +198,7 @@ class Auth {
 
 		$this->output->add("session", isset($_SERVER['auth']));
 
+		// init logout
 		if (isset($_GET["logout"])) {
 			session_destroy();
 			session_regenerate_id(true);
@@ -200,6 +206,7 @@ class Auth {
 			return false;
 		}
 
+		// cache
 		if ($this->authorized) {
 
 			$this->output->add("rights", $this->rights);
