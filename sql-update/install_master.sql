@@ -15,6 +15,12 @@ BEGIN TRANSACTION;
 		address_user		TEXT	NOT NULL REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE
 	);
 
+	-- This index ensures that cmail-admin-address parameters exactly match one address entry
+	CREATE UNIQUE INDEX idx_addressexpr_per_user ON addresses ( 
+		address_expression,
+		address_user 
+	);
+
 	CREATE TABLE mailbox (
 
 		mail_id			INTEGER	PRIMARY KEY AUTOINCREMENT
