@@ -11,13 +11,14 @@
 #define PROGRAM_NAME "cmail-admin-address"
 
 int usage(char* fn) {
-	printf("%s: Administration tool for cmail.\n", PROGRAM_NAME);
+	printf("%s: Administration tool for cmail.\n", fn);
 	printf("usage:\n");
 	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
 	printf("\t--help, -h\t\t shows this help\n");
 	printf("\tadd <expression> <username> [<order>] adds an address\n");
 	printf("\tdelete <expression> \t deletes the given expression\n");
+	printf("\tupdate <expression> <user> <order> updates an expression\n");
 	printf("\tswitch <expression1> <expression2> switch order of the given expressions\n");
 	printf("\tlist [<expression>] list all addresses or if defined only addresses like <expression>\n");
 
@@ -36,7 +37,7 @@ int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 	}
 
 	if (argc > 3) {
-		status = sqlite_add_address_order(log, db, argv[1], argv[2], (unsigned) strtol(argv[3], NULL, 10));
+		status = sqlite_add_address_order(log, db, argv[1], argv[2], strtoul(argv[3], NULL, 10));
 	} else {
 		status = sqlite_add_address(log, db, argv[1], argv[2]);
 	}
@@ -62,6 +63,15 @@ int mode_switch(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 
 	return sqlite_switch(log, db, argv[1], argv[2]);
 
+}
+
+int mode_update(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+	if (argc < 4) {
+		logprintf(log, LOG_ERROR, "Missing arguments\n\n");
+		return -1;
+	}
+
+	return sqlite_update_address(log, db, argv[1], argv[2], strtoul(argv[3], NULL, 10));
 }
 
 int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
@@ -118,6 +128,8 @@ int main(int argc, char* argv[]) {
 		status = mode_delete(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "switch")) {
 		status = mode_switch(log, db, cmdsc, cmds);
+	} else if (!strcmp(cmds[0], "update")) {
+		status = mode_update(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "list")) {
 		status = mode_list(log, db, cmdsc, cmds);
 	} else {
