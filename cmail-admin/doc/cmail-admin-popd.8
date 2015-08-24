@@ -1,13 +1,17 @@
-.TH CMAIL-ADMIN-USER 8 "August 2015" "v0.1" "cmail Administration Tools"
+.TH CMAIL-ADMIN-POPD 8 "August 2015" "v0.1" "cmail Administration Tools"
 .SH NAME
-cmail-admin-user \- Manage cmail users
+cmail-admin-popd \- Manage POP3 access to cmail mailboxes
 .SH SYNOPSIS
-.BI "cmail-admin-user [ --dbpath " "master-database-file" " ] [ --verbosity " N
+.BI "cmail-admin-popd [ --dbpath " "master-database-file" " ] [ --verbosity " N
 .BI " | -v " N " ] [ --help | -h ] " "mode" " "  "mode-options"
 .SH DESCRIPTION
-.B cmail-admin-user
-allows the administrator of a cmail server system to list, add, modify and delete
-user accounts and their login credentials.
+.B cmail-admin-popd
+configures access to cmail mailboxes via the POP3 daemon. In order to be able to
+access mail via POP3,
+.BR cmail-popd (8)
+must be running, the accessing user must have the use of POP enabled by this tool and
+present valid credentials, which may be configured by 
+.BR cmail-admin-user (8) .
 
 .SH OPTIONS
 .TP 
@@ -37,42 +41,33 @@ environment variable or by supplying the
 
 .TP
 .BI "list " [expression]
-List all users currently known to the system. Optionally, filter the list for entries matching
+List all users currently able to access their mail via POP, as well as their current lock state. 
+Optionally, filter the list for entries matching
 .IR expression "."
 
 .TP
-.BI "add " "username [password]"
-Create a new user and update the login credentials if supplied. User names must be unique.
+.BI "enable " "user"
+Enable POP access for a user.
 .RS
 .B Example:
-$ cmail-admin-user add cbdev donotusethisasyourpassword
+$ cmail-admin-popd enable cbdev
 .RE
 
 .TP
-.BI "revoke " user
-Reset the password for the specified user. This causes all login attempts for the user to be
-rejected. Note that the system will still accept mail on the users behalf, as
-.BR revoke " only invalidates the login credentials, not the account."
+.BI "disable " user
+Disable POP access for a user.
 .RS
 .B Example:
-$ cmail-admin-user revoke cbdev
+$ cmail-admin-popd disable cbdev
 .RE
 
 .TP
-.BI "password " "user [password]"
-Update the password for the specified user to a new one. If none is supplied, the password is
-queried interactively.
+.BI "unlock " "user"
+Unlock the maildrop for a user. This is an emergency option and should only be used after making sure
+there are no more active connections to the mailbox.
 .RS
 .B Example:
-$ cmail-admin-user passwd cbdev anotherbadpassword
-.RE
-
-.TP
-.BI "delete " user
-Delete a specific user
-.RS
-.B Example:
-$ cmail-admin-user delete cbdev
+$ cmail-admin-popd unlock cbdev
 .RE
 
 .SH BUGS
@@ -85,7 +80,7 @@ Online documentation and homepage at http://cmail.rocks/
 .PP
 .BR cmail-admin-address (8),
 .BR cmail-admin-smtpd (8),
-.BR cmail-admin-popd (8),
+.BR cmail-admin-user (8),
 .BR cmail-smtpd (8),
 .BR cmail-popd (8),
 .BR cmail-dispatchd (8),
