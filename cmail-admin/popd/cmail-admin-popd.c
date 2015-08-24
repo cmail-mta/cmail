@@ -15,13 +15,13 @@ int usage(char* fn) {
 
 	printf("cmail-admin-popd: Administration tool for cmail-popd.\n");
 	printf("usage:\n");
-	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
-	printf("\t--help, -h\t\t shows this help\n");
-	printf("\tadd <user>\t\t enables <user> for pop\n");
-	printf("\tdelete <user> \t disables <user> for pop\n");
-	printf("\tunlock <user> \t  unlocks the given user.\n");
-	printf("\tlist [<user>] list all popd entries or if defined only popd entries like <user>\n");
+	printf("\t--verbosity, -v\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\tpath to master database\n");
+	printf("\t--help, -h\t\tshows this help\n");
+	printf("\tenable <user>\t\tenables <user> for pop\n");
+	printf("\tdisable <user>\t\tdisables <user> for pop\n");
+	printf("\tunlock <user>\t\tunlocks the given user.\n");
+	printf("\tlist [<user>]\t\tlist all popd entries or if defined only popd entries like <user>\n");
 	printf("\n");
 
 	return 1;
@@ -110,9 +110,9 @@ int main(int argc, char* argv[]) {
 
 	int status = 20;
 
-	if (!strcmp(cmds[0], "add")) {
+	if (!strcmp(cmds[0], "enable")) {
 		status = mode_add(log, db, cmdsc, cmds);
-	}  else if (!strcmp(cmds[0], "delete")) {
+	}  else if (!strcmp(cmds[0], "disable")) {
 		status = mode_delete(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "unlock")) {
 		status = mode_unlock(log, db, cmdsc, cmds);
