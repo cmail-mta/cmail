@@ -14,15 +14,15 @@ int usage(char* fn) {
 
 	printf("%s: Administration tool for cmail-smtpd.\n", PROGRAM_NAME);
 	printf("usage:\n");
-	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
-	printf("\t--help, -h\t\t shows this help\n");
-	printf("\tadd <user>\t\t adds the default config to the user\n");
-	printf("\tdelete <user> \t deletes the given user msa entry\n");
-	printf("\tupdate <router> <user> <rtype> [<arg>] update the given router from given user.\n");
-	printf("\tlist [<user>] list all msa entries or if defined only msa entries like <expression>\n");
+	printf("\t--verbosity, -v\t\t\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\t\t\tSet master database\n");
+	printf("\t--help, -h\t\t\t\tDisplay this help\n");
+	printf("\tadd <user>\t\t\t\tAdd <user> to smtpd ACL (using default configuration values)\n");
+	printf("\tdelete <user>\t\t\t\tDelete <user> from smtpd ACL\n");
+	printf("\tupdate <router> <user> <rtype> [<arg>]\tUpdate the routers for <user>\n");
+	printf("\tlist [<user>]\t\t\t\tList currently active entries, optionally filtered by <user>\n");
 	printf("\n");
-	printf("Available router:\n");
+	printf("Available routers:\n");
 	printf("\toutrouter\trouting options for outgoing\n");
 	printf("\tinrouter\trouting options for incoming\n");
 	printf("For more see documentation.\n");
