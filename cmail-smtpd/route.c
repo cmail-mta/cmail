@@ -73,7 +73,9 @@ void route_free(MAILROUTE* route){
 int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	int rv = 0;
 	USER_DATABASE* user_db;
-	MAILROUTE route=route_query(log, database, true, current_path->resolved_user);
+	char path_replacement[SMTP_MAX_PATH_LENGTH];
+	char forward_path[SMTP_MAX_PATH_LENGTH];
+	MAILROUTE route = route_query(log, database, true, current_path->resolved_user);
 
 	//reject the path if the user does not have a router table entry
 	if(!route.router){
@@ -122,8 +124,45 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 		}
 		else if(!strcmp(route.router, "forward")){
 			if(route.argument){
+				strncpy(forward_path, route.argument, sizeof(forward_path) - 1);
+
+				//mangle the envelope recipient according to the route
+				//we're able to do this and not worry about exploitation from unsanitized input
+				//because the path parser removes all comments from user-supplied paths
+				strncpy(path_replacement, current_path->path, current_path->delimiter_position);
+				path_replacement[current_path->delimiter_position] = 0;
+				if(common_strrepl(forward_path, sizeof(forward_path), "(to-local)", path_replacement) < 0){
+					logprintf(log, LOG_ERROR, "Failed to replace to-local variable in forward router\n");
+					//fail the transaction
+					rv = -1;
+				}
+
+				if(!rv && common_strrepl(forward_path, sizeof(forward_path), "(to-domain)", current_path->path + current_path->delimiter_position + 1) < 0){
+					logprintf(log, LOG_ERROR, "Failed to replace to-domain variable in forward router\n");
+					//fail the transaction
+					rv = -1;
+				}
+
+				if(!rv){
+					strncpy(path_replacement, mail->reverse_path.path, mail->reverse_path.delimiter_position);
+					path_replacement[mail->reverse_path.delimiter_position] = 0;
+					if(common_strrepl(forward_path, sizeof(forward_path), "(from-local)", path_replacement) < 0){
+						logprintf(log, LOG_ERROR, "Failed to replace from-local variable in forward router\n");
+						//fail the transaction
+						rv = -1;
+					}
+				}
+
+				if(!rv && common_strrepl(forward_path, sizeof(forward_path), "(from-domain)", mail->reverse_path.path + mail->reverse_path.delimiter_position + 1) < 0){
+					logprintf(log, LOG_ERROR, "Failed to replace from-domain variable in forward router\n");
+					//fail the transaction
+					rv = -1;
+				}
+
 				//insert into outbound table
-				rv = mail_store_outbox(log, database->mail_storage.outbox_master, NULL, route.argument, mail);
+				if(!rv){
+					rv = mail_store_outbox(log, database->mail_storage.outbox_master, NULL, forward_path, mail);
+				}
 			}
 		}
 		else if(!strcmp(route.router, "handoff")){
