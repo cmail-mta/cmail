@@ -23,6 +23,46 @@ int common_rand(void* target, size_t bytes){
 	return data_read;
 }
 
+int common_strrepl(char* buffer, unsigned length, char* variable, char* replacement){
+	char* occurence = NULL;
+	unsigned offset = 0;
+	unsigned character_offset;
+	unsigned i;
+
+	for(occurence = strstr(buffer + offset, variable); occurence; occurence = strstr(buffer + offset, variable)){
+		//check whether the replacement actually fits in here
+		if((occurence - buffer) + strlen(replacement) + strlen(buffer + strlen(variable)) >= length){
+			return -1;
+		}
+
+		//move the trailing part out of the way
+		if(strlen(replacement) > strlen(variable)){
+			character_offset = strlen(replacement) - strlen(variable);
+
+			//begin at end
+			for(i = 0; i <= strlen(occurence); i++){
+				occurence[strlen(occurence) - i + character_offset] = occurence[strlen(occurence) - i];
+			}
+		}
+		else if(strlen(replacement) < strlen(variable)){
+			character_offset = strlen(variable) - strlen(replacement);
+
+			//begin in front
+			for(i = 0; i <= strlen(occurence + strlen(variable)); i++){
+				occurence[strlen(replacement) + i] = occurence[strlen(replacement) + i + character_offset];
+			}
+		}
+
+		//insert the replacement
+		strncpy(occurence, replacement, strlen(replacement));
+
+		//increase the offset
+		offset = (occurence - buffer) + strlen(replacement);
+	}
+
+	return 0;
+}
+
 char* common_strappf(char* target, unsigned* target_allocated, char* fmt, ...){
 	va_list args, copy;
 
@@ -51,7 +91,7 @@ char* common_strappf(char* target, unsigned* target_allocated, char* fmt, ...){
 		*target_allocated = target_len + additional_length + 1;
 	}
 
-	vsnprintf(target +  target_len, additional_length + 1, fmt, args);
+	vsnprintf(target + target_len, additional_length + 1, fmt, args);
 
 	va_end(args);
 	return target;
