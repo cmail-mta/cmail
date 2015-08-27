@@ -93,8 +93,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	}
 
 	if(!path->delimiter_position){
-		logprintf(log, LOG_WARNING, "Path contains only local part\n");
-		return -1;
+		path->delimiter_position = strlen(path->path);
 	}
 
 	logprintf(log, LOG_DEBUG, "Result is %s, delimiter is at %d\n", path->path, path->delimiter_position);

@@ -137,7 +137,7 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 					rv = -1;
 				}
 
-				if(!rv && common_strrepl(forward_path, sizeof(forward_path), "(to-domain)", current_path->path + current_path->delimiter_position + 1) < 0){
+				if(!rv && current_path->path[current_path->delimiter_position] && common_strrepl(forward_path, sizeof(forward_path), "(to-domain)", current_path->path + current_path->delimiter_position + 1) < 0){
 					logprintf(log, LOG_ERROR, "Failed to replace to-domain variable in forward router\n");
 					//fail the transaction
 					rv = -1;
@@ -153,7 +153,7 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 					}
 				}
 
-				if(!rv && common_strrepl(forward_path, sizeof(forward_path), "(from-domain)", mail->reverse_path.path + mail->reverse_path.delimiter_position + 1) < 0){
+				if(!rv && current_path->path[current_path->delimiter_position] && common_strrepl(forward_path, sizeof(forward_path), "(from-domain)", mail->reverse_path.path + mail->reverse_path.delimiter_position + 1) < 0){
 					logprintf(log, LOG_ERROR, "Failed to replace from-domain variable in forward router\n");
 					//fail the transaction
 					rv = -1;
