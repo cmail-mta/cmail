@@ -37,7 +37,7 @@ int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 	}
 
 	if (argc > 3) {
-		status = sqlite_add_address_order(log, db, argv[1], argv[2], strtoul(argv[3], NULL, 10));
+		status = sqlite_add_address_order(log, db, argv[1], argv[2], strtol(argv[3], NULL, 10));
 	} else {
 		status = sqlite_add_address(log, db, argv[1], argv[2]);
 	}
@@ -71,7 +71,7 @@ int mode_update(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 		return -1;
 	}
 
-	return sqlite_update_address(log, db, argv[1], argv[2], strtoul(argv[3], NULL, 10));
+	return sqlite_update_address(log, db, argv[1], argv[2], strtol(argv[3], NULL, 10));
 }
 
 int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {

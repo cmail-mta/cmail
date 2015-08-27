@@ -74,11 +74,11 @@ $ cmail-admin-address delete "%@cbcdn.com" cbdev
 
 .TP
 .BI "switch " "first second"
-.RB "Swap the " order " values of the two entries currently associated with the order values" 
+.RB "Swap the " order " values of the two entries indicated by the expressions " 
 .IR first " and " second "."
 .RS
 .B Example:
-$ cmail-admin-address switch 9001 9002
+$ cmail-admin-address switch "%@cbcdn.com" "%@bar.baz"
 .RE
 
 .SH BUGS

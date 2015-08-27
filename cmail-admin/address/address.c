@@ -93,7 +93,7 @@ int sqlite_get_all_addresses(LOGGER log, sqlite3* db) {
 	return status;
 }
 
-int sqlite_update_address(LOGGER log, sqlite3* db, const char* expression, const char* user, int order) {
+int sqlite_update_address(LOGGER log, sqlite3* db, const char* expression, const char* user, long order) {
 
 	char* sql = "UPDATE addresses SET address_order = ?, address_user = ? WHERE address_expression = ?";
 
@@ -161,7 +161,7 @@ int sqlite_delete_address(LOGGER log, sqlite3* db, const char* expression) {
 	return 0;
 }
 
-int sqlite_add_address_order(LOGGER log, sqlite3* db, const char* expression, const char* user, unsigned order) {
+int sqlite_add_address_order(LOGGER log, sqlite3* db, const char* expression, const char* user, long order) {
 
         char* sql = "INSERT INTO addresses (address_expression, address_user, address_order) VALUES (?, ?, ?)";
 
