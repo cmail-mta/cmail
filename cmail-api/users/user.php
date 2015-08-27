@@ -570,7 +570,7 @@
 			if (isset($user["user_alias"]) && !empty($user["user_alias"])) {
 				if (!$this->updateAlias($user)) {
 					$this->db->rollback();
-					return false;		
+					return false;
 				}
 			}
 

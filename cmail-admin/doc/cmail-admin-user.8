@@ -1,0 +1,93 @@
+.TH CMAIL-ADMIN-USER 8 "August 2015" "v0.1" "cmail Administration Tools"
+.SH NAME
+cmail-admin-user \- Manage cmail users
+.SH SYNOPSIS
+.BI "cmail-admin-user [ --dbpath " "master-database-file" " ] [ --verbosity " N
+.BI " | -v " N " ] [ --help | -h ] " "mode" " "  "mode-options"
+.SH DESCRIPTION
+.B cmail-admin-user
+allows the administrator of a cmail server system to list, add, modify and delete
+user accounts and their login credentials.
+
+.SH OPTIONS
+.TP 
+.BI "--dbpath " master-database-file ", -d " master-database-file
+Select an alternate master database file instead of the default
+.IR /etc/cmail/databases/master.db3 .
+This overrides the database path provided by the
+.B CMAIL_MASTER_DB
+environment variable.
+.TP
+.BI "--verbose " N ", -v " N
+Increase verbosity on a scale of
+.B 0
+to 
+.B 4
+.TP
+.B "--help, -h"
+Print helpful hints about operating the program
+.SH FILES
+.I /etc/cmail/databases/master.db3
+.RS
+Default path of the master database when installed system-wide. May be overridden either by specifying the
+.B CMAIL_MASTER_DB
+environment variable or by supplying the
+.BR "--dbpath " parameter.
+.SH MODES
+
+.TP
+.BI "list " [expression]
+List all users currently known to the system. Optionally, filter the list for entries matching
+.IR expression "."
+
+.TP
+.BI "add " "username [password]"
+Create a new user and update the login credentials if supplied. User names must be unique.
+.RS
+.B Example:
+$ cmail-admin-user add cbdev donotusethisasyourpassword
+.RE
+
+.TP
+.BI "revoke " user
+Reset the password for the specified user. This causes all login attempts for the user to be
+rejected. Note that the system will still accept mail on the users behalf, as
+.BR revoke " only invalidates the login credentials, not the account."
+.RS
+.B Example:
+$ cmail-admin-user revoke cbdev
+.RE
+
+.TP
+.BI "password " "user [password]"
+Update the password for the specified user to a new one. If none is supplied, the password is
+queried interactively.
+.RS
+.B Example:
+$ cmail-admin-user passwd cbdev anotherbadpassword
+.RE
+
+.TP
+.BI "delete " user
+Delete a specific user
+.RS
+.B Example:
+$ cmail-admin-user delete cbdev
+.RE
+
+.SH BUGS
+For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.
+.SH AUTHORS
+ Jan "mpease" Duepmeier <me at mpease dot de>  
+ Fabian "cbdev" Stumpf <fjs at fabianstumpf dot de>  
+.SH "SEE ALSO"
+Online documentation and homepage at http://cmail.rocks/
+.PP
+.BR cmail-admin-address (8),
+.BR cmail-admin-smtpd (8),
+.BR cmail-admin-popd (8),
+.BR cmail-smtpd (8),
+.BR cmail-popd (8),
+.BR cmail-dispatchd (8),
+.BR cmail-master-database (5)
+

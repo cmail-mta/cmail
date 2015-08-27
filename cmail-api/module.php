@@ -7,6 +7,7 @@
 
 
 		if (!isset($activeModules[$name])) {
+			// load module
 			require_once($modulelist[$name]);
 			$activeModules[$name] = new $name($c);
 		}

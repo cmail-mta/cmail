@@ -57,7 +57,7 @@ int sasl_challenge(LOGGER log, SASL_CONTEXT* ctx, char** response){
 
 int sasl_continue(LOGGER log, SASL_CONTEXT* ctx, char* data, char** response){
 	int length, off_user = 0, off_pass = 0;
-	
+
 	if(!response){
 		logprintf(log, LOG_ERROR, "NULL response pointer in sasl_continue\n");
 		return SASL_ERROR_PROCESSING;
@@ -83,7 +83,7 @@ int sasl_continue(LOGGER log, SASL_CONTEXT* ctx, char* data, char** response){
 				logprintf(log, LOG_ERROR, "SASL PLAIN user read out of bounds\n");
 				return SASL_ERROR_DATA;
 			}
-			
+
 			off_pass = off_user + strlen(data + off_user) + 1;
 			if(off_pass >= length || off_pass + strlen(data + off_pass) >= length){
 				logprintf(log, LOG_ERROR, "SASL PLAIN pass read out of bounds\n");

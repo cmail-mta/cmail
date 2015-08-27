@@ -91,7 +91,7 @@ sqlite3* database_open(LOGGER log, const char* filename, int flags){
 		return NULL;
 	}
 
-	if(sqlite3_busy_timeout(db, 5000) != SQLITE_OK){
+	if(sqlite3_busy_timeout(db, 500000) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to set sqlite busy timeout\n");
 		sqlite3_close(db);
 		return NULL;

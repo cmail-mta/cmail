@@ -1,0 +1,88 @@
+.TH CMAIL-ADMIN-POPD 8 "August 2015" "v0.1" "cmail Administration Tools"
+.SH NAME
+cmail-admin-popd \- Manage POP3 access to cmail mailboxes
+.SH SYNOPSIS
+.BI "cmail-admin-popd [ --dbpath " "master-database-file" " ] [ --verbosity " N
+.BI " | -v " N " ] [ --help | -h ] " "mode" " "  "mode-options"
+.SH DESCRIPTION
+.B cmail-admin-popd
+configures access to cmail mailboxes via the POP3 daemon. In order to be able to
+access mail via POP3,
+.BR cmail-popd (8)
+must be running, the accessing user must have the use of POP enabled by this tool and
+present valid credentials, which may be configured by 
+.BR cmail-admin-user (8) .
+
+.SH OPTIONS
+.TP 
+.BI "--dbpath " master-database-file ", -d " master-database-file
+Select an alternate master database file instead of the default
+.IR /etc/cmail/databases/master.db3 .
+This overrides the database path provided by the
+.B CMAIL_MASTER_DB
+environment variable.
+.TP
+.BI "--verbose " N ", -v " N
+Increase verbosity on a scale of
+.B 0
+to 
+.B 4
+.TP
+.B "--help, -h"
+Print helpful hints about operating the program
+.SH FILES
+.I /etc/cmail/databases/master.db3
+.RS
+Default path of the master database when installed system-wide. May be overridden either by specifying the
+.B CMAIL_MASTER_DB
+environment variable or by supplying the
+.BR "--dbpath " parameter.
+.SH MODES
+
+.TP
+.BI "list " [expression]
+List all users currently able to access their mail via POP, as well as their current lock state. 
+Optionally, filter the list for entries matching
+.IR expression "."
+
+.TP
+.BI "enable " "user"
+Enable POP access for a user.
+.RS
+.B Example:
+$ cmail-admin-popd enable cbdev
+.RE
+
+.TP
+.BI "disable " user
+Disable POP access for a user.
+.RS
+.B Example:
+$ cmail-admin-popd disable cbdev
+.RE
+
+.TP
+.BI "unlock " "user"
+Unlock the maildrop for a user. This is an emergency option and should only be used after making sure
+there are no more active connections to the mailbox.
+.RS
+.B Example:
+$ cmail-admin-popd unlock cbdev
+.RE
+
+.SH BUGS
+For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.
+.SH AUTHORS
+ Jan "mpease" Duepmeier <me at mpease dot de>  
+ Fabian "cbdev" Stumpf <fjs at fabianstumpf dot de>  
+.SH "SEE ALSO"
+Online documentation and homepage at http://cmail.rocks/
+.PP
+.BR cmail-admin-address (8),
+.BR cmail-admin-smtpd (8),
+.BR cmail-admin-user (8),
+.BR cmail-smtpd (8),
+.BR cmail-popd (8),
+.BR cmail-dispatchd (8),
+.BR cmail-master-database (5)
+

@@ -1,0 +1,11 @@
+[Unit]
+Description=Outbound SMTP client (cmail-dispatchd)
+
+[Service]
+Type=simple
+TimeoutStartSec=0
+ExecStart=/usr/sbin/cmail-dispatchd /etc/cmail/dispatchd.conf nodetach
+Requires=network-online.target
+
+[Install]
+WantedBy=multi-user.target

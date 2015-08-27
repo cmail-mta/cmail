@@ -79,6 +79,7 @@ typedef struct /*_ARGUMENT_COLLECTION*/ {
 	REMOTE remote;
 	bool drop_privileges;
 	bool daemonize;
+	bool generate_bounces;
 	char* config_file;
 } ARGUMENTS;
 

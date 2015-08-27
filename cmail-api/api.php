@@ -1,5 +1,7 @@
 <?php
 
+$API_VERSION = 8;
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -39,6 +41,22 @@ class Controller {
 	public function getAuth() {
 		return $this->auth;
 	}
+
+	public function checkSchemaVersion() {
+		global $API_VERSION;
+
+		$sql = "SELECT * FROM meta WHERE key = 'schema_version'";
+
+		$out = $this->db->query(sql, array(), DB::F_SINGLE_ASSOC);
+		$output->add("api_version", $API_VERSION);
+		$output->add("schema_version", $out["value"]);
+
+		if ($out["value"] != $API_VERSION) {
+			return false;
+		}
+
+		return true;
+	}
 }
 
 
@@ -52,8 +70,6 @@ function main($module_name) {
 	$output = Output::getInstance();
 	$db = new DB($dbpath, $output);
 
-	$API_VERSION = 8;
-
 	// db connection
 	if (!$db->connect()) {
 		header("HTTP/1.0 500 Database Error!");
@@ -61,31 +77,26 @@ function main($module_name) {
 		die();
 	}
 
+	$auth = Auth::getInstance($db, $output);
+	$c = new Controller($db, $output, $auth);
 
-	$sql = "SELECT * FROM meta WHERE key = 'schema_version'";
-
-	$out = $db->query($sql, array(), DB::F_SINGLE_ASSOC);
-
-	$output->add("api_version", $API_VERSION);
-	$output->add("schema_version", $out["value"]);
-
-	if ($out["value"] != $API_VERSION) {
+	if (!$c->checkSchemaVersion()) {
 		$output->add("status", "Api version and schema version is not the same.");
 		$output->write();
 		die();
 	}
 
+	// read post
 	$http_raw = file_get_contents("php://input");
 	$obj = json_decode($http_raw, true);
 
 	$output->addDebugMessage("payload", $obj);
 
+	// check for auth data
 	if (!isset($obj["auth"])) {
 		$obj["auth"] = [];
 	}
 
-	$auth = Auth::getInstance($db, $output);
-	$c = new Controller($db, $output, $auth);
 
 	if (!$auth->auth($obj["auth"])) {
 		$output->add("login", false);
@@ -96,6 +107,7 @@ function main($module_name) {
 	$output->add("login", true);
 	$output->add("auth_user", $auth->getUser());
 
+	// check for modules
 	if (is_null($module_name)) {
 
 		if (isset($_GET["get_modules"])) {
@@ -108,6 +120,7 @@ function main($module_name) {
 			$output->add("modules", $modules);
 		}
 	} else {
+		// read modules
 		$module = getModuleInstance($module_name, $c);
 		foreach ($module->getEndPoints() as $ep => $func) {
 			if (isset($_GET[$ep])) {

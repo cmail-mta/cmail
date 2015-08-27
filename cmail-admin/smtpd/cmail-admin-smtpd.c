@@ -14,15 +14,15 @@ int usage(char* fn) {
 
 	printf("%s: Administration tool for cmail-smtpd.\n", PROGRAM_NAME);
 	printf("usage:\n");
-	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
-	printf("\t--help, -h\t\t shows this help\n");
-	printf("\tadd <user>\t\t adds the default config to the user\n");
-	printf("\tdelete <user> \t deletes the given user msa entry\n");
-	printf("\tupdate <router> <user> <rtype> [<arg>] update the given router from given user.\n");
-	printf("\tlist [<user>] list all msa entries or if defined only msa entries like <expression>\n");
+	printf("\t--verbosity, -v\t\t\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\t\t\tSet master database\n");
+	printf("\t--help, -h\t\t\t\tDisplay this help\n");
+	printf("\tadd <user>\t\t\t\tAdd <user> to smtpd ACL (using default configuration values)\n");
+	printf("\tdelete <user>\t\t\t\tDelete <user> from smtpd ACL\n");
+	printf("\tupdate <router> <user> <rtype> [<arg>]\tUpdate the routers for <user>\n");
+	printf("\tlist [<user>]\t\t\t\tList currently active entries, optionally filtered by <user>\n");
 	printf("\n");
-	printf("Available router:\n");
+	printf("Available routers:\n");
 	printf("\toutrouter\trouting options for outgoing\n");
 	printf("\tinrouter\trouting options for incoming\n");
 	printf("For more see documentation.\n");
@@ -44,7 +44,7 @@ int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv) {
 		logprintf(log, LOG_ERROR, "No user name supplied\n");
 		return -1;
 	}
-	
+
 	return sqlite_delete_msa(log, db, argv[1]);
 }
 
@@ -54,12 +54,12 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
 	if (argc >= 2) {
 		filter = argv[1];
 	}
-	
+
 	return sqlite_get_msa(log, db, filter);
 }
 
 int mode_update(LOGGER log, sqlite3* db, int argc, char** argv) {
-	
+
 	const char* arguments = NULL;
 	if (argc < 2 ) {
 		logprintf(log, LOG_ERROR, "No router supplied\n");
@@ -81,17 +81,20 @@ int mode_update(LOGGER log, sqlite3* db, int argc, char** argv) {
 #include "../lib/common.c"
 
 int main(int argc, char* argv[]) {
-	char* dbpath = getenv("CMAIL_MASTER_DB");
+	struct config config = {
+		.verbosity = 0,
+		.dbpath = getenv("CMAIL_MASTER_DB")
+	};
 
-	if (!dbpath) {
-		dbpath = DEFAULT_DBPATH;
+	if (!config.dbpath) {
+		config.dbpath = DEFAULT_DBPATH;
 	}
 
 	// argument parsing
 	add_args();
 
 	char* cmds[argc];
-	int cmdsc = eargs_parse(argc, argv, cmds);
+	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
 	// check for errors in parsing
 	if (cmdsc < 0) {
@@ -100,7 +103,7 @@ int main(int argc, char* argv[]) {
 
 	LOGGER log = {
 		.stream = stderr,
-		.verbosity = verbosity
+		.verbosity = config.verbosity
 	};
 
 	sqlite3* db = NULL;
@@ -111,8 +114,8 @@ int main(int argc, char* argv[]) {
 		exit(usage(argv[0]));
 	}
 
-	logprintf(log, LOG_INFO, "Opening database at %s\n", dbpath);
-	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
 
 	// check for database opening errors
 	if (!db) {

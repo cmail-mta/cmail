@@ -190,6 +190,7 @@ int mail_reset(MAIL* mail){
 	//changes made here must be reflected in client_accept
 	MAIL empty_mail = {
 		.reverse_path = {
+			.delimiter_position = 0,
 			.in_transaction = false,
 			.path = "",
 			.resolved_user = NULL

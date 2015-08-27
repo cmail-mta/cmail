@@ -9,6 +9,7 @@ int usage(char* filename){
 	printf("\tnodetach\t\tDo not detach from console\n");
 	printf("\tdeliver <remote>\tDeliver outbound mail for <remote>\n");
 	printf("\thandoff <remote>\tDeliver handoff mail for <remote>\n");
+	printf("\tgenbounces\t\tGenerate bounce notifications for failed mail\n");
 	return EXIT_FAILURE;
 }
 
@@ -18,6 +19,7 @@ int main(int argc, char** argv){
 			.host = NULL,
 			.mode = DELIVER_DOMAIN
 		},
+		.generate_bounces = false,
 		.drop_privileges = true,
 		.daemonize = true,
 		.config_file = NULL
@@ -145,6 +147,9 @@ int main(int argc, char** argv){
 	//TODO add run mode for generating bounces
 	if(args.remote.host){
 		logic_handle_remote(config.log, &(config.database), config.settings, args.remote);
+	}
+	else if(args.generate_bounces){
+		logic_generate_bounces(config.log, &(config.database), config.settings);
 	}
 	else{
 		logic_loop_hosts(config.log, &(config.database), config.settings);

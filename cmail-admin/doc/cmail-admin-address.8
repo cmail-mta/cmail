@@ -1,0 +1,101 @@
+.TH CMAIL-ADMIN-ADDRESS 8 "August 2015" "v0.1" "cmail Administration Tools"
+.SH NAME
+cmail-admin-address \- Configure expressions designating valid recipient paths
+for the cmail system 
+.SH SYNOPSIS
+.BI "cmail-admin-address [ --dbpath " "master-database-file" " ] [ --verbosity " N
+.BI " | -v " N " ] [ --help | -h ] " "mode" " "  "mode-options"
+.SH DESCRIPTION
+.B cmail-admin-address
+allows the administrator of a cmail server system to create, modify and delete
+address entries, which are tuples of an address expression, an address order
+and the name of the user the entry is mapped to. Inbound paths are matched against 
+the set of all configured entries, ordered totally by the address order with the 
+highest order value being matched first.
+Expressions may contain arbitrary-length wildcards (
+.B %
+) and single-character wildcards (
+.B _
+). Further information about the exact matching semantics may be found by referring
+to the 
+.B SEE ALSO 
+section.
+
+.SH OPTIONS
+.TP 
+.BI "--dbpath " master-database-file ", -d " master-database-file
+Select an alternate master database file instead of the default
+.IR /etc/cmail/databases/master.db3 .
+This overrides the database path provided by the
+.B CMAIL_MASTER_DB
+environment variable.
+.TP
+.BI "--verbose " N ", -v " N
+Increase verbosity on a scale of
+.B 0
+to 
+.B 4
+.TP
+.B "--help, -h"
+Print helpful hints about operating the program
+.SH FILES
+.I /etc/cmail/databases/master.db3
+.RS
+Default path of the master database when installed system-wide. May be overridden either by specifying the
+.B CMAIL_MASTER_DB
+environment variable or by supplying the
+.BR "--dbpath " parameter.
+.SH MODES
+
+.TP
+.BI "list " [expression]
+List all address entries contained in the database. Optionally, filter the list for entries matching
+.IR expression "."
+.TP
+.BI "add " "expression username [order]"
+Add an address entry with the specified
+.IR "expression" " mapped to the specified " user ", optionally with an explicitly given " order "."
+Users must exist, eg. by creating them with
+.BR "cmail-admin-user (8)" .
+.RS
+.B Example:
+$ cmail-admin-address add "%@cbcdn.com" cbdev
+.RE
+
+.TP
+.BI "delete " "expression user"
+Delete address entry matching the specified
+.IR expression " and " user "."
+Wildcards are not matched for this mode.
+.RS
+.B Example:
+$ cmail-admin-address delete "%@cbcdn.com" cbdev
+.RE
+
+.TP
+.BI "switch " "first second"
+.RB "Swap the " order " values of the two entries indicated by the expressions " 
+.IR first " and " second "."
+.RS
+.B Example:
+$ cmail-admin-address switch "%@cbcdn.com" "%@bar.baz"
+.RE
+
+.SH BUGS
+For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.
+.SH AUTHORS
+ Jan "mpease" Duepmeier <me at mpease dot de>  
+ Fabian "cbdev" Stumpf <fjs at fabianstumpf dot de>  
+.SH "SEE ALSO"
+Online documentation and homepage at http://cmail.rocks/
+.PP
+SQLite "LIKE" syntax: https://www.sqlite.org/lang_expr.html#like
+.PP
+.BR cmail-admin-user (8),
+.BR cmail-admin-smtpd (8),
+.BR cmail-admin-popd (8),
+.BR cmail-smtpd (8),
+.BR cmail-popd (8),
+.BR cmail-dispatchd (8),
+.BR cmail-master-database (5)
+

@@ -16,4 +16,4 @@
 #include "../lib/auth.c"
 #endif
 
-#define DEFAULT_DBPATH "/var/cmail/master.db3"
+#define DEFAULT_DBPATH "/etc/cmail/databases/master.db3"

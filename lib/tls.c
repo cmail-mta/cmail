@@ -134,7 +134,6 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 				return -1;
 			}
 
-			//FIXME this segfaults currently
 			if(gnutls_dh_params_import_pkcs3(listener->tls_dhparams, &dh_param_data, GNUTLS_X509_FMT_PEM)){
 				logprintf(log, LOG_ERROR, "Failed to import Diffie-Hellman parameters, check file format (should be PEM)\n");
 				return -1;

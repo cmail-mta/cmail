@@ -15,13 +15,13 @@ int usage(char* fn) {
 
 	printf("cmail-admin-popd: Administration tool for cmail-popd.\n");
 	printf("usage:\n");
-	printf("\t--verbosity, -v\t\t Set verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t path to master database\n");
-	printf("\t--help, -h\t\t shows this help\n");
-	printf("\tadd <user>\t\t enables <user> for pop\n");
-	printf("\tdelete <user> \t disables <user> for pop\n");
-	printf("\tunlock <user> \t  unlocks the given user.\n");
-	printf("\tlist [<user>] list all popd entries or if defined only popd entries like <user>\n");
+	printf("\t--verbosity, -v\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\tpath to master database\n");
+	printf("\t--help, -h\t\tshows this help\n");
+	printf("\tenable <user>\t\tenables <user> for pop\n");
+	printf("\tdisable <user>\t\tdisables <user> for pop\n");
+	printf("\tunlock <user>\t\tunlocks the given user.\n");
+	printf("\tlist [<user>]\t\tlist all popd entries or if defined only popd entries like <user>\n");
 	printf("\n");
 
 	return 1;
@@ -30,12 +30,12 @@ int usage(char* fn) {
 #include "../lib/common.c"
 
 int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
-	
+
 	if (argc < 2) {
 		logprintf(log, LOG_ERROR, "Missing user\n\n");
 		return -1;
 	}
-	
+
 	return sqlite_add_popd(log, db, argv[1]);
 
 }
@@ -46,7 +46,7 @@ int mode_delete(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 		return -1;
 	}
 
-	return sqlite_delete_popd(log, db, argv[1]); 
+	return sqlite_delete_popd(log, db, argv[1]);
 }
 
 int mode_unlock(LOGGER log, sqlite3* db, int argc, char* argv[]) {
@@ -61,29 +61,33 @@ int mode_unlock(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 
 int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 	char* filter = "%";
-	
+
 	if (argc > 1) {
 		filter = argv[1];
 	}
-	
+
 	return sqlite_get_popd(log, db, filter);
 }
 
 int main(int argc, char* argv[]) {
-	char* dbpath = getenv("CMAIL_MASTER_DB");
+	struct config config = {
+		.verbosity = 0,
+		.dbpath = getenv("CMAIL_MASTER_DB")
+	};
 
-	if (!dbpath) {
-		dbpath = DEFAULT_DBPATH;
+
+	if (!config.dbpath) {
+		config.dbpath = DEFAULT_DBPATH;
 	}
 
 	add_args();
 
 	char* cmds[argc];
-	int cmdsc = eargs_parse(argc, argv, cmds);
+	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
 	LOGGER log = {
 		.stream = stderr,
-		.verbosity = verbosity
+		.verbosity = config.verbosity
 	};
 
 	if (cmdsc < 0) {
@@ -97,8 +101,8 @@ int main(int argc, char* argv[]) {
 		exit(usage(argv[0]));
 	}
 
-	logprintf(log, LOG_INFO, "Opening database at %s\n", dbpath);
-	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
 
 	if (!db) {
 		exit(usage(argv[0]));
@@ -106,9 +110,9 @@ int main(int argc, char* argv[]) {
 
 	int status = 20;
 
-	if (!strcmp(cmds[0], "add")) {
+	if (!strcmp(cmds[0], "enable")) {
 		status = mode_add(log, db, cmdsc, cmds);
-	}  else if (!strcmp(cmds[0], "delete")) {
+	}  else if (!strcmp(cmds[0], "disable")) {
 		status = mode_delete(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "unlock")) {
 		status = mode_unlock(log, db, cmdsc, cmds);

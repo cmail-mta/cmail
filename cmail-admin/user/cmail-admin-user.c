@@ -84,7 +84,7 @@ int usage(char* fn){
 int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
 	char password[MAX_PW_LENGTH];
 	char* pw = password;
-	
+
 	memset(password, 0, sizeof(password));
 
 	if(argc < 2){
@@ -99,9 +99,9 @@ int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
 			return 11;
 		}
 	}
-	
+
 	else{
-		pw = argv[2];	
+		pw = argv[2];
 	}
 
 	return set_password(log, db, argv[1], pw[0] ? pw:NULL);
@@ -140,7 +140,7 @@ int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv){
 
 int mode_list(LOGGER log, sqlite3* db, int argc, char** argv){
 	char* filter = "%";
-	
+
 	if(argc >= 2){
 		filter = argv[1];
 	}
@@ -150,23 +150,26 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv){
 
 
 int main(int argc, char* argv[]) {
-	dbpath = getenv("CMAIL_MASTER_DB");
-	
-	if(!dbpath){
-		dbpath = DEFAULT_DBPATH;
+	struct config config = {
+		.verbosity = 0,
+		.dbpath = getenv("CMAIL_MASTER_DB")
+	};
+
+	if(!config.dbpath){
+		config.dbpath = DEFAULT_DBPATH;
 	}
 
 	// argument parsing
 	add_args();
 
 	char* cmds[argc];
-	int cmdsc = eargs_parse(argc, argv, cmds);
+	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
 	LOGGER log = {
 		.stream = stderr,
-		.verbosity = verbosity
+		.verbosity = config.verbosity
 	};
-	
+
 	if (cmdsc < 0) {
 		return 1;
 	}
@@ -180,8 +183,8 @@ int main(int argc, char* argv[]) {
 		exit(usage(argv[0]));
 	}
 
-	logprintf(log, LOG_INFO, "Opening database at %s\n", dbpath);
-	db = database_open(log, dbpath, SQLITE_OPEN_READWRITE);
+	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
 	if(!db){
 		//logprintf(log, LOG_ERROR, "Failed to open database at %s, please check the path\n\n", dbpath);
 		exit(usage(argv[0]));
@@ -197,7 +200,7 @@ int main(int argc, char* argv[]) {
 	else if(!strcmp(cmds[0], "revoke")){
 		status = mode_revoke(log, db, cmdsc, cmds);
 	}
-	else if(!strcmp(cmds[0], "list")){ 
+	else if(!strcmp(cmds[0], "list")){
 		status = mode_list(log, db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "password") || !strcmp(cmds[0], "passwd")){

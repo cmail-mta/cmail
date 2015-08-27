@@ -42,7 +42,7 @@ int eargs_addArgument(char* argShort, char* argLong, void* func, unsigned argume
 }
 
 int eargs_clearItem(struct ArgumentItem* item) {
-	
+
 	// free when last item else recursive
 	if (item->next) {
 		eargs_clearItem(item->next);
@@ -67,7 +67,7 @@ int eargs_clear() {
 	return 1;
 }
 
-int eargs_parseItem(int argc, char** cmds) {
+int eargs_parseItem(int argc, char** cmds, void* config) {
 
 	struct ArgumentItem* item = base;
 	int arg = -1;
@@ -81,14 +81,14 @@ int eargs_parseItem(int argc, char** cmds) {
 
 		// check if argShort matches or if argLong matches (NULL will be excluded)
 		if ((item->argShort && !strcmp(cmds[0], item->argShort)) || (item->argLong && !strcmp(cmds[0], item->argLong))) {
-		
+
 			// check if enough arguments are available
 			if (argc > item->arguments) {
-			
-				
+
+
 				// call function
-				int (*p)(int argc, char** argv) = item->func;
-				if (p(argc, cmds) < 0) {
+				int (*p)(int argc, char** argv, void* config) = item->func;
+				if (p(argc, cmds, config) < 0) {
 					// error in function (bad input?)
 					return -2;
 				}
@@ -98,7 +98,7 @@ int eargs_parseItem(int argc, char** cmds) {
 				return -2;
 			}
 		}
-		
+
 		item = item->next;
 	}
 
@@ -106,7 +106,7 @@ int eargs_parseItem(int argc, char** cmds) {
 }
 
 // output should be initialized with: argc * sizeof(char*))
-int eargs_parse(int argc, char** argv, char** output) {
+int eargs_parse(int argc, char** argv, char** output, void* config) {
 
 	// memset output array (don't trust);
 	memset(output, 0, argc * sizeof(char*));
@@ -114,7 +114,7 @@ int eargs_parse(int argc, char** argv, char** output) {
 	int i;
 
 	for (i = 1; i < argc; i++) {
-		int v = eargs_parseItem(argc - i, &argv[i]);
+		int v = eargs_parseItem(argc - i, &argv[i], config);
 
 		// -2 means error in parsing the argument
 		if (v == -2) {
