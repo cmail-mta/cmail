@@ -21,9 +21,7 @@ int main(int argc, char** argv){
 		.database = {
 			.conn = NULL,
 			.query_authdata = NULL,
-			.query_addresses = NULL,
-			.query_inrouter = NULL,
-			.query_outrouter = NULL,
+			.query_address = NULL,
 			.mail_storage = {
 				.mailbox_master = NULL,
 				.outbox_master = NULL,

@@ -47,11 +47,17 @@ typedef enum /*_AUTHENTICATION_OFFER_MODE*/ {
 	AUTH_TLSONLY			//Authentication only in TLS session
 } AUTH_OFFER;
 
+typedef struct /*_MAIL_ROUTE*/ {
+	char* router;
+	char* argument;
+} MAILROUTE;
+
 typedef struct /*_MAIL_PATH*/ {
 	bool in_transaction;
 	unsigned delimiter_position;
 	char path[SMTP_MAX_PATH_LENGTH];
-	char* resolved_user;				//HEAP'd
+	MAILROUTE route;
+	//FIXME resolved_user is used for validity checking multiple times.
 } MAILPATH;
 
 typedef struct /*_MAIL_STRUCT*/ {
@@ -123,9 +129,7 @@ typedef struct /*_USER_MAILBOX_DB*/{
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_authdata;
-	sqlite3_stmt* query_addresses;
-	sqlite3_stmt* query_inrouter;
-	sqlite3_stmt* query_outrouter;
+	sqlite3_stmt* query_address;
 	struct {
 		sqlite3_stmt* mailbox_master;
 		sqlite3_stmt* outbox_master;
@@ -139,11 +143,6 @@ typedef struct /*_CONF_META*/ {
 	LOGGER log;
 	DATABASE database;
 } CONFIGURATION;
-
-typedef struct /*_MAIL_ROUTE*/ {
-	char* router;
-	char* argument;
-} MAILROUTE;
 
 //These need some defined types
 #include "../lib/auth.h"
@@ -164,8 +163,8 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #endif
 
 #include "database.c"
-#include "path.c"
 #include "route.c"
+#include "path.c"
 #include "pathpool.c"
 #include "mail.c"
 #include "smtpstatemachine.c"

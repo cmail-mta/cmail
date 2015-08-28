@@ -1,0 +1,3 @@
+MAILPATH->resolved_user is used for validity checking multiple times
+store-Router user database handling needs to be rewritten
+Alias handling was donr in path_resolve, should now probably be done in route_inbound

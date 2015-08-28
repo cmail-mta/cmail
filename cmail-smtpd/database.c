@@ -222,12 +222,10 @@ int database_refresh(LOGGER log, DATABASE* database){
 }
 
 int database_initialize(LOGGER log, DATABASE* database){
-	char* QUERY_ADDRESS_USER="SELECT address_user, msa_inrouter, msa_outrouter, user_alias FROM main.addresses JOIN main.msa ON address_user = msa_user JOIN main.users ON address_user = user_name WHERE ? LIKE address_expression ORDER BY address_order DESC;";
-	char* QUERY_USER_ROUTER_INBOUND="SELECT msa_inrouter, CASE msa_inrouter WHEN 'store' THEN user_database ELSE msa_inroute END AS msa_inroute FROM main.msa JOIN main.users ON user_name = msa_user WHERE user_name = ?;";
-	char* QUERY_USER_ROUTER_OUTBOUND="SELECT msa_outrouter, msa_outroute FROM main.msa WHERE msa_user = ?;";
-	char* INSERT_MASTER_MAILBOX="INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
-	char* INSERT_MASTER_OUTBOX="INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
-	char* QUERY_AUTHENTICATION_DATA="SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
+	char* QUERY_ADDRESS_INFO = "SELECT address_router, address_route FROM main.addresses WHERE ? LIKE address_expression ORDER BY address_order DESC;";
+	char* INSERT_MASTER_MAILBOX = "INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
+	char* INSERT_MASTER_OUTBOX = "INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
+	char* QUERY_AUTHENTICATION_DATA = "SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
 
 	//check the database schema version
 	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
@@ -235,25 +233,18 @@ int database_initialize(LOGGER log, DATABASE* database){
 		return -1;
 	}
 
-	database->query_authdata=database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
-	database->query_addresses=database_prepare(log, database->conn, QUERY_ADDRESS_USER);
-	database->query_inrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_INBOUND);
-	database->query_outrouter=database_prepare(log, database->conn, QUERY_USER_ROUTER_OUTBOUND);
-	database->mail_storage.mailbox_master=database_prepare(log, database->conn, INSERT_MASTER_MAILBOX);
-	database->mail_storage.outbox_master=database_prepare(log, database->conn, INSERT_MASTER_OUTBOX);
+	database->query_authdata = database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
+	database->query_address = database_prepare(log, database->conn, QUERY_ADDRESS_INFO);
+	database->mail_storage.mailbox_master = database_prepare(log, database->conn, INSERT_MASTER_MAILBOX);
+	database->mail_storage.outbox_master = database_prepare(log, database->conn, INSERT_MASTER_OUTBOX);
 
 	if(!database->query_authdata){
 		logprintf(log, LOG_ERROR, "Failed to prepare authentication data query\n");
 		return -1;
 	}
 
-	if(!database->query_addresses){
+	if(!database->query_address){
 		logprintf(log, LOG_ERROR, "Failed to prepare address query statement\n");
-		return -1;
-	}
-
-	if(!database->query_inrouter || !database->query_outrouter){
-		logprintf(log, LOG_ERROR, "Failed to prepare router query statement\n");
 		return -1;
 	}
 
@@ -271,9 +262,7 @@ void database_free(LOGGER log, DATABASE* database){
 	//FIXME check for SQLITE_BUSY here
 	if(database->conn){
 		sqlite3_finalize(database->query_authdata);
-		sqlite3_finalize(database->query_addresses);
-		sqlite3_finalize(database->query_inrouter);
-		sqlite3_finalize(database->query_outrouter);
+		sqlite3_finalize(database->query_address);
 		sqlite3_finalize(database->mail_storage.mailbox_master);
 		sqlite3_finalize(database->mail_storage.outbox_master);
 

@@ -103,48 +103,48 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 // If originating_user is set, this checks if the user may use the path outbound
 int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originating_user, bool is_reverse){
 	int status, rv = -1;
-	char* router;
 
-	if(path->resolved_user){
+	//FIXME what is this early exit
+	if(path->route.router){
 		return 0;
 	}
 
-	status = sqlite3_bind_text(database->query_addresses, 1, path->path, -1, SQLITE_STATIC);
+	status = sqlite3_bind_text(database->query_address, 1, path->path, -1, SQLITE_STATIC);
 	if(status == SQLITE_OK){
 		do{
-			status = sqlite3_step(database->query_addresses);
+			status = sqlite3_step(database->query_address);
 			if(status == SQLITE_ROW){
 				if(originating_user || is_reverse){
-					//test if matched user is authenticated user
-					if(originating_user && strcmp(originating_user, (char*)sqlite3_column_text(database->query_addresses, 0))){
+					//Test whether the originating_user may user the supplied path outbound.
+					//This implies traversing all entries and testing the following conditions
+					//	1. Router must be 'store'
+					//	2. Route must be the originating user
+					//	Else, try the next entry
+					if(originating_user && 
+						(strcmp((char*)sqlite3_column_text(database->query_address, 0), "store") 
+							|| strcmp(originating_user, (char*)sqlite3_column_text(database->query_address, 1)))){
 						// Falling through to SQLITE_DONE here implies a non-local origin while routers for this adress are set
 						// (just not for this user). The defined router will then fail the address, the any router will accept it
 						continue;
 					}
-					router = (char*)sqlite3_column_text(database->query_addresses, 2);
-				}
-				else{
-					router = (char*)sqlite3_column_text(database->query_addresses, 1);
+
+					//Continuing here if no originating_user given or the current routing information
+					//applies to the originating_user
 				}
 
+				//heap-copy the routing information
+				path->route.router = common_strdup((char*)sqlite3_column_text(database->query_address, 0));
+				path->route.argument = common_strdup((char*)sqlite3_column_text(database->query_address, 1));
+
 				//check for reject
-				if(!strcmp(router, "reject")){
+				if(!strcmp(path->route.router, "reject")){
 					rv = 1;
 					break;
 				}
 
-				//path ok, resolve to user
-				//special case forward paths with aliases here because alias resolution needs to happen once
-				if(!is_reverse && sqlite3_column_text(database->query_addresses, 3)){
-					path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 3));
-				}
-				//no alias defined or reverse path -> either aliasing has already happened or there is none
-				else{
-					path->resolved_user = common_strdup((char*)sqlite3_column_text(database->query_addresses, 0));
-				}
-
-				if(!path->resolved_user){
-					logprintf(log, LOG_ERROR, "Failed to allocate path user data\n");
+				if(!path->route.router){
+					logprintf(log, LOG_ERROR, "Failed to allocate storage for routing data\n");
+					//TODO this should return failure
 					break;
 				}
 				rv = 0;
@@ -169,8 +169,8 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
 	}
 
-	sqlite3_reset(database->query_addresses);
-	sqlite3_clear_bindings(database->query_addresses);
+	sqlite3_reset(database->query_address);
+	sqlite3_clear_bindings(database->query_address);
 	return rv;
 }
 
@@ -179,13 +179,13 @@ void path_reset(MAILPATH* path){
 		.delimiter_position = 0,
 		.in_transaction = false,
 		.path = "",
-		.resolved_user = NULL
+		.route = {
+			.router = NULL,
+			.argument = NULL
+		}
 	};
 
-	if(path->resolved_user){
-		free(path->resolved_user);
-		path->resolved_user = NULL;
-	}
+	route_free(&(path->route));
 
 	*path = reset_path;
 }
