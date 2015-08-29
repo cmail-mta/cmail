@@ -106,7 +106,10 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 				.delimiter_position = 0,
 				.in_transaction = false,
 				.path = "",
-				.resolved_user = NULL
+				.route = {
+					.router = NULL,
+					.argument = NULL
+				}
 			},
 			.forward_paths = {
 				NULL
@@ -120,6 +123,10 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			.hop_count = 0,
 			.header_offset = 0,
 			.data = NULL
+		},
+		.originating_route = {
+			.router = NULL,
+			.argument = NULL
 		},
 		.sasl_user = {
 			.authorized = NULL,
@@ -221,6 +228,9 @@ int client_close(CONNECTION* client){
 
 	//reset authentication
 	sasl_reset_user(&(client_data->sasl_user), true);
+
+	//reset originating route
+	route_free(&(client_data->originating_route));
 
 	//return the connpool slot
 	client->fd = -1;

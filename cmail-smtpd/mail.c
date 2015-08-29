@@ -14,8 +14,8 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 
 	//iterate over recipients
 	for(i=0;mail->forward_paths[i];i++){
-		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->resolved_user?(mail->forward_paths[i]->resolved_user):"outbound");
-		if(mail->forward_paths[i]->resolved_user){
+		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->route.router ? (mail->forward_paths[i]->route.router):"outbound");
+		if(mail->forward_paths[i]->route.router){
 			//inbound mail, apply inrouter
 			//TODO RFC5321 4.4 (P59) says partial accepted recipient list should 200 and send failure notifications
 			switch(route_inbound(log, database, mail, mail->forward_paths[i])){
@@ -47,11 +47,8 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	return rv;
 }
 
-int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
-	MAILROUTE route;
+int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE* database){
 	int rv=250, i;
-
-	route=route_query(log, database, false, user);
 
 	//user has no routing entry, reject the mail
 	if(!route.router){
@@ -73,21 +70,18 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, DATABASE* database){
 						break;
 					case 1:
 						logprintf(log, LOG_WARNING, "Failed to store handoff entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
-						route_free(&route);
 						return 400;
 					default:
 						logprintf(log, LOG_WARNING, "Failed to route path %d (%s) via handoff, rejecting transaction\n", i, mail->forward_paths[i]->path);
-						route_free(&route);
 						return 500;
 				}
 			}
 		}
 	}
 	else{
-		rv=mail_route(log, mail, database);
+		rv = mail_route(log, mail, database);
 	}
 
-	route_free(&route);
 	return rv;
 }
 
@@ -193,7 +187,10 @@ int mail_reset(MAIL* mail){
 			.delimiter_position = 0,
 			.in_transaction = false,
 			.path = "",
-			.resolved_user = NULL
+			.route = {
+				.router = NULL,
+				.argument = NULL
+			}
 		},
 		.forward_paths = {
 			NULL
@@ -232,7 +229,7 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 	//calling contract: 0 -> ok, -1 -> fail, 1 -> defer
 	int status;
 
-	if(sqlite3_bind_text(stmt, 1, current_path->resolved_user, -1, SQLITE_STATIC)!=SQLITE_OK
+	if(sqlite3_bind_text(stmt, 1, current_path->route.argument, -1, SQLITE_STATIC)!=SQLITE_OK
 		|| sqlite3_bind_text(stmt, 2, mail->message_id, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_text(stmt, 3, current_path->path, -1, SQLITE_STATIC)!=SQLITE_OK
 		|| sqlite3_bind_text(stmt, 4, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK

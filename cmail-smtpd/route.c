@@ -86,26 +86,27 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 	logprintf(log, LOG_DEBUG, "Inbound router %s (%s) for %s\n", current_path->route.router, current_path->route.argument ? current_path->route.argument:"none", current_path->path);
 
 	if(!strcmp(current_path->route.router, "store")){
-		//insert into (user) mail table
-		//FIXME this is the old user database handling code. it needs fixing.
-		if(!route.argument){
-			//the simple case, we insert into the master db
-			rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+		if(!(current_path->route.argument)){
+			logprintf(log, LOG_ERROR, "Path is assigned store router without argument, rejecting transaction\n");
+			//Fail the transaction permanently
+			rv = -1;
 		}
 		else{
-			//this works regardless of the changes from schema update 2
-			//because users.user_database is aliased into route.argument by the query
+			//TODO get user row for user database path
+			//also checks for user existence
+			char* userdb_path = NULL; //TEMPORARY
 
 			//get user storage database entry
-			user_db = database_userdb(log, database, route.argument);
+			user_db = database_userdb(log, database, userdb_path);
+			//FIXME have an inband way of signaling "no userdb"
 			if(!user_db){
 				//try to refresh the user database set
 				database_refresh(log, database);
-				user_db = database_userdb(log, database, route.argument);
+				user_db = database_userdb(log, database, userdb_path);
 
 				if(!user_db){
 					//as last resort, store to master db
-					logprintf(log, LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->resolved_user);
+					logprintf(log, LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->route.argument);
 					rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 				}
 				else{
@@ -119,13 +120,14 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 
 		//if we could not store mail, retry with master
 		if(rv){
-			logprintf(log, LOG_WARNING, "Failed to store mail for %s (%d: %s), retrying one last time with master db\n", current_path->resolved_user, rv, sqlite3_errmsg(database->conn));
+			logprintf(log, LOG_ERROR, "Failed to store mail for %s (%d: %s), retrying one last time with master db\n", current_path->route.argument, rv, sqlite3_errmsg(database->conn));
 			rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
 		}
 	}
-	else if(!strcmp(route.router, "forward")){
-		if(route.argument){
-			strncpy(forward_path, route.argument, sizeof(forward_path) - 1);
+	else if(!strcmp(current_path->route.router, "forward")){
+		if(current_path->route.argument){
+			//FIXME this should be ensured to be properly terminated
+			strncpy(forward_path, current_path->route.argument, sizeof(forward_path) - 1);
 
 			//mangle the envelope recipient according to the route
 			//we're able to do this and not worry about exploitation from unsanitized input
@@ -165,14 +167,23 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 				rv = mail_store_outbox(log, database->mail_storage.outbox_master, NULL, forward_path, mail);
 			}
 		}
-	}
-	else if(!strcmp(route.router, "handoff")){
-		if(route.argument){
-			//insert into outbound table
-			rv = mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, current_path->path, mail);
+		else{
+			logprintf(log, LOG_ERROR, "Redirect router without argument, failing transaction\n");
+			//fail the transaction permanently
+			rv = -1;
 		}
 	}
-	else if(!strcmp(route.router, "reject")){
+	else if(!strcmp(current_path->route.router, "handoff")){
+		if(current_path->route.argument){
+			//insert into outbound table
+			rv = mail_store_outbox(log, database->mail_storage.outbox_master, current_path->route.argument, current_path->path, mail);
+		}
+		else{
+			logprintf(log, LOG_ERROR, "Handoff router without argument, failing transaction\n");
+			rv = -1;
+		}
+	}
+	else if(!strcmp(current_path->route.router, "reject")){
 		//this should probably never be reached as the path
 		//of the user should already have been rejected.
 		//otherwise, a mail with multiple recipients including
@@ -180,7 +191,7 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 		//rejecting recipient
 		rv = -1;
 	}
-	else if(!strcmp(route.router, "drop")){
+	else if(!strcmp(current_path->route.router, "drop")){
 		//this one is easy.
 	}
 	else{
@@ -191,34 +202,5 @@ int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_
 		logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
 	}
 
-	return rv;
-}
-
-int route_outbound(LOGGER log, DATABASE* database, char* user, MAILPATH* reverse_path){
-	int rv = 0;
-	MAILROUTE route = route_query(log, database, false, user);
-
-	//fail any path if the authenticated user has no router table entry
-	if(!route.router){
-		return -1;
-	}
-
-	logprintf(log, LOG_DEBUG, "Outbound router %s (%s)\n", route.router, route.argument ? route.argument:"none");
-
-	if(!strcmp(route.router, "reject")){
-		rv = -1;
-	}
-	else if(!strcmp(route.router, "defined")){
-		if(!reverse_path->resolved_user || strcmp(user, reverse_path->resolved_user)){
-			logprintf(log, LOG_INFO, "Reverse path %s does not belong to user %s\n", reverse_path->path, user);
-			rv = -1;
-		}
-		//else, ok
-	}
-	else if(!strcmp(route.router, "any")){
-		//ok.
-	}
-
-	route_free(&route);
 	return rv;
 }

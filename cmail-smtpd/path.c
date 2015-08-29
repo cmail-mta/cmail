@@ -104,6 +104,8 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originating_user, bool is_reverse){
 	int status, rv = -1;
 
+	//TODO this should also directly test if an authenticated/authorized user may use a path outbound
+
 	//FIXME what is this early exit
 	if(path->route.router){
 		return 0;

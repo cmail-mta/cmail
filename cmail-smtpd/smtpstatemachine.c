@@ -343,14 +343,6 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 		}
 
-		if(client_data->sasl_user.authenticated){
-			if(route_outbound(log, database, client_data->sasl_user.authorized, &(client_data->current_mail.reverse_path))<0){
-				//sending for this user/path combination prohibited
-				client_send(log, client, "550 Authenticated user cannot use this path\r\n");
-				return -1;
-			}
-		}
-
 		//TODO call plugins for spf, etc
 
 		client_send(log, client, "250 OK\r\n");
@@ -424,7 +416,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 				return 0;
 		}
 
-		if(!current_path->resolved_user){
+		if(!current_path->route.router){
 			//path not local, accept only if authenticated
 			if(!client_data->sasl_user.authenticated){
 				client_send(log, client, "551 Unknown user\r\n");
@@ -540,7 +532,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 					}
 				}
 				else{
-					switch(mail_originate(log, client_data->sasl_user.authorized, &(client_data->current_mail), database)){
+					switch(mail_originate(log, client_data->sasl_user.authorized, &(client_data->current_mail), client_data->originating_route, database)){
 						case 250:
 							logprintf(log, LOG_INFO, "Originating mail accepted for user %s (auth %s) from %s\n", client_data->sasl_user.authorized, client_data->sasl_user.authenticated, client_data->peer_name);
 							client_send(log, client, "250 OK\r\n");

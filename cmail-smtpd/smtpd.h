@@ -102,6 +102,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	size_t recv_offset;
 	char peer_name[MAX_FQDN_LENGTH];
 	MAIL current_mail;
+	MAILROUTE originating_route;
 	SASL_USER sasl_user;
 	SASL_CONTEXT sasl_context;
 	time_t last_action;
