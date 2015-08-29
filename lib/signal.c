@@ -11,7 +11,7 @@ int signal_init(LOGGER log){
 	//FIXME use sigaction for this too
 	signal(SIGPIPE, SIG_IGN);
 
-	if(sigaction(SIGTERM, &act, NULL) < 0 || sigaction(SIGINT, &act, NULL)) {
+	if(sigaction(SIGTERM, &act, NULL) < 0 || sigaction(SIGINT, &act, NULL) < 0) {
 		logprintf(log, LOG_ERROR, "Failed to set signal mask\n");
 		return -1;
 	}
