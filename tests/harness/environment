@@ -1,9 +1,8 @@
 #!/bin/bash
 
 ##
-# cmail test harness environment setup
-# source this file first from any tests
-# and/or test runners.
+# cmail test harness environment
+# spawns shell with correct environment for tests
 ##
 
 TEST_MARKER_FILE="/tmp/cmail-test/running"
@@ -21,7 +20,7 @@ if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
 	printf "\tCreating invalid configuration\n"
 	printf "\tGenerating any amount of mail\n"
 	printf "\tCreating security risks\n"
-	printf "If that is to your liking, enter 'yes' to continue or anything else to abort. ?> "
+	printf "If that is to your liking, enter 'yes' to continue or anything else to abort.\n?> "
 	read answer < /dev/tty
 	if [ ! "$answer" = "yes" ]; then
 		printf "\nPhew, disaster averted.\n"
@@ -45,17 +44,24 @@ if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
 	#insert the common stuff
 	printf "export CMAIL_TEST_PRODUCTIVE_MASTER=\"%s\"\n" "/etc/cmail/databases/master.db3" >> "$TEST_MARKER_FILE"
 
-	#gather some pids
+	#who started the environment
+	printf "export CMAIL_TEST_ENVIRONMENT_LEADER=\"%s\"\n" "$$" >> "$TEST_MARKER_FILE"
+
+	#set the marker
 	printf "export CMAIL_TEST_ENVIRONMENT_OK=\"%s\"\n" "$(date)" >> "$TEST_MARKER_FILE"
 
 	. ./database
 	database_environment_init
 
-	# recurse into ourselves
-	. $0
-else
-	if [ -n "$CMAIL_TEST_VERBOSE_ENVIRONMENT" ]; then
-		printf "environment: Continuing %s\n" "$CMAIL_TEST_ENVIRONMENT_OK"
-	fi
+	# read saved data back
+	. "$TEST_MARKER_FILE"
 fi
 
+printf "Continuing environment %s\n" "$CMAIL_TEST_ENVIRONMENT_OK"
+bash
+if [ "$$" = "$CMAIL_TEST_ENVIRONMENT_LEADER" ]; then
+	printf "This terminal was the environment leader. Shutting down the test environment.\n"
+	rm "$TEST_MARKER_FILE"
+else
+	printf "Not the environment leader, session continues\n"
+fi

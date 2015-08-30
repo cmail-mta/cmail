@@ -1,4 +1,0 @@
-#!/bin/bash
-. ./environment
-printf "Stopping environment %s\n" "$CMAIL_TEST_ENVIRONMENT_OK"
-rm "$TEST_MARKER_FILE"

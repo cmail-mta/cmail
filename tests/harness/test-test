@@ -1,5 +1,5 @@
 #!/bin/bash
-. ./environment
+. ./check-env
 . ./database
 
 printf "Running a test"
