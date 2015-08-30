@@ -1,0 +1,5 @@
+#!/bin/bash
+if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
+	printf "Not within test harness, aborting\n"
+	exit 255
+fi
