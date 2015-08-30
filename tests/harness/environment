@@ -28,8 +28,8 @@ if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
 	fi
 
 	#test for prerequisites
-	if [ -z "$(which sqlite3)" ]; then
-		printf "environment: Need sqlite, aborting\n"
+	if ! which sqlite3 || ! which expect; then
+		printf "environment: Need sqlite3 and expect, aborting\n"
 		exit 255
 	fi
 
@@ -43,6 +43,8 @@ if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
 	
 	#insert the common stuff
 	printf "export CMAIL_TEST_PRODUCTIVE_MASTER=\"%s\"\n" "/etc/cmail/databases/master.db3" >> "$TEST_MARKER_FILE"
+	printf "export SMTP_PORT=\"%s\"\n" "25" >> "$TEST_MARKER_FILE"
+	printf "export SMTP_HOST=\"%s\"\n" "127.0.0.1" >> "$TEST_MARKER_FILE"
 
 	#who started the environment
 	printf "export CMAIL_TEST_ENVIRONMENT_LEADER=\"%s\"\n" "$$" >> "$TEST_MARKER_FILE"
@@ -50,15 +52,19 @@ if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
 	#set the marker
 	printf "export CMAIL_TEST_ENVIRONMENT_OK=\"%s\"\n" "$(date)" >> "$TEST_MARKER_FILE"
 
-	. ./database
-	database_environment_init
-
+	. ./env_database_init
+	
 	# read saved data back
 	. "$TEST_MARKER_FILE"
 fi
 
 printf "Continuing environment %s\n" "$CMAIL_TEST_ENVIRONMENT_OK"
-bash
+export PATH="$(pwd):$PATH"
+if [ -z "$0" ]; then
+	bash -c "$@"
+else
+	(cd ../expect && bash)
+fi
 if [ "$$" = "$CMAIL_TEST_ENVIRONMENT_LEADER" ]; then
 	printf "This terminal was the environment leader. Shutting down the test environment.\n"
 	rm "$TEST_MARKER_FILE"
