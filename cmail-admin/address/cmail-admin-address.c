@@ -120,6 +120,13 @@ int main(int argc, char* argv[]) {
 		return 10;
 	}
 
+	//check database version
+	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
+		sqlite3_close(db);
+		return 11;
+	}
+
 	int status;
 
 	if (!strcmp(cmds[0], "add")) {
@@ -136,6 +143,8 @@ int main(int argc, char* argv[]) {
 		logprintf(log, LOG_ERROR, "Unkown command %s\n\n", cmds[0]);
 		exit(usage(argv[0]));
 	}
+
+	sqlite3_close(db);
 
 	return status;
 }
