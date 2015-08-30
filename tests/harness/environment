@@ -1,0 +1,65 @@
+#!/bin/bash
+
+##
+# cmail test harness environment setup
+# source this file first from any tests
+# and/or test runners.
+##
+
+TEST_MARKER_FILE="/tmp/cmail-test/running"
+
+if [ -f "$TEST_MARKER_FILE" ]; then
+	. "$TEST_MARKER_FILE"
+fi
+
+if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
+	printf "*** DANGER AHEAD ***\n"
+	printf "The invocation you have performed wants to run one or more tests from within the cmail test harness.\n"
+	printf "The harness is designed to perform any necessary operation on your cmail configuration and database, including but not limited to\n"
+	printf "\tDeleting all your mail\n"
+	printf "\tDeleting all your users\n"
+	printf "\tCreating invalid configuration\n"
+	printf "\tGenerating any amount of mail\n"
+	printf "\tCreating security risks\n"
+	printf "If that is to your liking, enter 'yes' to continue or anything else to abort. ?> "
+	read answer < /dev/tty
+	if [ ! "$answer" = "yes" ]; then
+		printf "\nPhew, disaster averted.\n"
+		exit 255
+	fi
+
+	mkdir -p $(dirname "$TEST_MARKER_FILE")
+	
+	#insert the common stuff
+	printf "export CMAIL_TEST_PRODUCTIVE_MASTER=\"%s\"\n" "/etc/cmail/databases/master.db3" >> "$TEST_MARKER_FILE"
+
+	#gather some pids
+	printf "export CMAIL_TEST_ENVIRONMENT_OK=\"%s\"\n" "$(date)" >> "$TEST_MARKER_FILE"
+	printf "export CMAIL_TEST_SMTPD_PID=\"%s\"\n" "$(pidof cmail-smtpd)" >> "$TEST_MARKER_FILE"
+	printf "export CMAIL_TEST_POPD_PID=\"%s\"\n" "$(pidof cmail-popd)" >> "$TEST_MARKER_FILE"
+	printf "export CMAIL_TEST_DISPATCHD_PID=\"%s\"\n" "$(pidof cmail-dispatchd)" >> "$TEST_MARKER_FILE"
+
+	. ./database
+	database_environment_init
+
+	# recurse into ourselves
+	. $0
+else
+	if [ -n "$CMAIL_TEST_VERBOSE_ENVIRONMENT" ]; then
+		printf "environment: Continuing %s\n" "$CMAIL_TEST_ENVIRONMENT_OK"
+	fi
+
+	if [ -z "$CMAIL_TEST_IGNORE_REALITY" ]; then
+		if [ -z "$CMAIL_TEST_SMTPD_PID" ]; then
+			printf "environment: cmail-smtpd seems not to have been started\n"
+			read dummy < /dev/tty
+		elif [ -z "$CMAIL_TEST_POPD_PID" ]; then
+			printf "environment: cmail-popd seems not to have been started\n"
+			read dummy < /dev/tty
+		elif [ -z "$CMAIL_TEST_DISPATCHD_PID" ]; then
+			printf "environment: cmail-dispatchd seems not to have been started\n"
+			read dummy < /dev/tty
+		fi
+	fi
+fi
+

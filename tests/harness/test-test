@@ -1,0 +1,5 @@
+#!/bin/bash
+. ./environment
+. ./database
+
+printf "Running a test"
