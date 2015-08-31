@@ -225,8 +225,10 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_ADDRESS_INFO = "SELECT address_router, address_route FROM main.addresses WHERE ? LIKE address_expression ORDER BY address_order DESC;";
 	char* INSERT_MASTER_MAILBOX = "INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX = "INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
-	char* QUERY_AUTHENTICATION_DATA = "SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
 	char* QUERY_ORIGINATING_ROUTER = "SELECT smtpd_router, smtpd_route FROM main.smtpd WHERE smtpd_user = ?;";
+
+	//this query has to conform to the auth_validate contract (the first 2 columns are fixed)
+	char* QUERY_AUTHENTICATION_DATA = "SELECT user_authdata, user_alias, user_database FROM main.users WHERE user_name = ?;";
 
 	//check the database schema version
 	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){

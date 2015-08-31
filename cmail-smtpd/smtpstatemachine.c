@@ -323,7 +323,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
 		//extract reverse path and store it
-		if(path_parse(log, client_data->recv_buffer+10, &(client_data->current_mail.reverse_path))<0){
+		if(path_parse(log, client_data->recv_buffer + 10, &(client_data->current_mail.reverse_path)) < 0){
 			client_send(log, client, "501 Path rejected\r\n");
 			return -1;
 		}
@@ -349,7 +349,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		//TODO call plugins for spf, etc
 
 		client_send(log, client, "250 OK\r\n");
-		client_data->state=STATE_RECIPIENTS;
+		client_data->state = STATE_RECIPIENTS;
 		return 0;
 	}
 
@@ -366,8 +366,8 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 }
 
 int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 	unsigned i;
 	MAILPATH* current_path;
 

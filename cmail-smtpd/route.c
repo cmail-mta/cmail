@@ -72,7 +72,7 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 	char forward_path[SMTP_MAX_PATH_LENGTH];
 
 	//reject the path if the path does not have a router table entry
-	//this check should be redundant, but lets do it anyway
+	//this check should be redundant, as paths without routers are non-local
 	if(!current_path->route.router){
 		return -1;
 	}
@@ -86,36 +86,68 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 			rv = -1;
 		}
 		else{
-			//TODO get user row for user database path
-			//also checks for user existence
-			char* userdb_path = NULL; //TEMPORARY
+			//preemptively fail the transaction...
+			rv = -1;
 
-			//get user storage database entry
-			user_db = database_userdb(log, database, userdb_path);
-			//FIXME have an inband way of signaling "no userdb"
-			if(!user_db){
-				//try to refresh the user database set
-				database_refresh(log, database);
-				user_db = database_userdb(log, database, userdb_path);
+			//check for user existence (as well as a user database path)
+			if(sqlite3_bind_text(database->query_authdata, 1, current_path->route.argument, -1, SQLITE_STATIC) == SQLITE_OK){
+				switch(sqlite3_step(database->query_authdata)){
+					case SQLITE_ROW:
+						//check for a user database
+						if(sqlite3_column_text(database->query_authdata, 2)){
+							logprintf(log, LOG_DEBUG, "Fetching user database for user %s (%s)\n", current_path->route.argument, (char*)sqlite3_column_text(database->query_authdata, 2));	
+							user_db = database_userdb(log, database, (char*)sqlite3_column_text(database->query_authdata, 2));
 
-				if(!user_db){
-					//as last resort, store to master db
-					logprintf(log, LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->route.argument);
-					rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
-				}
-				else{
-					rv = mail_store_inbox(log, user_db->mailbox, mail, current_path);
+							if(!user_db){
+								//try to refresh the user database set
+								database_refresh(log, database);
+								user_db = database_userdb(log, database, (char*)sqlite3_column_text(database->query_authdata, 2));
+
+								if(!user_db){
+									//as last resort, store to master db
+									logprintf(log, LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->route.argument);
+									rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+								}
+								else{
+									logprintf(log, LOG_DEBUG, "Storing mail for %s to user database %s after database refresh\n", current_path->route.argument, user_db->file_name);
+									rv = mail_store_inbox(log, user_db->mailbox, mail, current_path);
+								}
+							}
+							else{
+								logprintf(log, LOG_DEBUG, "Storing mail for %s to user database %s\n", current_path->route.argument, user_db->file_name);
+								rv = mail_store_inbox(log, user_db->mailbox, mail, current_path);
+							}
+
+						}
+						else{
+							//simply store to master
+							logprintf(log, LOG_DEBUG, "Storing mail for %s to master database\n", current_path->route.argument);
+							rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+						}
+						break;
+					case SQLITE_DONE:
+						logprintf(log, LOG_ERROR, "Failed to resolve router argument %s to a user, failing transaction\n", current_path->route.argument);
+						break;
+					default:
+						logprintf(log, LOG_ERROR, "Failed to execute user info query: %s\n", sqlite3_errmsg(database->conn));
+						break;
 				}
 			}
 			else{
-				rv = mail_store_inbox(log, user_db->mailbox, mail, current_path);
+				logprintf(log, LOG_ERROR, "Failed to bind user to user info query\n");
 			}
-		}
 
-		//if we could not store mail, retry with master
-		if(rv){
-			logprintf(log, LOG_ERROR, "Failed to store mail for %s (%d: %s), retrying one last time with master db\n", current_path->route.argument, rv, sqlite3_errmsg(database->conn));
-			rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+			sqlite3_reset(database->query_authdata);
+			sqlite3_clear_bindings(database->query_authdata);
+
+			//if we could not store mail, retry with master
+			if(rv){
+				logprintf(log, LOG_ERROR, "Failed to store mail for %s (%d: %s), retrying one last time with master db\n", current_path->route.argument, rv, sqlite3_errmsg(database->conn));
+				rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+				if(rv){
+					logprintf(log, LOG_ERROR, "Failed to store mail: %s\n", sqlite3_errmsg(database->conn));
+				}
+			}
 		}
 	}
 	else if(!strcmp(current_path->route.router, "forward")){
