@@ -51,6 +51,7 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE
 	int rv=250, i;
 
 	//user has no routing entry, reject the mail
+	//this should already have happened early in the conversation
 	if(!route.router){
 		return 500;
 	}

@@ -331,17 +331,44 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		//resolve reverse path
 		switch(path_resolve(log, &(client_data->current_mail.reverse_path), database, client_data->sasl_user.authorized, true)){
 			case 0:
-				//either local or unknown
-				//TODO filter local origin from unauthenticated connections
+				//reverse path contains either store or null router.
+				//check origination routing data for action to take
+				if(client_data->sasl_user.authenticated && client_data->sasl_user.authorized){
+					if(!client_data->originating_route.router || !strcmp(client_data->originating_route.router, "reject")){
+						client_send(log, client, "551 %s\r\n", client_data->originating_route.argument ? client_data->originating_route.argument:"User not allowed to use this path");
+						path_reset(&(client_data->current_mail.reverse_path));
+						return -1;
+					}
+					else if(!strcmp(client_data->originating_route.router, "any")){
+						//accept anything
+					}
+					else if(!strcmp(client_data->originating_route.router, "defined")){
+						if(!client_data->current_mail.reverse_path.route.router
+								|| !client_data->current_mail.reverse_path.route.argument
+								|| strcmp(client_data->current_mail.reverse_path.route.router, "store")
+								|| strcmp(client_data->current_mail.reverse_path.route.argument, client_data->sasl_user.authorized)){
+							//no valid store router pointing back at the user, fail the reverse path
+							client_send(log, client, "551 User not allowed to use this path\r\n");
+							path_reset(&(client_data->current_mail.reverse_path));
+							return -1;
+						}
+						else{
+							//the path resolves back to the originating user, accept it
+						}
+					}
+				}
+				else{
+					//filtering of local reverse paths for unauthenticated connections might take place here
+				}
 				break;
 			case 1:
-				//reject router
-				logprintf(log, LOG_DEBUG, "Originating mail rejected due to router setting\n");
-				client_send(log, client, "550 User not allowed to originate mail\r\n");
-				return -1;
+				//inbound reject router (should not be able to happen anymore)
+				logprintf(log, LOG_ERROR, "Inbound reject router applied to reverse path, please notify the developers!\n");
+				break;
 			default:
 				//resolution failed
 				logprintf(log, LOG_INFO, "Failed to resolve reverse path\n");
+				path_reset(&(client_data->current_mail.reverse_path));
 				client_send(log, client, "451 Path rejected\r\n");
 				return 0;
 		}

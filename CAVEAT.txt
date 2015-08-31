@@ -50,11 +50,3 @@ mail for these adresses. This should be standard in most setups,
 yet it might still be good to know. There are currently no plans
 to change this behaviour.
 
-Outbound router 'reject'
-------------------------
-The (unfortunately named) outbound router is, in the case of the
-reject router, actually more of a filter: It will reject (answer
-with 5XX) to any MAIL FROM: command (envelope sender section) containing
-an address mapped to a user having an outbound router of 'reject'.
-This might lead to problems e.g. in the case of naive 'list exploder'
-mailing list remotes simply bouncing submissions back to the sender.

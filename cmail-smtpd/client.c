@@ -188,7 +188,7 @@ int client_accept(LOGGER log, DATABASE* database, CONNECTION* listener, CONNPOOL
 		actual_data->sasl_user.authorized = common_strdup(listener_data->fixed_user);
 		if(!actual_data->sasl_user.authenticated || !actual_data->sasl_user.authorized){
 			logprintf(log, LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
-			//dont fail here, its not critical
+			//TODO fail this connection
 		}
 		else{
 			//query routing data
