@@ -264,7 +264,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return -1;
 			case AUTH_TLSONLY:
 				#ifndef CMAIL_NO_TLS
-				if(client->tls_mode!=TLS_ONLY){
+				if(client->tls_mode != TLS_ONLY){
 				#endif
 					logprintf(log, LOG_WARNING, "Non-TLS client tried to auth on auth-tlsonly listener\n");
 					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is market obsolete
@@ -373,13 +373,13 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 
 	if(!strncasecmp(client_data->recv_buffer, "rcpt to:", 8)){
 		//get slot in forward_paths
-		for(i=0;i<SMTP_MAX_RECIPIENTS;i++){
+		for(i = 0; i < SMTP_MAX_RECIPIENTS; i++){
 			if(!client_data->current_mail.forward_paths[i]){
 				break;
 			}
 		}
 
-		if(i==SMTP_MAX_RECIPIENTS){
+		if(i == SMTP_MAX_RECIPIENTS){
 			//too many recipients, fail this one
 			logprintf(log, LOG_INFO, "Mail exceeded recipient limit\n");
 			client_send(log, client, "452 Too many recipients\r\n");
@@ -387,7 +387,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		}
 
 		//get path from pool
-		current_path=pathpool_get(log, path_pool);
+		current_path = pathpool_get(log, path_pool);
 		if(!current_path){
 			logprintf(log, LOG_ERROR, "Failed to get path, failing recipient\n");
 			client_send(log, client, "452 Recipients pool maxed out\r\n");
@@ -395,7 +395,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			return -1;
 		}
 
-		if(path_parse(log, client_data->recv_buffer+8, current_path)<0){
+		if(path_parse(log, client_data->recv_buffer + 8, current_path) < 0){
 			client_send(log, client, "501 Path rejected\r\n");
 			pathpool_return(current_path);
 			return -1;
@@ -431,7 +431,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		//FIXME address deduplication?
 		//TODO call plugins
 
-		client_data->current_mail.forward_paths[i]=current_path;
+		client_data->current_mail.forward_paths[i] = current_path;
 		client_send(log, client, "250 Accepted\r\n");
 
 		//decrease the failscore
@@ -451,7 +451,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
-		client_data->state=STATE_IDLE;
+		client_data->state = STATE_IDLE;
 		mail_reset(&(client_data->current_mail));
 		logprintf(log, LOG_INFO, "Client reset\n");
 		client_send(log, client, "250 Reset OK\r\n");
@@ -471,10 +471,10 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			client_send(log, client, "503 No valid recipients\r\n");
 			return -1;
 		}
-		client_data->state=STATE_DATA;
+		client_data->state = STATE_DATA;
 
 		//write received: header
-		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain)<0){
+		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain) < 0){
 			logprintf(log, LOG_WARNING, "Failed to write received header\n");
 		}
 
