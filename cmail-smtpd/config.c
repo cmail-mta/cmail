@@ -25,7 +25,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	LISTENER* listener_data = NULL;
 
 	//tokenize line
-	bindhost=strtok_r(params, " ", &tokenize_line);
+	bindhost = strtok_r(params, " ", &tokenize_line);
 	do{
 		token=strtok_r(NULL, " ", &tokenize_line);
 		if(token){
@@ -50,34 +50,34 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			}
 			#endif
 			else if(!strncmp(token, "auth", 4)){
-				settings.auth_offer=AUTH_ANY;
-				if(token[4]=='='){
-					token=strtok_r(token+5, ",", &tokenize_argument);
+				settings.auth_offer = AUTH_ANY;
+				if(token[4] == '='){
+					token = strtok_r(token + 5, ",", &tokenize_argument);
 					while(token){
 						if(!strcmp(token, "tlsonly")){
-							settings.auth_offer=AUTH_TLSONLY;
+							settings.auth_offer = AUTH_TLSONLY;
 						}
 						else if(!strcmp(token, "strict")){
-							settings.auth_require=true;
+							settings.auth_require = true;
 						}
 						else if(!strncmp(token, "fixed@", 6)){
-							settings.auth_require=true;
-							settings.fixed_user=token+6;
+							settings.auth_require = true;
+							settings.fixed_user = token + 6;
 						}
 						else{
 							logprintf(config->log, LOG_WARNING, "Unknown auth parameter %s\n", token);
 						}
-						token=strtok_r(NULL, ",", &tokenize_argument);
+						token = strtok_r(NULL, ",", &tokenize_argument);
 					}
 
-					token=""; //reset to anything but NULL to meet condition
+					token = ""; //reset to anything but NULL to meet condition
 				}
 			}
 			else if(!strncmp(token, "announce=", 9)){
-				settings.announce_domain=token+9;
+				settings.announce_domain = token + 9;
 			}
 			else if(!strncmp(token, "size=", 5)){
-				settings.max_size=strtoul(token+5, NULL, 10);
+				settings.max_size = strtoul(token + 5, NULL, 10);
 			}
 			else{
 				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
@@ -87,11 +87,11 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 
 	#ifndef CMAIL_NO_TLS
 	if(tls_keyfile && tls_certfile){
-		if(tls_mode==TLS_NONE){
-			tls_mode=TLS_NEGOTIATE;
+		if(tls_mode == TLS_NONE){
+			tls_mode = TLS_NEGOTIATE;
 		}
 
-		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities)<0){
+		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities) < 0){
 			return -1;
 		}
 	}
@@ -102,40 +102,40 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	#endif
 
 	//try to open a listening socket
-	int listen_fd=network_listener(config->log, bindhost, port);
+	int listen_fd = network_listener(config->log, bindhost, port);
 
-	if(listen_fd<0){
+	if(listen_fd < 0){
 		return -1;
 	}
 
 	//add the new listener to the pool
-	listener_slot=connpool_add(&(config->listeners), listen_fd);
-	if(listener_slot>=0){
+	listener_slot = connpool_add(&(config->listeners), listen_fd);
+	if(listener_slot >= 0){
 		logprintf(config->log, LOG_INFO, "Bound to %s port %s (slot %d)\n", bindhost, port, listener_slot);
 
 		//create listener auxdata
-		config->listeners.conns[listener_slot].aux_data=calloc(1, sizeof(LISTENER));
+		config->listeners.conns[listener_slot].aux_data = calloc(1, sizeof(LISTENER));
 		if(!config->listeners.conns[listener_slot].aux_data){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener\n");
 			return -1;
 		}
 
-		listener_data=(LISTENER*)config->listeners.conns[listener_slot].aux_data;
-		*listener_data=settings;
+		listener_data = (LISTENER*)config->listeners.conns[listener_slot].aux_data;
+		*listener_data = settings;
 
 		//copy data to heap
 		#ifndef CMAIL_NO_TLS
-		config->listeners.conns[listener_slot].tls_mode=tls_mode;
+		config->listeners.conns[listener_slot].tls_mode = tls_mode;
 		#endif
 
-		listener_data->announce_domain=common_strdup(settings.announce_domain);
+		listener_data->announce_domain = common_strdup(settings.announce_domain);
 		if(!listener_data->announce_domain){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
 			return -1;
 		}
 
 		if(settings.fixed_user){
-			listener_data->fixed_user=common_strdup(settings.fixed_user);
+			listener_data->fixed_user = common_strdup(settings.fixed_user);
 			if(!listener_data->fixed_user){
 				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for fixed user storage\n");
 				return -1;

@@ -88,7 +88,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 }
 
 int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int status = SASL_ERROR_PROCESSING;
 	char* method = NULL;
 	char* parameter = NULL;
@@ -282,7 +282,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				break;
 		}
 
-		client_data->state=STATE_AUTH;
+		client_data->state = STATE_AUTH;
 		return smtpstate_auth(log, client, database, path_pool);
 	}
 
