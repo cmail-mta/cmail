@@ -1,0 +1,73 @@
+#!/bin/bash
+
+##
+# cmail test harness environment
+# spawns shell with correct environment for tests
+##
+
+TEST_MARKER_FILE="/tmp/cmail-test/running"
+
+if [ -f "$TEST_MARKER_FILE" ]; then
+	. "$TEST_MARKER_FILE"
+fi
+
+if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
+	printf "*** DANGER AHEAD ***\n"
+	printf "The invocation you have performed wants to run one or more tests from within the cmail test harness.\n"
+	printf "The harness is designed to perform any necessary operation on your cmail configuration and database, including but not limited to\n"
+	printf "\tDeleting all your mail\n"
+	printf "\tDeleting all your users\n"
+	printf "\tCreating invalid configuration\n"
+	printf "\tGenerating any amount of mail\n"
+	printf "\tCreating security risks\n"
+	printf "If that is to your liking, enter 'yes' to continue or anything else to abort.\n?> "
+	read answer < /dev/tty
+	if [ ! "$answer" = "yes" ]; then
+		printf "\nPhew, disaster averted.\n"
+		exit 255
+	fi
+
+	#test for prerequisites
+	if ! which sqlite3 || ! which expect; then
+		printf "environment: Need sqlite3 and expect, aborting\n"
+		exit 255
+	fi
+
+	#test for admin tools
+	if [ -z "$(which cmail-admin-user)" ] || [ -z "$(which cmail-admin-address)" ]; then
+		printf "environment: cmail-admin not found, aborting\n"
+		exit 255
+	fi
+
+	mkdir -p $(dirname "$TEST_MARKER_FILE")
+	
+	#insert the common stuff
+	printf "export CMAIL_TEST_PRODUCTIVE_MASTER=\"%s\"\n" "/etc/cmail/databases/master.db3" >> "$TEST_MARKER_FILE"
+	printf "export SMTP_PORT=\"%s\"\n" "25" >> "$TEST_MARKER_FILE"
+	printf "export SMTP_HOST=\"%s\"\n" "127.0.0.1" >> "$TEST_MARKER_FILE"
+
+	#who started the environment
+	printf "export CMAIL_TEST_ENVIRONMENT_LEADER=\"%s\"\n" "$$" >> "$TEST_MARKER_FILE"
+
+	#set the marker
+	printf "export CMAIL_TEST_ENVIRONMENT_OK=\"%s\"\n" "$(date)" >> "$TEST_MARKER_FILE"
+
+	. ./env_database_init
+	
+	# read saved data back
+	. "$TEST_MARKER_FILE"
+fi
+
+printf "Continuing environment %s\n" "$CMAIL_TEST_ENVIRONMENT_OK"
+export PATH="$(pwd):$PATH"
+if [ -z "$0" ]; then
+	bash -c "$@"
+else
+	(cd ../expect && bash)
+fi
+if [ "$$" = "$CMAIL_TEST_ENVIRONMENT_LEADER" ]; then
+	printf "This terminal was the environment leader. Shutting down the test environment.\n"
+	rm "$TEST_MARKER_FILE"
+else
+	printf "Not the environment leader, session continues\n"
+fi

@@ -190,6 +190,13 @@ int main(int argc, char* argv[]) {
 		exit(usage(argv[0]));
 	}
 
+	//check database version
+	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
+		sqlite3_close(db);
+		return 11;
+	}
+
 	//select command
 	if(!strcmp(cmds[0], "add")){
 		status = mode_add(log, db, cmdsc, cmds);
