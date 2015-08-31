@@ -226,6 +226,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* INSERT_MASTER_MAILBOX = "INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX = "INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
 	char* QUERY_AUTHENTICATION_DATA = "SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
+	char* QUERY_ORIGINATING_ROUTER = "SELECT smtpd_router, smtpd_route FROM main.smtpd WHERE smtpd_user = ?;";
 
 	//check the database schema version
 	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
@@ -235,6 +236,7 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 	database->query_authdata = database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
 	database->query_address = database_prepare(log, database->conn, QUERY_ADDRESS_INFO);
+	database->query_outbound_router = database_prepare(log, database->conn, QUERY_ORIGINATING_ROUTER);
 	database->mail_storage.mailbox_master = database_prepare(log, database->conn, INSERT_MASTER_MAILBOX);
 	database->mail_storage.outbox_master = database_prepare(log, database->conn, INSERT_MASTER_OUTBOX);
 
@@ -245,6 +247,11 @@ int database_initialize(LOGGER log, DATABASE* database){
 
 	if(!database->query_address){
 		logprintf(log, LOG_ERROR, "Failed to prepare address query statement\n");
+		return -1;
+	}
+
+	if(!database->query_outbound_router){
+		logprintf(log, LOG_ERROR, "Failed to prepare outbound router query statement\n");
 		return -1;
 	}
 
@@ -263,6 +270,7 @@ void database_free(LOGGER log, DATABASE* database){
 	if(database->conn){
 		sqlite3_finalize(database->query_authdata);
 		sqlite3_finalize(database->query_address);
+		sqlite3_finalize(database->query_outbound_router);
 		sqlite3_finalize(database->mail_storage.mailbox_master);
 		sqlite3_finalize(database->mail_storage.outbox_master);
 

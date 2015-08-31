@@ -1,9 +1,6 @@
-MAILPATH->resolved_user is used for validity checking multiple times
 store-Router user database handling needs to be rewritten
 Alias handling was done in path_resolve, should now probably be done in route_inbound
 Originating router is now a member of the client structure, proper memory release and acquiry must be observed
-	This member should probably also be used in some resolved_user checks
-	This member needs to be set by the initialization routine (to the routing data of the authorized user)
 All store routers need to check for user existence
-Need to check all route_free calls as to not have invalid memory accesses
 Unauthorized outbound paths need to be rejected in early communication (needs originating_router)
+Originating reverse paths need to be tested against the outbound routing setup

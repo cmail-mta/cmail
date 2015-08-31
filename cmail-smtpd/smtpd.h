@@ -131,6 +131,7 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_authdata;
 	sqlite3_stmt* query_address;
+	sqlite3_stmt* query_outbound_router;
 	struct {
 		sqlite3_stmt* mailbox_master;
 		sqlite3_stmt* outbox_master;

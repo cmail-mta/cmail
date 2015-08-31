@@ -1,61 +1,55 @@
-/*MAILROUTE route_query(LOGGER log, DATABASE* database, bool route_inbound, char* user){
+//this code queries outbound routing information for a user
+MAILROUTE route_query(LOGGER log, DATABASE* database, char* user){
 	MAILROUTE route = {
 		.router = NULL,
 		.argument = NULL
 	};
-	sqlite3_stmt* stmt=((route_inbound)?database->query_inrouter:database->query_outrouter);
 	int status;
 
 	if(!user){
 		return route;
 	}
 
-	status=sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC);
-	if(status!=SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind router user parameter: %s\n", sqlite3_errmsg(database->conn));
-		sqlite3_reset(stmt);
-		sqlite3_clear_bindings(stmt);
+	status = sqlite3_bind_text(database->query_outbound_router, 1, user, -1, SQLITE_STATIC);
+	if(status != SQLITE_OK){
+		logprintf(log, LOG_ERROR, "Failed to bind user parameter to routing query: %s\n", sqlite3_errmsg(database->conn));
+		sqlite3_reset(database->query_outbound_router);
+		sqlite3_clear_bindings(database->query_outbound_router);
 		return route;
 	}
 
-	switch(sqlite3_step(stmt)){
+	switch(sqlite3_step(database->query_outbound_router)){
 		case SQLITE_ROW:
 			//copy data
-			if(sqlite3_column_bytes(stmt, 0)){
-				route.router = calloc(sqlite3_column_bytes(stmt, 0) + 1, sizeof(char));
-				if(route.router){
-					strncpy(route.router, (char*)sqlite3_column_text(stmt, 0), sqlite3_column_bytes(stmt, 0) + 1);
-				}
-				else{
-					logprintf(log, LOG_ERROR, "Failed to allocate memory for ROUTE structure\n");
-				}
+			if(sqlite3_column_text(database->query_outbound_router, 0)){
+				route.router = common_strdup((char*)sqlite3_column_text(database->query_outbound_router, 0));
+			}
+			else{
+				logprintf(log, LOG_ERROR, "Outbound routing entry for %s is NULL\n", user);
+				break;
 			}
 
-			if(sqlite3_column_bytes(stmt, 1)){
-				route.argument = calloc(sqlite3_column_bytes(stmt, 1) + 1, sizeof(char));
-				if(route.argument){
-					strncpy(route.argument, (char*)sqlite3_column_text(stmt, 1), sqlite3_column_bytes(stmt, 1) + 1);
-				}
-				else{
-					logprintf(log, LOG_ERROR, "Failed to allocate memory for ROUTE structure\n");
-				}
+			if(sqlite3_column_text(database->query_outbound_router, 1)){
+				route.argument = common_strdup((char*)sqlite3_column_text(database->query_outbound_router, 1));
+			}
 
+			if(!route.router){
+				logprintf(log, LOG_ERROR, "Failed to allocate memory for ROUTE structure\n");
 			}
 			break;
 		case SQLITE_DONE:
-			logprintf(log, LOG_ERROR, "Database contains no router definition for %s\n", user);
+			logprintf(log, LOG_ERROR, "Database contains no outbound router definition for %s\n", user);
 			break;
 		default:
 			logprintf(log, LOG_WARNING, "Unhandled query return value: %s\n", sqlite3_errmsg(database->conn));
 			break;
 	}
 
-	sqlite3_reset(stmt);
-	sqlite3_clear_bindings(stmt);
+	sqlite3_reset(database->query_outbound_router);
+	sqlite3_clear_bindings(database->query_outbound_router);
 
 	return route;
 }
-*/
 
 void route_free(MAILROUTE* route){
 	if(route){
@@ -71,7 +65,7 @@ void route_free(MAILROUTE* route){
 	}
 }
 
-int route_inbound(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
+int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	int rv = 0;
 	USER_DATABASE* user_db;
 	char path_replacement[SMTP_MAX_PATH_LENGTH];

@@ -130,24 +130,24 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			logprintf(log, LOG_ERROR, "Invalid state (SASL_OK) reached in AUTH, returning to IDLE\r\n");
 			//FIXME might want to reset sasl_user here
 			sasl_reset_ctx(&(client_data->sasl_context), false); //opting for security here, rather than freeing memory we do not own
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 			client_send(log, client, "500 Invalid state\r\n");
 			return -1;
 		case SASL_ERROR_PROCESSING:
 			logprintf(log, LOG_ERROR, "SASL processing error\r\n");
 			sasl_reset_ctx(&(client_data->sasl_context), true);
 			client_send(log, client, "454 Internal Error\r\n");
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 			return 0;
 		case SASL_ERROR_DATA:
 			logprintf(log, LOG_ERROR, "SASL failed to parse data\r\n");
 			sasl_reset_ctx(&(client_data->sasl_context), true);
 			client_send(log, client, "501 Invalid data provided\r\n");
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 			return -1;
 		case SASL_UNKNOWN_METHOD:
-			logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer+5);
-			client_data->state=STATE_IDLE;
+			logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer + 5);
+			client_data->state = STATE_IDLE;
 			sasl_reset_ctx(&(client_data->sasl_context), false);
 			client_send(log, client, "504 Unknown mechanism\r\n");
 			return -1;
@@ -157,7 +157,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			return 0;
 		case SASL_DATA_OK:
 			sasl_reset_ctx(&(client_data->sasl_context), true);
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 
 			//check auth data
 			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
@@ -177,6 +177,8 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 			}
 
+			client_data->originating_route = route_query(log, database, client_data->sasl_user.authorized);
+
 			logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->sasl_user.authenticated);
 			client_send(log, client, "235 Authenticated\r\n");
 
@@ -184,19 +186,19 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			#ifndef CMAIL_NO_TLS
 			switch(client_data->listener->tls_mode){
 				case TLS_ONLY:
-					client_data->current_mail.protocol="sesmtpa";
+					client_data->current_mail.protocol = "sesmtpa";
 					break;
 				case TLS_NEGOTIATE:
-					if(client->tls_mode==TLS_ONLY){
-						client_data->current_mail.protocol="esmtpsa";
+					if(client->tls_mode == TLS_ONLY){
+						client_data->current_mail.protocol = "esmtpsa";
 						break;
 					}
 				case TLS_NONE:
-					client_data->current_mail.protocol="esmtpa";
+					client_data->current_mail.protocol = "esmtpa";
 					break;
 			}
 			#else
-			client_data->current_mail.protocol="esmtpa";
+			client_data->current_mail.protocol = "esmtpa";
 			#endif
 
 			//decrease the failscore
@@ -291,6 +293,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_DEBUG, "Client protocol: %s\n", client_data->current_mail.protocol);
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
 		logprintf(log, LOG_DEBUG, "AUTH Status %s, Authentication: %s, Authorization: %s\n", client_data->sasl_context.method!=SASL_INVALID?"active":"inactive", client_data->sasl_user.authenticated ? client_data->sasl_user.authenticated:"none", client_data->sasl_user.authorized ? client_data->sasl_user.authorized:"none");
+		logprintf(log, LOG_DEBUG, "Originating router: %s (%s)\n", client_data->originating_route.router?client_data->originating_route.router:"none", client_data->originating_route.argument?client_data->originating_route.argument:"none");
 		#ifndef CMAIL_NO_TLS
 		logprintf(log, LOG_DEBUG, "TLS State: %s\n", tls_modestring(client->tls_mode));
 		#endif

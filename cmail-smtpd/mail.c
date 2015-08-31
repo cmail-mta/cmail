@@ -18,7 +18,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 		if(mail->forward_paths[i]->route.router){
 			//inbound mail, apply inrouter
 			//TODO RFC5321 4.4 (P59) says partial accepted recipient list should 200 and send failure notifications
-			switch(route_inbound(log, database, mail, mail->forward_paths[i])){
+			switch(route_local_path(log, database, mail, mail->forward_paths[i])){
 				case 0:
 					break;
 				case 1:
