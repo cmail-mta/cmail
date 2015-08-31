@@ -210,8 +210,8 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 }
 
 int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "noop", 4)){
 		logprintf(log, LOG_INFO, "Client noop\n");
@@ -267,7 +267,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				if(client->tls_mode != TLS_ONLY){
 				#endif
 					logprintf(log, LOG_WARNING, "Non-TLS client tried to auth on auth-tlsonly listener\n");
-					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is market obsolete
+					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is marked obsolete
 					return -1;
 				#ifndef CMAIL_NO_TLS
 				}
@@ -401,13 +401,14 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			return -1;
 		}
 
+		//the last 2 parameters in this call _must_ be NULL/false to not trigger an invalid branch in this case
 		switch(path_resolve(log, current_path, database, NULL, false)){
 			case 0:
 				//continue path handling
 				break;
 			case 1:
 				//reject by router decision
-				client_send(log, client, "551 User does not accept mail\r\n");
+				client_send(log, client, "551 %s\r\n", current_path->route.argument ? current_path->route.argument:"User does not accept mail");
 				pathpool_return(current_path);
 				return -1;
 			default:

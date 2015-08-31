@@ -106,8 +106,9 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 
 	//TODO this should also directly test if an authenticated/authorized user may use a path outbound
 
-	//FIXME what is this early exit
+	//this early exit should never have to be taken
 	if(path->route.router){
+		logprintf(log, LOG_WARNING, "Taking early exit for path %s, please notify the developers\n", path->path);
 		return 0;
 	}
 
@@ -146,9 +147,12 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 
 				if(!path->route.router){
 					logprintf(log, LOG_ERROR, "Failed to allocate storage for routing data\n");
-					//TODO this should return failure
+					//fail temporarily
+					rv = -1;
 					break;
 				}
+
+				//all is well
 				rv = 0;
 				break;
 			}
@@ -160,19 +164,27 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 				break;
 			case SQLITE_DONE:
 				logprintf(log, LOG_INFO, "No address match found\n");
+				//continue with this path marked as non-local
 				rv = 0;
 				break;
 			default:
 				logprintf(log, LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database->conn));
+				rv = -1;
 				break;
 		}
 	}
 	else{
 		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
+		rv = -1;
 	}
 
 	sqlite3_reset(database->query_address);
 	sqlite3_clear_bindings(database->query_address);
+
+	// Calling contract
+	// 	0 -> Accept path
+	// 	1 -> Reject path (500), if possible use router argument
+	// 	* -> Reject path (400)
 	return rv;
 }
 

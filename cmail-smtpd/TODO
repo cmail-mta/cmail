@@ -1,9 +1,5 @@
 Implement support for dynamically loaded modules
 	Specify API for modules
-Periodically release unused memory
 Bind parameter filter-local-reverse
-Implement client command rate limiting
-Configurable reject message
 Test outbound/inbound handoff/forward routers
 Allow specification of remote port with HANDOFF
-Resolve routes within path_resolve, not within route_* (allows access to route data in smtp state machine)
