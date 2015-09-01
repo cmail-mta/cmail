@@ -11,7 +11,7 @@
 		<div id="headmenu">
 			<a class="item" href="#user">User</a>
 			<a class="item" href="#delegates">Delegates</a>
-			<a class="item" href="#msa">MSA</a>
+			<a class="item" href="#smtpd">SMTPD</a>
 			<a class="item" href="#address">Adresses</a>
 			<a class="item" href="#pop">POP</a>
 			<a class="item" href="#test">Test</a>
@@ -69,15 +69,15 @@
 				<div class="admin">
 					<table>
 						<thead>
-							<th>Right</th><th>Options</th>
+							<th>Permission</th><th>Options</th>
 						</thead>
-						<tbody id="user_rights">
+						<tbody id="user_permissions">
 						</tbody>
 					</table>
 
-					<label id="rights">Add right: <br />
-						<input type="text" id="user_right" />
-						<span class="button" onclick="cmail.user.add_right()">Add</span>
+					<label id="permissions">Add permission: <br />
+						<input type="text" id="user_permission" />
+						<span class="button" onclick="cmail.user.add_permission()">Add</span>
 					</label>
 
 					<div class="separator"></div>
@@ -88,42 +88,29 @@
 			</form>
 		</div>
 
-		<div id="msaadd" class="editPanel">
+		<div id="smtpdadd" class="editPanel">
 			<form>
-				<input type="hidden" id="form_msa_type" value="new"/>
+				<input type="hidden" id="form_smtpd_type" value="new"/>
 				<label>Username <br />
-					<input id="msa_user" list="usernamelist" type="text" />
-				</label>
-
-				<div class="separator"></div>
-
-				<label>Inrouter <br />
-					<select id="msa_inrouter">
-					</select>
-				</label>
-
-				<div class="separator"></div>
-
-				<label>Inroute <br />
-					<input id="msa_inroute" type="text" />
+					<input id="smtpd_user" list="usernamelist" type="text" />
 				</label>
 
 				<div class="separator"></div>
 
 				<label>Outrouter <br />
-					<select id="msa_outrouter">
+					<select id="smtpd_router">
 					</select>
 				</label>
 
 				<div class="separator"></div>
 
 				<label>Outroute <br />
-					<input id="msa_outroute" type="text" />
+					<input id="smtpd_route" type="text" />
 				</label>
 				<div class="separator"></div>
 
-				<span class="button" onclick="cmail.msa.save()">Save</span>
-				<span class="button" onclick="cmail.msa.hide_form()">Cancel</span>
+				<span class="button" onclick="cmail.smtpd.save()">Save</span>
+				<span class="button" onclick="cmail.smtpd.hide_form()">Cancel</span>
 			</form>
 		</div>
 
@@ -142,13 +129,18 @@
 				</label>
 
 				<div class="separator"></div>
-
-				<label>User <br />
-					<input id="address_user" list="usernamelist" type="text" />
+				
+				<label>Inrouter <br />
+					<select id="address_router">
+					</select>
 				</label>
 
 				<div class="separator"></div>
+				<label>Inroute <br />
+					<input id="address_route" type="text" />
+				</label>
 
+				<div class="separator"></div>
 				<span class="button" onclick="cmail.address.save()">Save</span>
 				<span class="button" onclick="cmail.address.hide_form()">Cancel</span>
 			</form>
@@ -212,7 +204,7 @@
 			</div>
 			<table>
 				<thead>
-					<th>Address Expression</th><th>Order</th><th>User</th><th>Options</th>
+					<th>Address Expression</th><th>Order</th><th>Inrouter</th><th>Inroute</th><th>Options</th>
 				</thead>
 
 				<tbody id="addresslist">
@@ -223,19 +215,19 @@
 
 		</div>
 
-		<div id="msa" class="tab">
-			<h2>MSA Config</h2>
+		<div id="smtpd" class="tab">
+			<h2>SMTPD Config</h2>
 			<br />
-			<div id="msa_action_bar">
-				<span class="button" onclick="cmail.msa.show_form()">Add</span>
+			<div id="smtpd_action_bar">
+				<span class="button" onclick="cmail.smtpd.show_form()">Add</span>
 			</div>
 
 			<table>
 				<thead>
-					<th>User</th><th>Inrouter</th><th>Inroute</th><th>Outrouter</th><th>Outroute</th><th>Options</th>
+					<th>User</th><th>Outrouter</th><th>Outroute</th><th>Options</th>
 				</thead>
 
-				<tbody id="msalist">
+				<tbody id="smtpdlist">
 				</tbody>
 			</table>
 
@@ -270,14 +262,14 @@
 
 			<br />
 
-			<form action="javascript:cmail.msa.test()">
+			<form action="javascript:cmail.smtpd.test()">
 				<label>Mail address: <br />
-					<input type="text" id="msa_test_input" value="" />
-					<select id="msa_test_router">
+					<input type="text" id="smtpd_test_input" value="" />
+					<select id="smtpd_test_router">
 						<option value="inrouter">Inrouter</option>
 						<option value="outrouter">Outrouter</option>
 					</select>
-					<span class="button" onclick="cmail.msa.test()">Test</span>
+					<span class="button" onclick="cmail.smtpd.test()">Test</span>
 				</label>
 
 				<br />
@@ -289,7 +281,7 @@
 						</tr>
 					</thead>
 
-					<tbody id="msa_test_steps">
+					<tbody id="smtpd_test_steps">
 					</tbody>
 				</table>
 			</form>
@@ -305,6 +297,6 @@
 		<script src="static/js/delegates.js"></script>
 		<script src="static/js/address.js"></script>
 		<script src="static/js/user.js"></script>
-		<script src="static/js/msa.js"></script>
+		<script src="static/js/smtpd.js"></script>
 	</body>
 </html>

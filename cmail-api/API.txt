@@ -17,7 +17,7 @@ config.php file in the module list.
 - Address	Module for handling addresses
 - Delegate	Module for delegating users or address ranges
   		to other users. Required for permission "delegate"
-- MSA		MSA configuration module
+- SMTPD		SMTPD configuration module
 - POP		POP configuration module
 - Mailbox	Module used for the webmailer (not recommended)
 
@@ -71,7 +71,7 @@ Parameter:
 	user_authdata: (optional) Plaintext user password (If not set or blank,
 				the created user will not have authenticated access
 				to the system)
-	rights: (optional) Array of permissions to grant to the new user
+	permissions: (optional) Array of permissions to grant to the new user
 				(Refer to the permissions section below)
 	}
 
@@ -95,30 +95,30 @@ Parameter:
 				access is not/no longer granted)
 	}
 
-==== /users/?delete_right ====
+==== /users/?delete_permission ====
 Revoke a permission for a specific user.
 
 Parameter:
 	{
 	user_name: User to modify
-	user_right: Permission to revoke (Refer to permissions section below)
+	user_permission: Permission to revoke (Refer to permissions section below)
 	}
 
-==== /users/?add_right ====
+==== /users/?add_permission ====
 Grant a permission to a specific user.
 
 Parameter:
 	{
 	user_name: User to modify
-	user_right: Permission to grant (Refer to permissions section below)
+	user_permission: Permission to grant (Refer to permissions section below)
 	}
 
-==== /users/?update_rights ====
+==== /users/?update_permissions ====
 Set the permission list for a user to match exactly the permissions specified,
 deleting and adding permissions where necessary.
 
 Parameter:
 	{
 	user_name: User to modify
-	user_rights: Array of permissions (Refer to permissions section below)
+	user_permissions: Array of permissions (Refer to permissions section below)
 	}

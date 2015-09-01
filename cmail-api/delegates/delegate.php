@@ -68,11 +68,11 @@
 		 */
 		public function get($write = true) {
 
-			if ($this->auth->hasRight("admin")) {
+			if ($this->auth->hasPermission("admin")) {
 				$sql_user = "SELECT * FROM api_user_delegates";
 				$sql_addresses = "SELECT * FROM api_address_delegates";
 				$params = array();
-			} else if ($this->auth->hasRight("delegate")) {
+			} else if ($this->auth->hasPermission("delegate")) {
 				$sql_user = "SELECT * FROM api_user_delegates WHERE api_user = :api_user";
 				$sql_addresses = "SELECT * FROM api_address_delegates WHERE api_user = :api_user";
 				$params = array(
@@ -142,7 +142,7 @@
 			}
 			$auth = Auth::getInstance($this->db, $this->output);
 
-			if (!$auth->hasRight("admin") && !$delegated) {
+			if (!$auth->hasPermission("admin") && !$delegated) {
 				return false;
 			}
 
@@ -168,7 +168,7 @@
 			}
 			$auth = Auth::getInstance($this->db, $this->output);
 
-			if (!$auth->hasRight("admin")) {
+			if (!$auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -195,7 +195,7 @@
 				$this->output->add("status", "Address expression is not set.");
 				return false;
 			}
-			if (!$auth->hasRight("admin")) {
+			if (!$auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -221,7 +221,7 @@
 				$this->output->add("status", "Address expression is not set.");
 				return false;
 			}
-			if (!$auth->hasRight("admin")) {
+			if (!$auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}

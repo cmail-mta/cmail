@@ -4,7 +4,7 @@ var cmail = {
 	 */
 	inrouter: [
 		"store",
-		"forward",
+		"redirect",
 		"handoff",
 		"drop",
 		"reject"
@@ -48,7 +48,7 @@ var cmail = {
 		"user",
 		"delegates",
 		"address",
-		"msa",
+		"smtpd",
 		"pop",
 		"test"
 	],
@@ -127,8 +127,8 @@ var cmail = {
 	},
 	fill_router: function() {
 
-		var inrouter = gui.elem("msa_inrouter");
-		var outrouter = gui.elem("msa_outrouter");
+		var inrouter = gui.elem("address_router");
+		var outrouter = gui.elem("smtpd_router");
 
 		// fill inrouter
 		this.inrouter.forEach(function(val) {

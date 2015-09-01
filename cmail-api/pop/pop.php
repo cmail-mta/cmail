@@ -87,8 +87,8 @@
 
 			$auth = Auth::getInstance($this->db, $this->output);
 
-			if (!$auth->hasRight("admin")) {
-				if ($auth->hasRight("delegate")) {
+			if (!$auth->hasPermission("admin")) {
+				if ($auth->hasPermission("delegate")) {
 					return $this->getDelegated();
 				} else {
 					return $this->getByUser($auth->getUser());

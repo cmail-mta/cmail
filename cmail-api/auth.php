@@ -7,7 +7,7 @@ class Auth {
 	private $db;
 	private $output;
 	private $authorized;
-	private $rights;
+	private $permissions;
 	private $user;
 	private $delegates_user = NULL;
 	private $delegates_address = NULL;
@@ -17,13 +17,13 @@ class Auth {
 		$this->db = $db;
 		$this->output = $output;
 		$this->authorized = false;
-		$this->rights = array();
+		$this->permissions = array();
 	}
 
 	// save
 	public function __sleep() {
 
-		return array("rights", "user", "delegates_user", "delegates_address", "authorized");
+		return array("permissions", "user", "delegates_user", "delegates_address", "authorized");
 	}
 
 	/**
@@ -56,13 +56,13 @@ class Auth {
 	}
 
 	/**
-	 * Checks if the authorized users has the given right
-	 * @param right to check
+	 * Checks if the authorized users has the given permission
+	 * @param permission to check
 	 * @returns true or false
 	 */
-	public function hasRight($right) {
+	public function hasPermission($permission) {
 
-		if (isset($this->rights[$right]) && $this->rights[$right]) {
+		if (isset($this->permissions[$permission]) && $this->permissions[$permission]) {
 			return true;
 		}
 
@@ -83,11 +83,11 @@ class Auth {
 			return false;
 		}
 
-		if ($this->hasRight("admin")) {
+		if ($this->hasPermission("admin")) {
 			return true;
 		}
 
-		if (!$this->hasRight("delegate")) {
+		if (!$this->hasPermission("delegate")) {
 			return false;
 		}
 
@@ -101,6 +101,31 @@ class Auth {
 		}
 
 		return false;
+	}
+
+	public function hasDelegatedAddress($address) {
+		if (!$this->isAuthorized()) {
+			return false;
+		}
+
+		if ($this->hasPermission("admin")) {
+			return true;
+		}
+
+		if (!$this->hasPermission("delegate")) {
+			return false;
+		}
+
+		$sql = "SELECT count(*) AS test FROM api_address_delegates WHERE :address LIKE api_expression";
+
+		$params = array(
+			":address" => $address
+		);
+
+		$out = $this->db->query($sql, $params, DB::F_SINGLE_ASSOC);
+		
+		return ($out["test"] > 0);
+
 	}
 
 	/**
@@ -170,9 +195,9 @@ class Auth {
 
 	}
 
-	private function getRights() {
+	private function getPermissions() {
 
-		$sql = "SELECT api_right FROM api_access WHERE api_user = :api_user";
+		$sql = "SELECT api_permission FROM api_access WHERE api_user = :api_user";
 
 		$params = array(
 			":api_user" => $this->user
@@ -180,11 +205,11 @@ class Auth {
 
 		$out = $this->db->query($sql, $params, DB::F_ARRAY);
 
-		foreach($out as $right) {
-			$this->rights[$right["api_right"]] = true;
+		foreach($out as $permission) {
+			$this->permissions[$permission["api_permission"]] = true;
 		}
 
-		$this->output->add("rights", $this->rights);
+		$this->output->add("permissions", $this->permissions);
 	}
 
 	/**
@@ -208,8 +233,7 @@ class Auth {
 
 		// cache
 		if ($this->authorized) {
-
-			$this->output->add("rights", $this->rights);
+			$this->output->add("permissions", $this->permissions);
 			return true;
 		}
 
@@ -256,7 +280,7 @@ class Auth {
 		$this->authorized = ($password[1] === $pass);
 
 		if ($this->authorized) {
-			$this->getRights();
+			$this->getPermissions();
 			$_SESSION['auth'] = serialize($this);
 		}
 
