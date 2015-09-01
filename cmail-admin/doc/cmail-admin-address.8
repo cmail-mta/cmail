@@ -1,7 +1,6 @@
 .TH CMAIL-ADMIN-ADDRESS 8 "August 2015" "v0.1" "cmail Administration Tools"
 .SH NAME
-cmail-admin-address \- Configure expressions designating valid recipient paths
-for the cmail system 
+cmail-admin-address \- Configure inbound path expressions for cmail
 .SH SYNOPSIS
 .BI "cmail-admin-address [ --dbpath " "master-database-file" " ] [ --verbosity " N
 .BI " | -v " N " ] [ --help | -h ] " "mode" " "  "mode-options"
@@ -78,6 +77,59 @@ $ cmail-admin-address delete 9001
 .B Example:
 $ cmail-admin-address swap 9001 9002
 .RE
+
+.SH ROUTERS
+Inbound routers are processing function applied to mail for each path in the recipients list, some of wich take an additional argument.
+
+.TP
+.BI "store " username
+.RI "Store the received mail to the inbox of " username ". Note that this does not resolve aliases. If "
+.IR username " is not set or not a valid user, this router behaves the same way as the "
+.BR reject " router."
+
+.TP
+.BI "handoff " remote-spec
+Have incoming mail for this path be handled by a remote mail server
+.BR "(smart host) " "by simply reusing the original envelope with the new remote. If "
+.IR remote-spec " is not set, this router behaves the same way as the
+.BR reject " router. If the "
+.IR remote-spec " is invalid, the outbound smtp client will generate a bounce notification message after "
+a configured amount of retries.
+
+.TP
+.BI "redirect " new-recipient
+.RI "Rewrite the envelope recipient of the mail according to " new-recipient ", which may optionally contain"
+any of the following variables:
+.RS
+.BR "	(to-local)" "	will be replaced with the local part of the recipient path"
+.RE
+.RS
+.BR "	(from-local)" "	will be replaced with the local part of the reverse path"
+.RE
+.RS
+.BR "	(to-domain)" "	will be replaced with the domain part of the recipient path"
+.RE
+.RS
+.BR "	(from-domain)" "	will be replaced with the domain part of the reverse path"
+.RE
+
+.RS
+.RI "If " new-recipient " is not set, this router will behave the same way as the"
+.BR reject " router. If " new-recipient " is an invalid path, the outbound smtp client will generate"
+a bounce notification message after a configured amount of retries.
+
+Note that no router rewrites the header or body section of a mail. Therefore, the original
+recipient may still appear in the relevant headers.
+.RE
+
+.TP
+.BI "reject " [reason]
+Reject the recipient path (SMTP 551), optionally presenting
+.IR reason " as failure reason."
+
+.TP
+.B drop
+Accept but quietly drop incoming mail for this recipient path.
 
 .SH BUGS
 For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.

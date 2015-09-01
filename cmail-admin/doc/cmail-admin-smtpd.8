@@ -43,9 +43,10 @@ Optionally, filter the list for user names matching
 .IR expression "."
 
 .TP
-.BI "enable " "username [router [router-argument]]"
+.BI "enable " "username [router [router-argument] ]"
 .RI "Add " username " to the ACL, thus allowing SMTP authentication for this user. Users must exist and" 
-have valid login credentials to successfully authenticate with the smtpd. User management may for example be done with
+have valid login credentials to successfully authenticate with the smtpd. User management tasks may for example 
+be performed with
 .BR cmail-admin-user (8)
 .RS
 .B Example:
@@ -68,6 +69,38 @@ only from authenticating with the SMTP daemon and originating it.
 .B Example:
 $ cmail-admin-smtpd disable cbdev
 .RE
+
+.SH ROUTERS
+Outbound routers are filters limiting the paths which a user may user as reverse paths
+.RB "in originated mails (that is, they limit the addresses a user may " send " from)."
+
+.TP
+.BI any
+Accept any reverse path
+
+.TP
+.BI defined
+.RB "Accept only reverse paths that have a " store " router pointing back to the authorized"
+.RB "user. Note that while there needs to be a " store " router set to the user, it need not be"
+the one actually taken when the path is routed inbound.
+
+.TP
+.BI "handoff " remote-spec
+.RB "Have originated mail by this user handled by another SMTP server " (smarthost) "."
+This effectively relays the entire envelope section verbatim to the remote server.
+.RI "If the " remote-spec " is not set, this router behaves the same way as"
+.RB "the " drop " router. If"
+.RI "the " remote-spec " is invalid,  the outbound smtp client will generate a bounce notification"
+message after a configured amount of retries.
+
+.TP
+.BI "reject " [reason]
+Reject any reverse path (SMTP 551), optionally presenting
+.IR reason " as failure reason."
+
+.TP
+.BI drop
+Accept any reverse path, but quietly drop all originated mail for this user.
 
 .SH BUGS
 For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.
