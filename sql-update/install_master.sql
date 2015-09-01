@@ -82,8 +82,8 @@ BEGIN TRANSACTION;
 		api_user 		TEXT	NOT NULL
 						REFERENCES users ( user_name ) 	ON DELETE CASCADE
 										ON UPDATE CASCADE,
-		api_right		TEXT	NOT NULL,
-		CONSTRAINT api_user_right UNIQUE ( api_user, api_right ) ON CONFLICT FAIL
+		api_permission		TEXT	NOT NULL,
+		CONSTRAINT api_user_permission UNIQUE ( api_user, api_permission ) ON CONFLICT FAIL
 	);
 
 	CREATE TABLE api_address_delegates (

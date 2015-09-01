@@ -30,4 +30,16 @@ BEGIN TRANSACTION;
 	INSERT INTO smtpd (smtpd_user, smtpd_router, smtpd_route) SELECT msa_user, msa_outrouter, msa_outroute FROM msa;
 	DROP TABLE msa;
 
+	-- rename column api_right to api_permission in api_access --
+	ALTER TABLE api_access RENAME TO api_access_temp;
+	CREATE TABLE api_access (
+		api_user	TEXT	NOT NULL
+					REFERENCES users (user_name)	ON DELETE CASCADE
+									ON UPDATE CASCADE,
+		api_permission	TEXT	NOT NULL,
+		CONSTRAINT api_user_permission UNIQUE (api_user, api_permission) ON CONFLICT FAIL
+	);
+	INSERT INTO api_access(api_user, api_permission) SELECT api_user, api_right FROM api_access_temp;
+	DROP api_access_temp; 
+
 COMMIT;
