@@ -104,8 +104,6 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originating_user, bool is_reverse){
 	int status, rv = -1;
 
-	//TODO this should also directly test if an authenticated/authorized user may use a path outbound
-
 	//this early exit should never have to be taken
 	if(path->route.router){
 		logprintf(log, LOG_WARNING, "Taking early exit for path %s, please notify the developers\n", path->path);
@@ -139,16 +137,16 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 				path->route.router = common_strdup((char*)sqlite3_column_text(database->query_address, 0));
 				path->route.argument = common_strdup((char*)sqlite3_column_text(database->query_address, 1));
 
-				//check for reject
-				if(!strcmp(path->route.router, "reject")){
-					rv = 1;
-					break;
-				}
-
 				if(!path->route.router){
 					logprintf(log, LOG_ERROR, "Failed to allocate storage for routing data\n");
 					//fail temporarily
 					rv = -1;
+					break;
+				}
+
+				//check for reject
+				if(!strcmp(path->route.router, "reject")){
+					rv = 1;
 					break;
 				}
 
