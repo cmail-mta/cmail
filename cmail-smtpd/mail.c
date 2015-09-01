@@ -83,6 +83,8 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE
 		rv = mail_route(log, mail, database);
 	}
 
+	//may check for invalid routers here
+
 	return rv;
 }
 

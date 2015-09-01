@@ -20,6 +20,7 @@ BEGIN TRANSACTION;
 	DROP TABLE addresses;
 	ALTER TABLE addresses_upd9 RENAME TO addresses;
 	CREATE INDEX idx_addr_router ON addresses (address_router, address_route);
+	UPDATE addresses SET address_router = 'redirect' WHERE address_router = 'forward';
 
 	CREATE TABLE smtpd (
 		smtpd_user		TEXT PRIMARY KEY NOT NULL REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE,

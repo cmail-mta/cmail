@@ -150,7 +150,7 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 			}
 		}
 	}
-	else if(!strcmp(current_path->route.router, "forward")){
+	else if(!strcmp(current_path->route.router, "redirect")){
 		if(current_path->route.argument){
 			//FIXME this should be ensured to be properly terminated
 			strncpy(forward_path, current_path->route.argument, sizeof(forward_path) - 1);
@@ -161,13 +161,13 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 			strncpy(path_replacement, current_path->path, current_path->delimiter_position);
 			path_replacement[current_path->delimiter_position] = 0;
 			if(common_strrepl(forward_path, sizeof(forward_path), "(to-local)", path_replacement) < 0){
-				logprintf(log, LOG_ERROR, "Failed to replace to-local variable in forward router\n");
+				logprintf(log, LOG_ERROR, "Failed to replace to-local variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
 			}
 
 			if(!rv && current_path->path[current_path->delimiter_position] && common_strrepl(forward_path, sizeof(forward_path), "(to-domain)", current_path->path + current_path->delimiter_position + 1) < 0){
-				logprintf(log, LOG_ERROR, "Failed to replace to-domain variable in forward router\n");
+				logprintf(log, LOG_ERROR, "Failed to replace to-domain variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
 			}
@@ -176,14 +176,14 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 				strncpy(path_replacement, mail->reverse_path.path, mail->reverse_path.delimiter_position);
 				path_replacement[mail->reverse_path.delimiter_position] = 0;
 				if(common_strrepl(forward_path, sizeof(forward_path), "(from-local)", path_replacement) < 0){
-					logprintf(log, LOG_ERROR, "Failed to replace from-local variable in forward router\n");
+					logprintf(log, LOG_ERROR, "Failed to replace from-local variable in redirect router\n");
 					//fail the transaction
 					rv = -1;
 				}
 			}
 
 			if(!rv && current_path->path[current_path->delimiter_position] && common_strrepl(forward_path, sizeof(forward_path), "(from-domain)", mail->reverse_path.path + mail->reverse_path.delimiter_position + 1) < 0){
-				logprintf(log, LOG_ERROR, "Failed to replace from-domain variable in forward router\n");
+				logprintf(log, LOG_ERROR, "Failed to replace from-domain variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
 			}
