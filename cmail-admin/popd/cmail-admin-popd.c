@@ -10,20 +10,21 @@
 
 #define PROGRAM_NAME "cmail-admin-popd"
 
-int usage(char* fn) {
+int usage(char* fn){
+	printf("cmail-admin-popd - Manage cmail-popd ACL\n");
+	printf("This program is part of the cmail administration toolkit\n");
+	printf("Usage: %s <options> <commands> <arguments>\n\n", fn);
 
+	printf("Basic options:\n");
+	printf("\t--verbosity, -v\t\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\t\tSet master database path (Default: %s)\n", DEFAULT_DBPATH);
+	printf("\t--help, -h\t\t\tDisplay this help message\n");
 
-	printf("cmail-admin-popd: Administration tool for cmail-popd.\n");
-	printf("usage:\n");
-	printf("\t--verbosity, -v\t\tSet verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\tpath to master database\n");
-	printf("\t--help, -h\t\tshows this help\n");
-	printf("\tenable <user>\t\tenables <user> for pop\n");
-	printf("\tdisable <user>\t\tdisables <user> for pop\n");
-	printf("\tunlock <user>\t\tunlocks the given user.\n");
-	printf("\tlist [<user>]\t\tlist all popd entries or if defined only popd entries like <user>\n");
-	printf("\n");
-
+	printf("Commands:\n");
+	printf("\tenable <user>\t\tAdd the user to the ACL\n");
+	printf("\tdisable <user>\t\tRemove the user from the ACL\n");
+	printf("\tunlock <user>\t\tUnlock the maildrop, use in emergencies only!\n");
+	printf("\tlist [<filter>]\t\tList all active users, optionally filter by <filter>\n");
 	return 1;
 }
 

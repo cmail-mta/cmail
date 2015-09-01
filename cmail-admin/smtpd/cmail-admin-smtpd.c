@@ -9,7 +9,7 @@
 #define PROGRAM_NAME "cmail-admin-smtpd"
 
 int usage(char* fn) {
-	printf("cmail-admin-smtpd - Manage cmail-smtpd ACLs\n");
+	printf("cmail-admin-smtpd - Manage cmail-smtpd ACL\n");
 	printf("This program is part of the cmail administration toolkit\n");
 	printf("Usage: %s <options> <commands> <arguments>\n\n", fn);
 

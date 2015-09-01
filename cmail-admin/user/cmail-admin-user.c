@@ -66,10 +66,12 @@ int usage(char* fn){
 	printf("cmail-admin-users - Add, modify or delete cmail users\n");
 	printf("This program is part of the cmail administration toolkit\n");
 	printf("Usage: %s <options> <commands> <arguments>\n", fn);
+
 	printf("Basic options:\n");
 	printf("\t--verbosity, -v\t\t\tSet verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\t\tSet master database path (Default: %s)\n", DEFAULT_DBPATH);
 	printf("\t--help, -h\t\t\tDisplay this help message\n");
+
 	printf("Commands:\n");
 	printf("\tadd <username> [<password>]\tAdd an user\n");
 	printf("\tpassword <user> [<pw>]\t\tUpdate a users password\n");
