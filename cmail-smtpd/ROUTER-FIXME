@@ -1,4 +1,2 @@
 Originating router is now a member of the client structure, proper memory release and acquiry must be observed
-Unauthorized outbound paths need to be rejected in early communication (needs originating_router)
-Originating reverse paths need to be tested against the outbound routing setup
 Test origination with fixed user

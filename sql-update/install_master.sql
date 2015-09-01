@@ -16,14 +16,6 @@ BEGIN TRANSACTION;
 		address_route		TEXT
 	);
 
-	-- This index ensures that cmail-admin-address parameters exactly match one address entry
-	-- With update 9 this became redundant because address_user was replaced and address_order is already
-	-- indexed as primary key
-	CREATE UNIQUE INDEX idx_addr_ident ON addresses (
-		address_expression,
-		address_order
-	);
-
 	CREATE INDEX idx_addr_router ON addresses (
 		address_router,
 		address_route
