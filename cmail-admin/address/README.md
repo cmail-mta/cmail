@@ -12,32 +12,31 @@ Actions
 
 add
 -------
-Syntax: ``` add <expression> <username> [<order>] ```
+Syntax: ``` add <expression> <router> [<router argument> [<order>]] ```
 
-This adds an address to the list.
+Create a new inbound path entry.
 
-Every address is assigned to an user (added with the [cmail-admin-user](../user/) tool).
 The address expression _< expression >_ can be a full address (like ``` test@test.com ```)
 or an SQL string pattern (see https://www.sqlite.org/lang_expr.html#like).
 
-As example for a pattern you can assign all postmaster addresses with ``` postmaster@% ```.
-To sort the matching of addresses you can provide an order to every expression.
-The match with the highest order will get the incoming mail. Valid values are higher than zero and must be unique.
+Example: To assign all paths beginning with `postmaster`, create an entry with the expression ``` postmaster% ```.
+Inbound paths are matched against all expressions, sorted by their order value descending. The entry
+with the highest weight will be taken.
 
 delete
 ------
-Syntax: ``` delete <expression> ```
+Syntax: ``` delete <order> ```
 
-Deletes a given address expression from database. The expression has to match an expression in list (Wildcards will not be interpreted).
+Deletes an expression from database.
 
-switch
+swap
 ------
-Syntax: ``` switch <exp1> <exp2> ```
+Syntax: ``` swap <first> <second> ```
 
-This switches the order of two expressions. This means _< exp1 >_ has then the order number of _< exp2 >_ and vice versa.
+This switches the order of two expressions.
 
 list
 ----
 Syntax: ``` list [<expression>] ```
 
-Lists all addresses in database. If an expression is provided it only shows matched addresses.
+Lists all addresses in database. If an expression is provided it only shows matching addresses.

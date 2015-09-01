@@ -63,8 +63,8 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 }
 
 int usage(char* fn){
-	printf("cmail-admin-user: Part of the administration tool suite for cmail.\n");
-	printf("Add, modify or delete cmail users.\n");
+	printf("cmail-admin-users - Add, modify or delete cmail users\n");
+	printf("This program is part of the cmail administration toolkit\n");
 	printf("Usage: %s <options> <commands> <arguments>\n", fn);
 	printf("Basic options:\n");
 	printf("\t--verbosity, -v\t\t\tSet verbosity level (0 - 4)\n");
