@@ -40,6 +40,6 @@ BEGIN TRANSACTION;
 		CONSTRAINT api_user_permission UNIQUE (api_user, api_permission) ON CONFLICT FAIL
 	);
 	INSERT INTO api_access(api_user, api_permission) SELECT api_user, api_right FROM api_access_temp;
-	DROP api_access_temp; 
+	DROP TABLE api_access_temp; 
 
 COMMIT;
