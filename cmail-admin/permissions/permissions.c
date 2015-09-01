@@ -2,15 +2,15 @@ int sqlite_exec_select(LOGGER log, sqlite3_stmt* stmt) {
 
 	int status;
 	const char* user;
-	const char* right;
+	const char* permission;
 
 	printf("%20s | %10s\n%s\n", "User", "Permission", "---------------------+-----------");
 
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
 
 		user = (const char*) sqlite3_column_text(stmt, 0);
-		right = (const char*) sqlite3_column_text(stmt, 1);
-		printf("%20s | %10s\n", user, right);
+		permission = (const char*) sqlite3_column_text(stmt, 1);
+		printf("%20s | %10s\n", user, permission);
 	}
 
 	sqlite3_finalize(stmt);
@@ -71,10 +71,10 @@ int sqlite_get_delegated(LOGGER log, sqlite3* db, const char* username) {
 	return sqlite_get_delegated_addresses(log, db, username);
 }
 
-int sqlite_get_rights(LOGGER log, sqlite3* db, const char* username) {
+int sqlite_get_permissions(LOGGER log, sqlite3* db, const char* username) {
 
 
-	char* sql = "SELECT api_user, api_right FROM api_access WHERE api_user LIKE ?";
+	char* sql = "SELECT api_user, api_permission FROM api_access WHERE api_user LIKE ?";
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 
@@ -90,9 +90,9 @@ int sqlite_get_rights(LOGGER log, sqlite3* db, const char* username) {
 	return sqlite_exec_select(log, stmt);
 }
 
-int sqlite_get_rights_by_right(LOGGER log, sqlite3* db, const char* right) {
+int sqlite_get_permissions_by_permission(LOGGER log, sqlite3* db, const char* permission) {
 
-	char*  sql = "SELECT api_user, api_right FROM api_access WHERE api_right LIKE ?";
+	char*  sql = "SELECT api_user, api_permission FROM api_access WHERE api_permission LIKE ?";
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 
@@ -100,8 +100,8 @@ int sqlite_get_rights_by_right(LOGGER log, sqlite3* db, const char* right) {
 		return 2;
 	}
 
-	if (sqlite3_bind_text(stmt, 1, right, -1, SQLITE_STATIC) != SQLITE_OK) {
-		logprintf(log, LOG_ERROR, "Cannot bind right.\n");
+	if (sqlite3_bind_text(stmt, 1, permission, -1, SQLITE_STATIC) != SQLITE_OK) {
+		logprintf(log, LOG_ERROR, "Cannot bind permission.\n");
 		return 3;
 	}
 
@@ -109,7 +109,7 @@ int sqlite_get_rights_by_right(LOGGER log, sqlite3* db, const char* right) {
 
 }
 
-int sqlite_delete_rights(LOGGER log, sqlite3* db, const char* user) {
+int sqlite_delete_permissions(LOGGER log, sqlite3* db, const char* user) {
 
 	char* sql = "DELETE FROM api_access WHERE api_user = ?";
 
@@ -200,9 +200,9 @@ int sqlite_delete_address_delegation(LOGGER log, sqlite3* db, const char* user, 
 
 	return 0;
 }
-int sqlite_delete_right(LOGGER log, sqlite3* db, const char* user, const char* right) {
+int sqlite_delete_permission(LOGGER log, sqlite3* db, const char* user, const char* permission) {
 
-	char* sql = "DELETE FROM api_access WHERE api_user = ? AND api_right = ?";
+	char* sql = "DELETE FROM api_access WHERE api_user = ? AND api_permission = ?";
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 	if (!stmt) {
@@ -215,8 +215,8 @@ int sqlite_delete_right(LOGGER log, sqlite3* db, const char* user, const char* r
 		return 3;
 	}
 
-	if (sqlite3_bind_text(stmt, 2, right, -1, SQLITE_STATIC) != SQLITE_OK) {
-		logprintf(log, LOG_INFO, "Cannot bind right.\n");
+	if (sqlite3_bind_text(stmt, 2, permission, -1, SQLITE_STATIC) != SQLITE_OK) {
+		logprintf(log, LOG_INFO, "Cannot bind permission.\n");
 		sqlite3_finalize(stmt);
 		return 3;
 	}
@@ -228,16 +228,16 @@ int sqlite_delete_right(LOGGER log, sqlite3* db, const char* user, const char* r
 	}
 
 	if (sqlite3_changes(db) < 1) {
-		printf("User not found or user doesn't have this right.\n");
+		printf("User not found or user doesn't have this permission.\n");
 	}
 	sqlite3_finalize(stmt);
 
 	return 0;
 }
 
-int sqlite_add_right(LOGGER log, sqlite3* db, const char* user, const char* right) {
+int sqlite_add_permission(LOGGER log, sqlite3* db, const char* user, const char* permission) {
 
-        char* sql = "INSERT INTO api_access (api_user, api_right) VALUES (?, ?)";
+        char* sql = "INSERT INTO api_access (api_user, api_permission) VALUES (?, ?)";
 
         sqlite3_stmt* stmt = database_prepare(log, db, sql);
         if (!stmt) {
@@ -250,8 +250,8 @@ int sqlite_add_right(LOGGER log, sqlite3* db, const char* user, const char* righ
                 return 3;
         }
 
-	if (sqlite3_bind_text(stmt, 2, right, -1, SQLITE_STATIC) != SQLITE_OK) {
-		logprintf(log, LOG_ERROR, "Cannot bind right\n");
+	if (sqlite3_bind_text(stmt, 2, permission, -1, SQLITE_STATIC) != SQLITE_OK) {
+		logprintf(log, LOG_ERROR, "Cannot bind permission\n");
 		sqlite3_finalize(stmt);
 		return 3;
 	}

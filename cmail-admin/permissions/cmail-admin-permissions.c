@@ -13,7 +13,7 @@
 
 int usage(char* fn) {
 
-	printf("cmail-admin-permissions: Administration tool for cmail-rights.\n");
+	printf("cmail-admin-permissions: Administration tool for cmail-permissions.\n");
 	printf("usage:\n");
 	printf("\n");
 	printf("options:\n");
@@ -24,7 +24,7 @@ int usage(char* fn) {
 	printf("\tgrant <user> <permissions>\t\t\t adds the given permission to the user\n");
 	printf("\trevoke <user> [<permission> [, <permission>]] \t revokes the given permission or all permissions if no permission is given from the user\n");
 	printf("\tlist [<user>]\t\t\t\t list all permissions or permissions of the given user (or like the user expression)\n");
-	printf("\trlist <right>\t\t\t\t list all users like the given permission\n");
+	printf("\trlist <permission>\t\t\t\t list all users like the given permission\n");
 	printf("\tdelete user <delete>\t\t\t\t delete the user delegation from user\n");
 	printf("\tdelete expression <delete>\t\t\t delete the address space delegation from user\n");
 	printf("\tdelegate user <user> <delegated>\t delegates a user to the given <user>\n");
@@ -42,7 +42,7 @@ int mode_grant(LOGGER log, sqlite3* db, int argc, char** argv) {
 		return 20;
 	}
 
-	return sqlite_add_right(log, db, argv[1], argv[2]);
+	return sqlite_add_permission(log, db, argv[1], argv[2]);
 }
 
 int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv) {
@@ -56,11 +56,11 @@ int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv) {
 		// for every permission
 		for (i = 2; i < argc; i++) {
 			if (!status) {
-				status = sqlite_delete_right(log, db, argv[1], argv[i]);
+				status = sqlite_delete_permission(log, db, argv[1], argv[i]);
 			}
 		}
 	} else {
-		status = sqlite_delete_rights(log, db, argv[1]);
+		status = sqlite_delete_permissions(log, db, argv[1]);
 	}
 	return status;
 }
@@ -128,7 +128,7 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
 		filter = argv[1];
 	}
 
-	return sqlite_get_rights(log, db, filter);
+	return sqlite_get_permissions(log, db, filter);
 }
 
 int mode_rlist(LOGGER log, sqlite3* db, int argc, char** argv) {
@@ -138,7 +138,7 @@ int mode_rlist(LOGGER log, sqlite3* db, int argc, char** argv) {
 		return 20;
 	}
 
-	return sqlite_get_rights_by_right(log, db, argv[1]);
+	return sqlite_get_permissions_by_permission(log, db, argv[1]);
 }
 
 int main(int argc, char* argv[]) {
