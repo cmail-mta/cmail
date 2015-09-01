@@ -16,7 +16,7 @@ BEGIN TRANSACTION;
 		address_route		TEXT
 	);
 
-	INSERT INTO addresses_upd9 (address_expression, address_order, address_router, address_route) SELECT address_expression, address_order, COALESCE(msa_inrouter, 'drop'), msa_inroute FROM addresses LEFT JOIN msa ON address_user = msa_user;
+	INSERT INTO addresses_upd9 (address_expression, address_order, address_router, address_route) SELECT address_expression, address_order, COALESCE(msa_inrouter, 'drop'), CASE msa_inrouter WHEN 'store' THEN msa_user ELSE msa_inroute END FROM addresses LEFT JOIN msa ON address_user = msa_user;
 	DROP TABLE addresses;
 	ALTER TABLE addresses_upd9 RENAME TO addresses;
 	CREATE INDEX idx_addr_router ON addresses (address_router, address_route);
