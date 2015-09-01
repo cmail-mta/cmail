@@ -5,38 +5,35 @@
 #include <time.h>
 
 #include "../cmail-admin.h"
-
-#include "msa.c"
-
+#include "smtpd.c"
 #define PROGRAM_NAME "cmail-admin-smtpd"
 
 int usage(char* fn) {
+	printf("cmail-admin-smtpd - Manage cmail-smtpd ACLs\n");
+	printf("This program is part of the cmail administration toolkit\n");
+	printf("Usage: %s <options> <commands> <arguments>\n\n", fn);
 
-	printf("%s: Administration tool for cmail-smtpd.\n", PROGRAM_NAME);
-	printf("usage:\n");
-	printf("\t--verbosity, -v\t\t\t\tSet verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t\t\tSet master database\n");
-	printf("\t--help, -h\t\t\t\tDisplay this help\n");
-	printf("\tadd <user>\t\t\t\tAdd <user> to smtpd ACL (using default configuration values)\n");
-	printf("\tdelete <user>\t\t\t\tDelete <user> from smtpd ACL\n");
-	printf("\tupdate <router> <user> <rtype> [<arg>]\tUpdate the routers for <user>\n");
-	printf("\tlist [<user>]\t\t\t\tList currently active entries, optionally filtered by <user>\n");
-	printf("\n");
-	printf("Available routers:\n");
-	printf("\toutrouter\trouting options for outgoing\n");
-	printf("\tinrouter\trouting options for incoming\n");
-	printf("For more see documentation.\n");
+	printf("Basic options:\n");
+	printf("\t--verbosity, -v\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\tSet master database path (Default: %s)\n", DEFAULT_DBPATH);
+	printf("\t--help, -h\t\tDisplay this help message\n");
+
+	printf("Commands:\n");
+	printf("\tenable <user> [<router> [<router-argument>]]\tAdd <user> to smtpd ACL\n");
+	printf("\tdisable <user>\t\t\t\t\tDelete <user> from smtpd ACL\n");
+	printf("\tupdate <user> <router> [<router-argument>]\tUpdate the origination router for <user>\n");
+	printf("\tlist [<user>]\t\t\t\t\tList currently active entries, optionally filtered by <user>\n");
 
 	return 10;
 }
 
 int mode_add(LOGGER log, sqlite3* db, int argc, char** argv) {
-
-	if (argc != 2) {
-		logprintf(log, LOG_ERROR, "No user name supplied\n");
+	if (argc < 2) {
+		logprintf(log, LOG_ERROR, "Missing arguments\n");
 		return -1;
 	}
-	return sqlite_add_msa_default(log, db, argv[1]);
+
+	return sqlite_add_msa(log, db, argv[1], (argc > 2) ? argv[2]:NULL, (argc > 3) ? argv[3]:NULL);
 }
 
 int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv) {
@@ -59,22 +56,12 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
 }
 
 int mode_update(LOGGER log, sqlite3* db, int argc, char** argv) {
-
-	const char* arguments = NULL;
-	if (argc < 2 ) {
-		logprintf(log, LOG_ERROR, "No router supplied\n");
+	if (argc < 3 ) {
+		logprintf(log, LOG_ERROR, "Missing arguments\n");
 		return -1;
-	} else if (argc < 3 ) {
-		logprintf(log, LOG_ERROR, "No user supplied\n");
-		return -2;
-	} else if (argc < 4) {
-		logprintf(log, LOG_ERROR, "No router type supplied\n");
-		return -3;
-	} else {
-		arguments = argv[4];
 	}
 
-	return sqlite_update_msa(log, db, argv[1], argv[2], argv[3], arguments);
+	return sqlite_update_msa(log, db, argv[1], argv[2], (argc > 3) ? argv[3]:NULL);
 }
 
 // common stuff for parsing (needs usage method above)
@@ -131,10 +118,10 @@ int main(int argc, char* argv[]) {
 
 	int status = 20;
 
-	if (!strcmp(cmds[0], "add")) {
+	if (!strcmp(cmds[0], "enable")) {
 		status = mode_add(log, db, cmdsc, cmds);
-	}  else if (!strcmp(cmds[0], "delete")) {
-		status = mode_list(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "disable")) {
+		status = mode_delete(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "update")) {
 		status = mode_update(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "list")) {

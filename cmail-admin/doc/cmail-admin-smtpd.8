@@ -1,0 +1,87 @@
+.TH CMAIL-ADMIN-SMTPD 8 "August 2015" "v0.1" "cmail Administration Tools"
+.SH NAME
+cmail-admin-smtpd \- Configure origination routing for cmail-smtpd
+.SH SYNOPSIS
+.BI "cmail-admin-smtpd [ --dbpath " "master-database-file" " ] [ --verbosity " N
+.BI " | -v " N " ] [ --help | -h ] " "mode" " "  "mode-options"
+.SH DESCRIPTION
+.B cmail-admin-smtpd
+allows the administrator of a cmail system to configure how originated mail
+(mail that is being sent by a local, authenticated user) is handled
+by the SMTP daemon.
+
+.SH OPTIONS
+.TP 
+.BI "--dbpath " master-database-file ", -d " master-database-file
+Select an alternate master database file instead of the default
+.IR /etc/cmail/databases/master.db3 .
+This overrides the database path provided by the
+.B CMAIL_MASTER_DB
+environment variable.
+.TP
+.BI "--verbose " N ", -v " N
+Increase verbosity on a scale of
+.B 0
+to 
+.B 4
+.TP
+.B "--help, -h"
+Print helpful hints about operating the program
+.SH FILES
+.I /etc/cmail/databases/master.db3
+.RS
+Default path of the master database when installed system-wide. May be overridden either by specifying the
+.B CMAIL_MASTER_DB
+environment variable or by supplying the
+.BR "--dbpath " parameter.
+.SH MODES
+
+.TP
+.BI "list " [expression]
+List all users currently able to authenticate with the SMTP daemon. 
+Optionally, filter the list for user names matching
+.IR expression "."
+
+.TP
+.BI "enable " "username [router [router-argument]]"
+.RI "Add " username " to the ACL, thus allowing SMTP authentication for this user. Users must exist and" 
+have valid login credentials to successfully authenticate with the smtpd. User management may for example be done with
+.BR cmail-admin-user (8)
+.RS
+.B Example:
+$ cmail-admin-smtpd add cbdev any
+.RE
+
+.TP
+.BI "update " "user router [router-argument]"
+Update an existing entry in the ACL with new routing data.
+.RS
+.B Example:
+$ cmail-admin-smtpd update cbdev reject "No more mail, please"
+.RE
+
+.TP
+.BI "disable " user
+Remove a user from the ACL. Note that this does not prevent the user from receiving mail,
+only from authenticating with the SMTP daemon and originating it.
+.RS
+.B Example:
+$ cmail-admin-smtpd disable cbdev
+.RE
+
+.SH BUGS
+For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.
+.SH AUTHORS
+ Jan "mpease" Duepmeier <me at mpease dot de>  
+ Fabian "cbdev" Stumpf <fjs at fabianstumpf dot de>  
+.SH "SEE ALSO"
+Online documentation and homepage at http://cmail.rocks/
+.PP
+.BR cmail-admin-address (8),
+.BR cmail-admin-user (8),
+.BR cmail-admin-popd (8),
+.BR cmail-smtpd (8),
+.BR cmail-popd (8),
+.BR cmail-dispatchd (8),
+.BR cmail-master-database (5)
+
