@@ -9,6 +9,7 @@ BEGIN TRANSACTION;
 	-- database changes --
 	DROP INDEX IF EXISTS idx_addressexpr_per_user;
 	
+	-- Update the address table
 	CREATE TABLE addresses_upd9 (
 		address_expression	TEXT	NOT NULL, -- UNIQUE constraint breaks some tricks and should not be needed (ordering is enforced)
 		address_order		INTEGER	PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
@@ -20,8 +21,11 @@ BEGIN TRANSACTION;
 	DROP TABLE addresses;
 	ALTER TABLE addresses_upd9 RENAME TO addresses;
 	CREATE INDEX idx_addr_router ON addresses (address_router, address_route);
+
+	-- Rename the forward router to redirect
 	UPDATE addresses SET address_router = 'redirect' WHERE address_router = 'forward';
 
+	-- Update the smtp ACL table
 	CREATE TABLE smtpd (
 		smtpd_user		TEXT PRIMARY KEY NOT NULL REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE,
 		smtpd_router		TEXT NOT NULL DEFAULT ('drop'),
