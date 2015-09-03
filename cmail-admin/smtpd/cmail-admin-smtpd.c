@@ -16,13 +16,13 @@ int usage(char* fn) {
 	printf("Basic options:\n");
 	printf("\t--verbosity, -v\t\tSet verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\tSet master database path (Default: %s)\n", DEFAULT_DBPATH);
-	printf("\t--help, -h\t\tDisplay this help message\n");
+	printf("\t--help, -h\t\tDisplay this help message\n\n");
 
 	printf("Commands:\n");
-	printf("\tenable <user> [<router> [<router-argument>]]\tAdd <user> to smtpd ACL\n");
-	printf("\tdisable <user>\t\t\t\t\tDelete <user> from smtpd ACL\n");
-	printf("\tupdate <user> <router> [<router-argument>]\tUpdate the origination router for <user>\n");
 	printf("\tlist [<user>]\t\t\t\t\tList currently active entries, optionally filtered by <user>\n");
+	printf("\tenable <user> [<router> [<router-argument>]]\tAdd <user> to smtpd ACL\n");
+	printf("\tupdate <user> <router> [<router-argument>]\tUpdate the origination router for <user>\n");
+	printf("\tdisable <user>\t\t\t\t\tDelete <user> from smtpd ACL\n");
 
 	return 10;
 }
