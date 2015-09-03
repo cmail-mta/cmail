@@ -307,6 +307,7 @@ int maildrop_delete(LOGGER log, sqlite3_stmt* deletion_stmt, char* user_name){
 
 int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* user_name){
 	int status = 0;
+	logprintf(log, LOG_INFO, "Performing deletions\n");
 
 	//delete mails from master
 	if(maildrop_delete(log, database->delete_master, user_name) < 0){
@@ -326,10 +327,6 @@ int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* us
 	}
 	else{
 		logprintf(log, LOG_DEBUG, "Not deleting from user database, none attached\n");
-	}
-
-	if(!status){
-		logprintf(log, LOG_INFO, "Deletions performed\n");
 	}
 
 	return status;
