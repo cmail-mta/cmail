@@ -1,8 +1,8 @@
 var cmail = cmail || {};
 
 cmail.address = {
-	get: function(expression) {
-		var xhr = ajax.syncPost(cmail.api_url + "addresses/?get", JSON.stringify({ address_expression: expression}));
+	get: function(address) {
+		var xhr = ajax.syncPost(cmail.api_url + "addresses/?get", JSON.stringify(address));
 		var addresses = JSON.parse(xhr.response).addresses;
 
 		return addresses[0];
@@ -40,7 +40,8 @@ cmail.address = {
 				var tr = gui.create("tr");
 				tr.appendChild(gui.createColumn(address.address_expression));
 				tr.appendChild(gui.createColumn(address.address_order));
-				tr.appendChild(gui.createColumn(address.address_user));
+				tr.appendChild(gui.createColumn(address.address_router));
+				tr.appendChild(gui.createColumn(address.address_route));
 
 				var options = gui.create("td");
 				if (last_address) {
@@ -57,19 +58,20 @@ cmail.address = {
 					button.style.visibility = "hidden";
 					options.appendChild(button);
 				}
-				options.appendChild(gui.createButton("edit", self.show_form, [address.address_expression], self));
-				options.appendChild(gui.createButton("delete", self.delete, [address.address_expression], self));
+				options.appendChild(gui.createButton("edit", self.show_form, [address], self));
+				options.appendChild(gui.createButton("delete", self.delete, [address], self));
 
 				tr.appendChild(options);
 				addresslist.appendChild(tr);
 			};
 		});
 	},
-	show_form: function(expression) {
-		if (expression) {
+	show_form: function(obj) {
+		if (obj) {
 			gui.elem("form_address_type").value = "edit";
 
-			var address = this.get(expression);
+			// get the newest entry
+			var address = this.get(obj);
 
 			if (!address) {
 				cmail.set_status("Address not found!");
@@ -79,13 +81,15 @@ cmail.address = {
 			gui.elem("address_expression").value = address.address_expression;
 			gui.elem("address_expression").disabled = true;
 			gui.elem("address_order").value = address.address_order;
-			gui.elem("address_user").value = address.address_user;
+			gui.elem("address_router").value = address.address_router;
+			gui.elem("address_route").value = address.address_route;
 		} else {
 			gui.elem("form_address_type").value = "new";
 			gui.elem("address_expression").value = "";
 			gui.elem("address_expression").disabled = false;
 			gui.elem("address_order").value = "";
-			gui.elem("address_user").value = "";
+			gui.elem("address_router").value = "";
+			gui.elem("address_route").value = "";
 		}
 
 		gui.elem("addressadd").style.display = "block";
@@ -93,10 +97,10 @@ cmail.address = {
 	hide_form: function() {
 		gui.elem("addressadd").style.display = "none";
 	},
-	delete: function(expression) {
+	delete: function(obj) {
 		var self = this;
-		if (confirm("Do you really delete the address " + expression + "?") == true) {
-			ajax.asyncPost(cmail.api_url + "addresses/?delete", JSON.stringify({address_expression: expression}), function(xhr) {
+		if (confirm("Do you really delete the item with order: " + obj.address_order + " (" + obj.address_expression + ")?") == true) {
+			ajax.asyncPost(cmail.api_url + "addresses/?delete", JSON.stringify(obj), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
 			});
@@ -107,7 +111,8 @@ cmail.address = {
 		var address = {
 			address_expression: gui.elem("address_expression").value,
 			address_order: gui.elem("address_order").value,
-			address_user: gui.elem("address_user").value
+			address_router: gui.elem("address_router").value,
+			address_route: gui.elem("address_route").value
 		};
 
 		if (gui.elem("form_address_type").value === "new") {

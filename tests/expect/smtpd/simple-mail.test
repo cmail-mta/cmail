@@ -1,29 +1,30 @@
 #!/usr/bin/expect -f
 
-set host "127.0.0.1"
-set port "2502"
-set mailfrom "expect-test@cmail.rocks"
-set mailto "test@kitinfo.de"
+set mailfrom "sender@bar.baz" 
+set mailto "recipient@bar.baz"
+set subject "Simple mail from $mailfrom to $mailto"
 
-spawn gnutls-cli --crlf --starttls --insecure --port $port $host
+source ../primitives/smtp_init
 
-expect "220 "
-send "EHLO test-client\r"
-expect "250 "
-sleep 1
+puts [exec reset_database]
+exec cmail-admin-user add recipient recipient
 
 send "MAIL FROM:<$mailfrom>\r"
 expect "250 "
+
+send "RCPT TO:<$mailto>\r"
+expect "551 "
+
+exec cmail-admin-address add "$mailto" recipient
+exec cmail-admin-smtpd add recipient
+exec cmail-admin-smtpd update inrouter recipient reject
+
+send "RCPT TO:<$mailto>\r"
+expect "551 "
+
+exec cmail-admin-smtpd update inrouter recipient store
+
 send "RCPT TO:<$mailto>\r"
 expect "250 "
-sleep 1
 
-send "DATA\r"
-expect "354 "
-sleep 1
-
-send "To: $mailto\r"
-send "From: $mailfrom\r"
-send "Subject: Test via expect\r"
-send "\r\nMessage body.\r\n.\r"
-expect "250 "
+source ../primitives/smtp_data

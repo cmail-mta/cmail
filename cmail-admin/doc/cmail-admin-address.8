@@ -1,7 +1,6 @@
 .TH CMAIL-ADMIN-ADDRESS 8 "August 2015" "v0.1" "cmail Administration Tools"
 .SH NAME
-cmail-admin-address \- Configure expressions designating valid recipient paths
-for the cmail system 
+cmail-admin-address \- Configure inbound path expressions for cmail
 .SH SYNOPSIS
 .BI "cmail-admin-address [ --dbpath " "master-database-file" " ] [ --verbosity " N
 .BI " | -v " N " ] [ --help | -h ] " "mode" " "  "mode-options"
@@ -9,9 +8,9 @@ for the cmail system
 .B cmail-admin-address
 allows the administrator of a cmail server system to create, modify and delete
 address entries, which are tuples of an address expression, an address order
-and the name of the user the entry is mapped to. Inbound paths are matched against 
-the set of all configured entries, ordered totally by the address order with the 
-highest order value being matched first.
+and routing information describing how mail adressed to the path is to be handled. 
+Inbound paths are matched against the set of all configured entries, ordered totally by the 
+address order, with the highest order value being matched first.
 Expressions may contain arbitrary-length wildcards (
 .B %
 ) and single-character wildcards (
@@ -52,34 +51,85 @@ environment variable or by supplying the
 List all address entries contained in the database. Optionally, filter the list for entries matching
 .IR expression "."
 .TP
-.BI "add " "expression username [order]"
-Add an address entry with the specified
-.IR "expression" " mapped to the specified " user ", optionally with an explicitly given " order "."
-Users must exist, eg. by creating them with
-.BR "cmail-admin-user (8)" .
+.BI "add " "expression router [router-argument [order]]"
+Add an inbound path entry for the provided
+.IR "expression" ", to be handled by the specified " router ". Some routers may require a " router-argument "."
+.RI "Optionally, an " order " value may be provided, which will be assigned to the path unless there is already an active entry using that " order
 .RS
 .B Example:
-$ cmail-admin-address add "%@cbcdn.com" cbdev
+$ cmail-admin-address add "%@cbcdn.com" store cbdev
 .RE
 
 .TP
-.BI "delete " "expression user"
-Delete address entry matching the specified
-.IR expression " and " user "."
-Wildcards are not matched for this mode.
+.BI "delete " "order"
+Delete the expression entry assigned the given
+.IR order .
 .RS
 .B Example:
-$ cmail-admin-address delete "%@cbcdn.com" cbdev
+$ cmail-admin-address delete 9001
 .RE
 
 .TP
-.BI "switch " "first second"
-.RB "Swap the " order " values of the two entries indicated by the expressions " 
+.BI "swap " "first second"
+.RB "Swap the " order " values of the two entries indicated by the given order values " 
 .IR first " and " second "."
 .RS
 .B Example:
-$ cmail-admin-address switch "%@cbcdn.com" "%@bar.baz"
+$ cmail-admin-address swap 9001 9002
 .RE
+
+.SH ROUTERS
+Inbound routers are processing function applied to mail for each path in the recipients list, some of wich take an additional argument.
+
+.TP
+.BI "store " username
+.RI "Store the received mail to the inbox of " username ". Note that this does not resolve aliases. If "
+.IR username " is not set or not a valid user, this router behaves the same way as the "
+.BR reject " router."
+
+.TP
+.BI "handoff " remote-spec
+Have incoming mail for this path be handled by a remote mail server
+.BR "(smart host) " "by simply reusing the original envelope with the new remote. If "
+.IR remote-spec " is not set, this router behaves the same way as the
+.BR reject " router. If the "
+.IR remote-spec " is invalid, the outbound smtp client will generate a bounce notification message after "
+a configured amount of retries.
+
+.TP
+.BI "redirect " new-recipient
+.RI "Rewrite the envelope recipient of the mail according to " new-recipient ", which may optionally contain"
+any of the following variables:
+.RS
+.BR "	(to-local)" "	will be replaced with the local part of the recipient path"
+.RE
+.RS
+.BR "	(from-local)" "	will be replaced with the local part of the reverse path"
+.RE
+.RS
+.BR "	(to-domain)" "	will be replaced with the domain part of the recipient path"
+.RE
+.RS
+.BR "	(from-domain)" "	will be replaced with the domain part of the reverse path"
+.RE
+
+.RS
+.RI "If " new-recipient " is not set, this router will behave the same way as the"
+.BR reject " router. If " new-recipient " is an invalid path, the outbound smtp client will generate"
+a bounce notification message after a configured amount of retries.
+
+Note that no router rewrites the header or body section of a mail. Therefore, the original
+recipient may still appear in the relevant headers.
+.RE
+
+.TP
+.BI "reject " [reason]
+Reject the recipient path (SMTP 551), optionally presenting
+.IR reason " as failure reason."
+
+.TP
+.B drop
+Accept but quietly drop incoming mail for this recipient path.
 
 .SH BUGS
 For a discussion of pitfalls and possible sources of misconfigurations refer to the CAVEATS.txt file in the source distribution.

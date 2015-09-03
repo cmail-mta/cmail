@@ -1,0 +1,40 @@
+#!/usr/bin/expect -f
+
+source ../primitives/common
+source ../primitives/db_init
+run reset_database
+
+proc entries {num {condition ""}} {
+	send "SELECT COUNT(*) FROM popd $condition;\r"
+	expect {
+		"$num\r" {
+		}
+		"sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	expect "sqlite>"
+}
+
+if { [ catch { run cmail-admin-popd enable mpease } ] == 0 } {
+	send_user "Foreign key constraint not enforced\n"
+	exit 1
+}
+entries 0
+
+run cmail-admin-user add mpease mpease
+run cmail-admin-popd enable mpease
+entries 1 "WHERE pop_lock = 0 AND pop_user = 'mpease'"
+
+send "UPDATE popd SET pop_lock = 1 WHERE 1;\r"
+expect "sqlite>"
+entries 1 "WHERE pop_lock = 1"
+
+run cmail-admin-popd unlock mpease
+entries 1 "WHERE pop_lock = 0"
+
+run cmail-admin-popd disable mpease
+entries 0
+
+send_user "Done."

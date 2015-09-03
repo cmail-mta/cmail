@@ -1,7 +1,7 @@
 var cmail = cmail || {};
 
 cmail.user = {
-	user_rights: [],
+	user_permissions: [],
 	/**
 	 * Returns a single user object from api
 	 * @param name name of the user
@@ -72,12 +72,12 @@ cmail.user = {
 
 		self.fill_username_list(list);
 		console.log(obj);
-		self.setRights(obj.rights);
+		self.setPermissions(obj.permissions);
 		});
 
 	},
-	setRights: function(rights) {
-		if(!rights["admin"]) {
+	setPermissions: function(permissions) {
+		if(!permissions["admin"]) {
 			var style = gui.create('link');
 			style.setAttribute("rel", "stylesheet");
 			style.setAttribute("type", "text/css");
@@ -86,7 +86,7 @@ cmail.user = {
 			return;
 		}
 
-		if (!rights["delegate"] && !rights["admin"]) {
+		if (!permissions["delegate"] && !permissions["admin"]) {
 			var style = gui.create('link');
 			style.setAttribute("rel", "stylesheet");
 			style.setAttribute("type", "text/css");
@@ -102,36 +102,36 @@ cmail.user = {
 			userlist.appendChild(gui.createOption("", username));
 		});
 	},
-	delete_right: function(tr, right) {
-		var index = this.user_rights.indexOf(right);
+	delete_permission: function(tr, permission) {
+		var index = this.user_permissions.indexOf(permission);
 
 		if (index < 0) {
 			return;
 		}
 
-		this.user_rights.splice(index, 1);
-		gui.elem("user_rights").removeChild(tr);
+		this.user_permissions.splice(index, 1);
+		gui.elem("user_permissions").removeChild(tr);
 	},
-	add_right: function() {
-		var right = gui.elem("user_right").value;
-		this.appendRight(right);
+	add_permission: function() {
+		var permission = gui.elem("user_permission").value;
+		this.appendPermission(permission);
 	},
-	appendRight: function(right) {
+	appendPermission: function(permission) {
 
 		var self = this;
-		this.user_rights.push(right);
-		var rights = gui.elem("user_rights");
+		this.user_permissions.push(permission);
+		var permissions = gui.elem("user_permissions");
 		var tr = gui.create('tr');
-		tr.appendChild(gui.createColumn(right));
+		tr.appendChild(gui.createColumn(permission));
 		var option = gui.create("td");
-		option.appendChild(gui.createButton("delete", self.delete_right, [tr, right], self));
+		option.appendChild(gui.createButton("delete", self.delete_permission, [tr, permission], self));
 		tr.appendChild(option);
-		rights.appendChild(tr);
+		permissions.appendChild(tr);
 	},
 	show_form: function(name) {
 		var self = this;
-		this.user_rights = [];
-		gui.elem("user_right").innerHTML = "";
+		this.user_permissions = [];
+		gui.elem("user_permission").innerHTML = "";
 		if (name) {
 			gui.elem("form_type").value = "edit";
 			var user = this.get(name);
@@ -146,10 +146,10 @@ cmail.user = {
 
 			gui.elem("user_alias").value = user.user_alias;
 
-			user_rights = gui.elem("user_rights");
-			user_rights.innerHTML = "";
-			user.user_rights.forEach(function(right) {
-				self.appendRight(right);
+			user_permissions = gui.elem("user_permissions");
+			user_permissions.innerHTML = "";
+			user.user_permissions.forEach(function(permission) {
+				self.appendPermission(permission);
 			});
 
 		} else {
@@ -158,7 +158,7 @@ cmail.user = {
 			gui.elem("user_name").value = "";
 			gui.elem("user_name").disabled = false;
 			gui.elem("user_alias").value = "";
-			gui.elem("user_rights").innerHTML = "";
+			gui.elem("user_permissions").innerHTML = "";
 
 		}
 
@@ -199,7 +199,7 @@ cmail.user = {
 		var user = {
 			user_name: gui.elem("user_name").value,
 			user_authdata: authdata,
-			user_rights: self.user_rights
+			user_permissions: self.user_permissions
 		};
 
 		if (gui.elem("form_type").value === "new") {
@@ -237,9 +237,9 @@ cmail.user = {
 				cmail.set_status(JSON.parse(xhr.response).status);
 			});
 
-			ajax.asyncPost(cmail.api_url + "users/?update_rights", JSON.stringify({
+			ajax.asyncPost(cmail.api_url + "users/?update_permissions", JSON.stringify({
 				user_name: user.user_name,
-				user_rights: self.user_rights
+				user_permissions: self.user_permissions
 			}), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();

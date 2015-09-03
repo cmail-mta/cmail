@@ -1,0 +1,8 @@
+#!/usr/bin/expect -f
+send "DATA\r"
+expect "354 "
+send "To: $mailto\r"
+send "From: $mailfrom\r"
+send "Subject: $subject\r"
+send "\r\nThis is a test message.\r\nSender was $mailfrom\r\nRecipient was $mailto.\r\n.\r"
+expect "250 "

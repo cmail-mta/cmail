@@ -88,7 +88,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 }
 
 int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int status = SASL_ERROR_PROCESSING;
 	char* method = NULL;
 	char* parameter = NULL;
@@ -130,24 +130,24 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			logprintf(log, LOG_ERROR, "Invalid state (SASL_OK) reached in AUTH, returning to IDLE\r\n");
 			//FIXME might want to reset sasl_user here
 			sasl_reset_ctx(&(client_data->sasl_context), false); //opting for security here, rather than freeing memory we do not own
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 			client_send(log, client, "500 Invalid state\r\n");
 			return -1;
 		case SASL_ERROR_PROCESSING:
 			logprintf(log, LOG_ERROR, "SASL processing error\r\n");
 			sasl_reset_ctx(&(client_data->sasl_context), true);
 			client_send(log, client, "454 Internal Error\r\n");
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 			return 0;
 		case SASL_ERROR_DATA:
 			logprintf(log, LOG_ERROR, "SASL failed to parse data\r\n");
 			sasl_reset_ctx(&(client_data->sasl_context), true);
 			client_send(log, client, "501 Invalid data provided\r\n");
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 			return -1;
 		case SASL_UNKNOWN_METHOD:
-			logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer+5);
-			client_data->state=STATE_IDLE;
+			logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer + 5);
+			client_data->state = STATE_IDLE;
 			sasl_reset_ctx(&(client_data->sasl_context), false);
 			client_send(log, client, "504 Unknown mechanism\r\n");
 			return -1;
@@ -157,7 +157,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			return 0;
 		case SASL_DATA_OK:
 			sasl_reset_ctx(&(client_data->sasl_context), true);
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 
 			//check auth data
 			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
@@ -177,6 +177,8 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return 0;
 			}
 
+			client_data->originating_route = route_query(log, database, client_data->sasl_user.authorized);
+
 			logprintf(log, LOG_INFO, "Client authenticated as %s\n", client_data->sasl_user.authenticated);
 			client_send(log, client, "235 Authenticated\r\n");
 
@@ -184,19 +186,19 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			#ifndef CMAIL_NO_TLS
 			switch(client_data->listener->tls_mode){
 				case TLS_ONLY:
-					client_data->current_mail.protocol="sesmtpa";
+					client_data->current_mail.protocol = "sesmtpa";
 					break;
 				case TLS_NEGOTIATE:
-					if(client->tls_mode==TLS_ONLY){
-						client_data->current_mail.protocol="esmtpsa";
+					if(client->tls_mode == TLS_ONLY){
+						client_data->current_mail.protocol = "esmtpsa";
 						break;
 					}
 				case TLS_NONE:
-					client_data->current_mail.protocol="esmtpa";
+					client_data->current_mail.protocol = "esmtpa";
 					break;
 			}
 			#else
-			client_data->current_mail.protocol="esmtpa";
+			client_data->current_mail.protocol = "esmtpa";
 			#endif
 
 			//decrease the failscore
@@ -208,8 +210,8 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 }
 
 int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "noop", 4)){
 		logprintf(log, LOG_INFO, "Client noop\n");
@@ -262,10 +264,10 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				return -1;
 			case AUTH_TLSONLY:
 				#ifndef CMAIL_NO_TLS
-				if(client->tls_mode!=TLS_ONLY){
+				if(client->tls_mode != TLS_ONLY){
 				#endif
 					logprintf(log, LOG_WARNING, "Non-TLS client tried to auth on auth-tlsonly listener\n");
-					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is market obsolete
+					client_send(log, client, "504 Encryption required\r\n"); //FIXME 538 might be better, but is marked obsolete
 					return -1;
 				#ifndef CMAIL_NO_TLS
 				}
@@ -280,7 +282,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				break;
 		}
 
-		client_data->state=STATE_AUTH;
+		client_data->state = STATE_AUTH;
 		return smtpstate_auth(log, client, database, path_pool);
 	}
 
@@ -291,6 +293,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		logprintf(log, LOG_DEBUG, "Client protocol: %s\n", client_data->current_mail.protocol);
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
 		logprintf(log, LOG_DEBUG, "AUTH Status %s, Authentication: %s, Authorization: %s\n", client_data->sasl_context.method!=SASL_INVALID?"active":"inactive", client_data->sasl_user.authenticated ? client_data->sasl_user.authenticated:"none", client_data->sasl_user.authorized ? client_data->sasl_user.authorized:"none");
+		logprintf(log, LOG_DEBUG, "Originating router: %s (%s)\n", client_data->originating_route.router?client_data->originating_route.router:"none", client_data->originating_route.argument?client_data->originating_route.argument:"none");
 		#ifndef CMAIL_NO_TLS
 		logprintf(log, LOG_DEBUG, "TLS State: %s\n", tls_modestring(client->tls_mode));
 		#endif
@@ -320,7 +323,7 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 
 		logprintf(log, LOG_INFO, "Client initiates mail transaction\n");
 		//extract reverse path and store it
-		if(path_parse(log, client_data->recv_buffer+10, &(client_data->current_mail.reverse_path))<0){
+		if(path_parse(log, client_data->recv_buffer + 10, &(client_data->current_mail.reverse_path)) < 0){
 			client_send(log, client, "501 Path rejected\r\n");
 			return -1;
 		}
@@ -328,33 +331,52 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		//resolve reverse path
 		switch(path_resolve(log, &(client_data->current_mail.reverse_path), database, client_data->sasl_user.authorized, true)){
 			case 0:
-				//either local or unknown
-				//TODO filter local origin from unauthenticated connections
+				//reverse path contains either store or null router.
+				//check origination routing data for action to take
+				if(client_data->sasl_user.authenticated && client_data->sasl_user.authorized){
+					if(!client_data->originating_route.router || !strcmp(client_data->originating_route.router, "reject")){
+						client_send(log, client, "551 %s\r\n", client_data->originating_route.argument ? client_data->originating_route.argument:"User not allowed to use this path");
+						path_reset(&(client_data->current_mail.reverse_path));
+						return -1;
+					}
+					else if(!strcmp(client_data->originating_route.router, "any")){
+						//accept anything
+					}
+					else if(!strcmp(client_data->originating_route.router, "defined")){
+						if(!client_data->current_mail.reverse_path.route.router
+								|| !client_data->current_mail.reverse_path.route.argument
+								|| strcmp(client_data->current_mail.reverse_path.route.router, "store")
+								|| strcmp(client_data->current_mail.reverse_path.route.argument, client_data->sasl_user.authorized)){
+							//no valid store router pointing back at the user, fail the reverse path
+							client_send(log, client, "551 User not allowed to use this path\r\n");
+							path_reset(&(client_data->current_mail.reverse_path));
+							return -1;
+						}
+						else{
+							//the path resolves back to the originating user, accept it
+						}
+					}
+				}
+				else{
+					//filtering of local reverse paths for unauthenticated connections might take place here
+				}
 				break;
 			case 1:
-				//reject router
-				logprintf(log, LOG_DEBUG, "Originating mail rejected due to router setting\n");
-				client_send(log, client, "550 User not allowed to originate mail\r\n");
-				return -1;
+				//inbound reject router (should not be able to happen anymore)
+				logprintf(log, LOG_ERROR, "Inbound reject router applied to reverse path, please notify the developers!\n");
+				break;
 			default:
 				//resolution failed
 				logprintf(log, LOG_INFO, "Failed to resolve reverse path\n");
+				path_reset(&(client_data->current_mail.reverse_path));
 				client_send(log, client, "451 Path rejected\r\n");
 				return 0;
-		}
-
-		if(client_data->sasl_user.authenticated){
-			if(route_outbound(log, database, client_data->sasl_user.authorized, &(client_data->current_mail.reverse_path))<0){
-				//sending for this user/path combination prohibited
-				client_send(log, client, "550 Authenticated user cannot use this path\r\n");
-				return -1;
-			}
 		}
 
 		//TODO call plugins for spf, etc
 
 		client_send(log, client, "250 OK\r\n");
-		client_data->state=STATE_RECIPIENTS;
+		client_data->state = STATE_RECIPIENTS;
 		return 0;
 	}
 
@@ -371,20 +393,20 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 }
 
 int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 	unsigned i;
 	MAILPATH* current_path;
 
 	if(!strncasecmp(client_data->recv_buffer, "rcpt to:", 8)){
 		//get slot in forward_paths
-		for(i=0;i<SMTP_MAX_RECIPIENTS;i++){
+		for(i = 0; i < SMTP_MAX_RECIPIENTS; i++){
 			if(!client_data->current_mail.forward_paths[i]){
 				break;
 			}
 		}
 
-		if(i==SMTP_MAX_RECIPIENTS){
+		if(i == SMTP_MAX_RECIPIENTS){
 			//too many recipients, fail this one
 			logprintf(log, LOG_INFO, "Mail exceeded recipient limit\n");
 			client_send(log, client, "452 Too many recipients\r\n");
@@ -392,7 +414,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		}
 
 		//get path from pool
-		current_path=pathpool_get(log, path_pool);
+		current_path = pathpool_get(log, path_pool);
 		if(!current_path){
 			logprintf(log, LOG_ERROR, "Failed to get path, failing recipient\n");
 			client_send(log, client, "452 Recipients pool maxed out\r\n");
@@ -400,19 +422,20 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			return -1;
 		}
 
-		if(path_parse(log, client_data->recv_buffer+8, current_path)<0){
+		if(path_parse(log, client_data->recv_buffer + 8, current_path) < 0){
 			client_send(log, client, "501 Path rejected\r\n");
 			pathpool_return(current_path);
 			return -1;
 		}
 
+		//the last 2 parameters in this call _must_ be NULL/false to not trigger an invalid branch in this case
 		switch(path_resolve(log, current_path, database, NULL, false)){
 			case 0:
 				//continue path handling
 				break;
 			case 1:
 				//reject by router decision
-				client_send(log, client, "551 User does not accept mail\r\n");
+				client_send(log, client, "551 %s\r\n", current_path->route.argument ? current_path->route.argument:"User does not accept mail");
 				pathpool_return(current_path);
 				return -1;
 			default:
@@ -424,7 +447,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 				return 0;
 		}
 
-		if(!current_path->resolved_user){
+		if(!current_path->route.router){
 			//path not local, accept only if authenticated
 			if(!client_data->sasl_user.authenticated){
 				client_send(log, client, "551 Unknown user\r\n");
@@ -436,7 +459,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		//FIXME address deduplication?
 		//TODO call plugins
 
-		client_data->current_mail.forward_paths[i]=current_path;
+		client_data->current_mail.forward_paths[i] = current_path;
 		client_send(log, client, "250 Accepted\r\n");
 
 		//decrease the failscore
@@ -456,7 +479,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){
-		client_data->state=STATE_IDLE;
+		client_data->state = STATE_IDLE;
 		mail_reset(&(client_data->current_mail));
 		logprintf(log, LOG_INFO, "Client reset\n");
 		client_send(log, client, "250 Reset OK\r\n");
@@ -476,10 +499,10 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 			client_send(log, client, "503 No valid recipients\r\n");
 			return -1;
 		}
-		client_data->state=STATE_DATA;
+		client_data->state = STATE_DATA;
 
 		//write received: header
-		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain)<0){
+		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain) < 0){
 			logprintf(log, LOG_WARNING, "Failed to write received header\n");
 		}
 
@@ -540,7 +563,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 					}
 				}
 				else{
-					switch(mail_originate(log, client_data->sasl_user.authorized, &(client_data->current_mail), database)){
+					switch(mail_originate(log, client_data->sasl_user.authorized, &(client_data->current_mail), client_data->originating_route, database)){
 						case 250:
 							logprintf(log, LOG_INFO, "Originating mail accepted for user %s (auth %s) from %s\n", client_data->sasl_user.authorized, client_data->sasl_user.authenticated, client_data->peer_name);
 							client_send(log, client, "250 OK\r\n");

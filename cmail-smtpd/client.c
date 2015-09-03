@@ -90,9 +90,9 @@ bool client_timeout(LOGGER log, CONNECTION* client){
 	return delta > SMTP_SERVER_TIMEOUT;
 }
 
-int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
+int client_accept(LOGGER log, DATABASE* database, CONNECTION* listener, CONNPOOL* clients){
 	int client_slot=-1, flags;
-	LISTENER* listener_data=(LISTENER*)listener->aux_data;
+	LISTENER* listener_data = (LISTENER*)listener->aux_data;
 	CLIENT empty_data = {
 		.listener = listener,
 		.state = STATE_NEW,
@@ -106,7 +106,10 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 				.delimiter_position = 0,
 				.in_transaction = false,
 				.path = "",
-				.resolved_user = NULL
+				.route = {
+					.router = NULL,
+					.argument = NULL
+				}
 			},
 			.forward_paths = {
 				NULL
@@ -121,6 +124,10 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 			.header_offset = 0,
 			.data = NULL
 		},
+		.originating_route = {
+			.router = NULL,
+			.argument = NULL
+		},
 		.sasl_user = {
 			.authorized = NULL,
 			.authenticated = NULL
@@ -132,28 +139,28 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	};
 	CLIENT* actual_data;
 
-	if(connpool_active(*clients)>=CMAIL_MAX_CONCURRENT_CLIENTS){
+	if(connpool_active(*clients) >= CMAIL_MAX_CONCURRENT_CLIENTS){
 		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
 		return 1;
 	}
 
-	client_slot=connpool_add(clients, accept(listener->fd, NULL, NULL));
+	client_slot = connpool_add(clients, accept(listener->fd, NULL, NULL));
 
-	if(client_slot<0){
+	if(client_slot < 0){
 		logprintf(log, LOG_ERROR, "Failed to pool client socket\n");
 		return -1;
 	}
 
 	//set socket nonblocking
-	flags=fcntl(clients->conns[client_slot].fd, F_GETFL, 0);
-	if(flags<0){
-		flags=0;
+	flags = fcntl(clients->conns[client_slot].fd, F_GETFL, 0);
+	if(flags < 0){
+		flags = 0;
 	}
 	//FIXME check errno
-  	fcntl(clients->conns[client_slot].fd, F_SETFL, flags|O_NONBLOCK);
+	fcntl(clients->conns[client_slot].fd, F_SETFL, flags | O_NONBLOCK);
 
 	if(!(clients->conns[client_slot].aux_data)){
-		clients->conns[client_slot].aux_data=malloc(sizeof(CLIENT));
+		clients->conns[client_slot].aux_data = malloc(sizeof(CLIENT));
 		if(!clients->conns[client_slot].aux_data){
 			logprintf(log, LOG_ERROR, "Failed to allocate client data set\n");
 			return -1;
@@ -162,16 +169,16 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	else{
 		//preserve old data
 		//FIXME does this work?
-		actual_data=(CLIENT*)clients->conns[client_slot].aux_data;
-		empty_data.current_mail.data_allocated=actual_data->current_mail.data_allocated;
-		empty_data.current_mail.data=actual_data->current_mail.data;
+		actual_data = (CLIENT*)clients->conns[client_slot].aux_data;
+		empty_data.current_mail.data_allocated = actual_data->current_mail.data_allocated;
+		empty_data.current_mail.data = actual_data->current_mail.data;
 	}
 
 	//initialise / reset client data structure
-	actual_data=(CLIENT*)clients->conns[client_slot].aux_data;
+	actual_data = (CLIENT*)clients->conns[client_slot].aux_data;
 	*actual_data = empty_data;
 
-	if(client_resolve(log, &(clients->conns[client_slot]))<0){
+	if(client_resolve(log, &(clients->conns[client_slot])) < 0){
 		logprintf(log, LOG_WARNING, "Peer resolution failed\n");
 		//FIXME this might be bigger than we think
 	}
@@ -181,18 +188,22 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		actual_data->sasl_user.authorized = common_strdup(listener_data->fixed_user);
 		if(!actual_data->sasl_user.authenticated || !actual_data->sasl_user.authorized){
 			logprintf(log, LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
-			//dont fail here, its not critical
+			//TODO fail this connection
+		}
+		else{
+			//query routing data
+			actual_data->originating_route = route_query(log, database, actual_data->sasl_user.authorized);
 		}
 	}
 
-	actual_data->current_mail.submitter=actual_data->peer_name;
+	actual_data->current_mail.submitter = actual_data->peer_name;
 	logprintf(log, LOG_DEBUG, "Initialized client data to peername %s, submitter %s\n", actual_data->peer_name, actual_data->current_mail.submitter);
 
 	#ifndef CMAIL_NO_TLS
 	//if on tlsonly port, immediately wait for negotiation
-	if(listener->tls_mode==TLS_ONLY){
+	if(listener->tls_mode == TLS_ONLY){
 		logprintf(log, LOG_INFO, "Listen socket is TLSONLY, waiting for negotiation...\n");
-		clients->conns[client_slot].tls_mode=TLS_NEGOTIATE;
+		clients->conns[client_slot].tls_mode = TLS_NEGOTIATE;
 		return tls_init_serverpeer(log, &(clients->conns[client_slot]), listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
@@ -202,7 +213,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 }
 
 int client_close(CONNECTION* client){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	#ifndef CMAIL_NO_TLS
 	//shut down the tls session
@@ -221,6 +232,9 @@ int client_close(CONNECTION* client){
 
 	//reset authentication
 	sasl_reset_user(&(client_data->sasl_user), true);
+
+	//reset originating route
+	route_free(&(client_data->originating_route));
 
 	//return the connpool slot
 	client->fd = -1;

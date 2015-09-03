@@ -79,7 +79,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 			if(listeners.conns[i].fd > 0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
 				//handle new client
 				//FIXME handle return value
-				client_accept(log, &(listeners.conns[i]), &clients);
+				client_accept(log, database, &(listeners.conns[i]), &clients);
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 export PREFIX?=/usr/sbin
 export MKDIR?=mkdir -p
+export DOCDIR?=$(DESTDIR)/usr/share/man
 LOGDIR?=$(DESTDIR)/var/log/cmail
 CONFDIR?=$(DESTDIR)/etc/cmail
 DBDIR?=$(DESTDIR)$(CONFDIR)/databases
@@ -22,6 +23,10 @@ install:
 	@printf "Installing to %s%s\n" "$(DESTDIR)" "$(PREFIX)"
 	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
 	$(MAKE) -C cmail-admin install
+
+install-doc:
+	$(MAKE) -C doc install
+	$(MAKE) -C cmail-admin install-doc
 
 uninstall:
 	@printf "Removing daemon binaries from %s%s\n" "$(DESTDIR)" "$(PREFIX)"
@@ -101,6 +106,7 @@ clean:
 	@$(MAKE) -C cmail-popd clean
 	@$(MAKE) -C cmail-imapd clean
 	@$(MAKE) -C cmail-admin clean
+	@$(MAKE) -C doc clean
 
 cleanup-bins:
 	$(RM) $(which cmail-mta)

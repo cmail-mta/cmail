@@ -21,9 +21,9 @@
 			"add" => "add",
 			"delete" => "delete",
 			"set_password" => "set_password",
-			"delete_right" => "deleteRight",
-			"add_right" => "addRight",
-			"update_rights" => "updateRights",
+			"delete_permission" => "deletePermission",
+			"add_permission" => "addPermission",
+			"update_permissions" => "updatePermissions",
 			"update_alias" => "updateAlias"
 		);
 
@@ -105,14 +105,14 @@
 		 */
 		public function get($obj, $write = true) {
 
-			if ($this->auth->hasRight("admin")) {
+			if ($this->auth->hasPermission("admin")) {
 				if (!isset($obj["username"])) {
 					// if no username is set, return all users
 					return $this->getAll();
 				} else {
 					return $this->getByUser($obj["username"], $write);
 				}
-			} else if ($this->auth->hasRight("delegate")) {
+			} else if ($this->auth->hasPermission("delegate")) {
 				if (isset($obj["username"]) && !empty($obj["username"])) {
 					$users = $this->auth->getDelegateUsers();
 					$users[] = $this->auth->getUser();
@@ -121,7 +121,7 @@
 							return $this->getByUser($user);
 						}
 					}
-					$this->output->add("status", "User has no right to do this (not in delegated list).");
+					$this->output->add("status", "User has no permission to do this (not in delegated list).");
 					$this->output->add("users", []);
 					return [];
 				} else {
@@ -131,7 +131,7 @@
 				if (!isset($obj["username"]) || $obj["username"] == $this->auth->getUser()) {
 					return $this->getByUser($this->auth->getUser());
 				} else {
-					$this->output->add("status","User has no right to do this (not the user).");
+					$this->output->add("status","User has no permission to do this (not the user).");
 					$this->output->add("users", []);
 					return [];
 				}
@@ -162,16 +162,16 @@
 
 			$out["modules"] = $this->getActiveModules($out[0], $this->getModuleUserLists());
 
-			$right_sql = "SELECT api_right FROM api_access WHERE api_user = :api_user";
-			$right_params = array(
+			$permission_sql = "SELECT api_permission FROM api_access WHERE api_user = :api_user";
+			$permission_params = array(
 				":api_user" => $username
 			);
 
-			$rights = $this->db->query($right_sql, $right_params, DB::F_ARRAY);
-			$out[0]["user_rights"] = [];
+			$permissions = $this->db->query($permission_sql, $permission_params, DB::F_ARRAY);
+			$out[0]["user_permissions"] = [];
 
-			foreach($rights as $right) {
-				$out[0]["user_rights"][] = $right["api_right"];
+			foreach($permissions as $permission) {
+				$out[0]["user_permissions"][] = $permission["api_permission"];
 			}
 
 			if ($write) {
@@ -182,13 +182,13 @@
 		}
 
 		/**
-		 * Revokes a right from the given user.
+		 * Revokes a permission from the given user.
 		 * @param $user object with
 		 * 	"user_name"  => name of the user
-		 * 	"user_right" => name of the right
+		 * 	"user_permission" => name of the permission
 		 * @return true or false
 		 */
-		public function deleteRight($user) {
+		public function deletePermission($user) {
 
 
 			if (!isset($user["user_name"]) || empty($user["user_name"])) {
@@ -196,34 +196,34 @@
 				return false;
 			}
 
-			if (!isset($user["user_right"]) || empty($user["user_right"])) {
-				$this->output->add("status", "No right is set.");
+			if (!isset($user["user_permission"]) || empty($user["user_permission"])) {
+				$this->output->add("status", "No permission is set.");
 				return false;
 			}
 
-			if (!$this->auth->hasRight("admin")) {
+			if (!$this->auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
 
-			$sql = "DELETE FROM api_access WHERE :api_user = api_user AND api_right = :api_right)";
+			$sql = "DELETE FROM api_access WHERE :api_user = api_user AND api_permission = :api_permission)";
 
 			$params = array(
 				":api_user" => $user["user_name"],
-				":api_right" => $user["user_right"]
+				":api_permission" => $user["user_permission"]
 			);
 
 			return $this->db->insert($sql, [$params]) > 0;
 		}
 
 		/**
-		 * grant a right for the given user.
+		 * grant a permission for the given user.
 		 * @param $user object with
 		 * 	"user_name" => name of the user
-		 * 	"user_right" => name of the right
+		 * 	"user_permission" => name of the permission
 		 * @return true or false
 		 */
-		public function addRight($user) {
+		public function addPermission($user) {
 
 
 			if (!isset($user["user_name"]) || empty($user["user_name"])) {
@@ -231,44 +231,44 @@
 				return false;
 			}
 
-			if (!isset($user["user_right"]) || empty($user["user_right"])) {
-				$this->output->add("status", "No right is set.");
+			if (!isset($user["user_permission"]) || empty($user["user_permission"])) {
+				$this->output->add("status", "No permission is set.");
 				return false;
 			}
 
-			if (!$this->auth->hasRight("admin")) {
+			if (!$this->auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
 
-			$sql = "INSERT INTO api_access (api_user, api_right) VALUES (:api_user, :api_right)";
+			$sql = "INSERT INTO api_access (api_user, api_permission) VALUES (:api_user, :api_permission)";
 
 			$params = array(
 				":api_user" => $user["user_name"],
-				":api_right" => $user["user_right"]
+				":api_permission" => $user["user_permission"]
 			);
 
 			return $this->db->insert($sql, [$params]) > 0;
 		}
 
 		/**
-		 * Updates the rights of the given user
+		 * Updates the permissions of the given user
 		 * @param $user object with
 		 * 	"user_name"   => name of the user
-		 * 	"user_rights" => list of user rights
+		 * 	"user_permissions" => list of user permissions
 		 */
-		public function updateRights($user) {
+		public function updatePermissions($user) {
 			if (!isset($user["user_name"]) || empty($user["user_name"])) {
 				$this->output->add("status", "No user is set.");
 				return false;
 			}
 
-			if (!isset($user["user_rights"])) {
-				$this->output->add("status", "No rights is set.");
+			if (!isset($user["user_permissions"])) {
+				$this->output->add("status", "No permissions is set.");
 				return false;
 			}
 
-			if (!$this->auth->hasRight("admin")) {
+			if (!$this->auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -286,9 +286,9 @@
 				return;
 			}
 
-			foreach($user["user_rights"] as $right) {
-				if (!$this->addRight(array(
-					"user_right" => $right,
+			foreach($user["user_permissions"] as $permission) {
+				if (!$this->addPermission(array(
+					"user_permission" => $permission,
 					"user_name" => $user["user_name"]
 				))) {
 					$this->db->rollback();
@@ -403,7 +403,7 @@
 				$this->output->add("status", "Delegated user is not set.");
 				return false;
 			}
-			if (!$this->auth->hasRight("admin") && !$delegated) {
+			if (!$this->auth->hasPermission("admin") && !$delegated) {
 				return false;
 			}
 
@@ -434,7 +434,7 @@
 				$this->output->add("status", "Delegated user is not set.");
 				return false;
 			}
-			if (!$this->auth->hasRight("admin")) {
+			if (!$this->auth->hasPermission("admin")) {
 				return false;
 			}
 
@@ -466,7 +466,7 @@
 				$this->output->add("status", "Address expression is not set.");
 				return false;
 			}
-			if (!$this->auth->hasRight("admin")) {
+			if (!$this->auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -498,7 +498,7 @@
 				$this->output->add("status", "Address expression is not set.");
 				return false;
 			}
-			if (!$this->auth->hasRight("admin")) {
+			if (!$this->auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}
@@ -520,7 +520,7 @@
 		 *              	"user_name"     => name of the user
 		 *              	"user_authdata" => password for the user
 		 *              	"user_alias"    => alias user
-		 *              	"user_rights"   => array with user_rights
+		 *              	"user_permissions"   => array with user_permissions
 		 * @return true or false
 		 */
 		public function add($user) {
@@ -535,7 +535,7 @@
 				return false;
 			}
 
-			if (!$this->auth->hasRight("admin") && !$this->auth->hasRight("delegate")) {
+			if (!$this->auth->hasPermission("admin") && !$this->auth->hasPermission("delegate")) {
 				$this->output->add("status", "Not allowed");
 				return false;
 			}
@@ -558,10 +558,10 @@
 
 			$id = $this->db->insert($sql, array($params));
 
-			if (isset($user["user_rights"]) && !empty($user["user_rights"])) {
-				foreach($user["user_rights"] as $right) {
-					$this->addRight(array(
-						"user_right" => $right,
+			if (isset($user["user_permissions"]) && !empty($user["user_permissions"])) {
+				foreach($user["user_permissions"] as $permission) {
+					$this->addPermission(array(
+						"user_permission" => $permission,
 						"user_name" => $user["user_name"]
 					));
 				}
@@ -577,7 +577,7 @@
 			if (isset($id) && !empty($id)) {
 				$this->output->add("user", true);
 
-				if ($this->auth->hasRight("delegate")) {
+				if ($this->auth->hasPermission("delegate")) {
 					$status = $this->addDelegate(array("api_delegate" => $user["user_name"]), true);
 
 					if ($status < 1) {
@@ -696,7 +696,7 @@
 				return false;
 			}
 
-			if (!$this->auth->hasRight("admin")) {
+			if (!$this->auth->hasPermission("admin")) {
 				$this->output->add("status", "Not allowed.");
 				return false;
 			}

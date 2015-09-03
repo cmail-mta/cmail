@@ -1,0 +1,5 @@
+#!/bin/bash
+. check-env
+
+cp "$CMAIL_TEST_EMPTY_MASTER" "$CMAIL_TEST_PRODUCTIVE_MASTER"
+printf "harness: Master database reset\n"

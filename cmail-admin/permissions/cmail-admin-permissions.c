@@ -5,31 +5,28 @@
 #include <time.h>
 
 #include "../cmail-admin.h"
-
 #include "permissions.c"
-
 #define PROGRAM_NAME "cmail-admin-permissions"
 
+int usage(char* fn){
+	printf("cmail-admin-permissions - Manage permissions for the cmail web panel\n");
+	printf("This program is part of the cmail administration toolkit\n");
+	printf("Usage: %s <options> <commands> <arguments>\n\n", fn);
 
-int usage(char* fn) {
+	printf("Basic options:\n");
+	printf("\t--verbosity, -v\t\t\tSet verbosity level (0 - 4)\n");
+	printf("\t--dbpath, -d <dbpath>\t\tSet master database path (Default: %s)\n", DEFAULT_DBPATH);
+	printf("\t--help, -h\t\t\tDisplay this help message\n");
 
-	printf("cmail-admin-permissions: Administration tool for cmail-rights.\n");
-	printf("usage:\n");
-	printf("\n");
-	printf("options:\n");
-	printf("\t--verbosity, -v\t\t\t\t Set verbosity level (0 - 4)\n");
-	printf("\t--dbpath, -d <dbpath>\t\t\t path to master database\n");
-	printf("\t--help, -h\t\t\t\t shows this help\n");
-	printf("commands:\n");
-	printf("\tgrant <user> <permissions>\t\t\t adds the given permission to the user\n");
-	printf("\trevoke <user> [<permission> [, <permission>]] \t revokes the given permission or all permissions if no permission is given from the user\n");
+	printf("Commands:\n");
+	printf("\tgrant <user> <permissions>\t\t\tGrant permissions to a user\n");
+	printf("\trevoke <user> [<permission> [, <permission>]] \trevokes the given permission or all permissions if no permission is given from the user\n");
 	printf("\tlist [<user>]\t\t\t\t list all permissions or permissions of the given user (or like the user expression)\n");
-	printf("\trlist <right>\t\t\t\t list all users like the given permission\n");
+	printf("\trlist <permission>\t\t\t\t list all users like the given permission\n");
 	printf("\tdelete user <delete>\t\t\t\t delete the user delegation from user\n");
 	printf("\tdelete expression <delete>\t\t\t delete the address space delegation from user\n");
 	printf("\tdelegate user <user> <delegated>\t delegates a user to the given <user>\n");
 	printf("\tdelegate address <user> <expression>\t delegates the given address space to the user\n");
-
 	return 1;
 }
 
@@ -42,7 +39,7 @@ int mode_grant(LOGGER log, sqlite3* db, int argc, char** argv) {
 		return 20;
 	}
 
-	return sqlite_add_right(log, db, argv[1], argv[2]);
+	return sqlite_add_permission(log, db, argv[1], argv[2]);
 }
 
 int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv) {
@@ -56,11 +53,11 @@ int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv) {
 		// for every permission
 		for (i = 2; i < argc; i++) {
 			if (!status) {
-				status = sqlite_delete_right(log, db, argv[1], argv[i]);
+				status = sqlite_delete_permission(log, db, argv[1], argv[i]);
 			}
 		}
 	} else {
-		status = sqlite_delete_rights(log, db, argv[1]);
+		status = sqlite_delete_permissions(log, db, argv[1]);
 	}
 	return status;
 }
@@ -128,7 +125,7 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
 		filter = argv[1];
 	}
 
-	return sqlite_get_rights(log, db, filter);
+	return sqlite_get_permissions(log, db, filter);
 }
 
 int mode_rlist(LOGGER log, sqlite3* db, int argc, char** argv) {
@@ -138,7 +135,7 @@ int mode_rlist(LOGGER log, sqlite3* db, int argc, char** argv) {
 		return 20;
 	}
 
-	return sqlite_get_rights_by_right(log, db, argv[1]);
+	return sqlite_get_permissions_by_permission(log, db, argv[1]);
 }
 
 int main(int argc, char* argv[]) {
@@ -181,6 +178,13 @@ int main(int argc, char* argv[]) {
 	if (!db) {
 		usage(argv[0]);
 		return 10;
+	}
+
+	//check database version
+	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
+		sqlite3_close(db);
+		return 11;
 	}
 
 	if (!strcmp(cmds[0], "grant")) {

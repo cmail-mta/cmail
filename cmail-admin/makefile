@@ -21,8 +21,12 @@ all:
 install:
 	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
 
+install-doc:
+	$(MAKE) -C doc install
+
 uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/cmail-admin*
 
 clean:
 	$(RM) bin/*
+	$(MAKE) -C doc clean

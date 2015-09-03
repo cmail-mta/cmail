@@ -63,19 +63,23 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 }
 
 int usage(char* fn){
-	printf("cmail-admin-user: Part of the administration tool suite for cmail.\n");
-	printf("Add, modify or delete cmail users.\n");
-	printf("Usage: %s <options> <commands> <arguments>\n", fn);
+	printf("cmail-admin-users - Add, modify or delete cmail users\n");
+	printf("This program is part of the cmail administration toolkit\n");
+	printf("Usage: %s <options> <commands> <arguments>\n\n", fn);
+
 	printf("Basic options:\n");
 	printf("\t--verbosity, -v\t\t\tSet verbosity level (0 - 4)\n");
 	printf("\t--dbpath, -d <dbpath>\t\tSet master database path (Default: %s)\n", DEFAULT_DBPATH);
-	printf("\t--help, -h\t\t\tDisplay this help message\n");
+	printf("\t--help, -h\t\t\tDisplay this help message\n\n");
+
 	printf("Commands:\n");
+	printf("\tlist [<filter>]\t\t\tList all active users, optionally filter by <filter>\n");
 	printf("\tadd <username> [<password>]\tAdd an user\n");
 	printf("\tpassword <user> [<pw>]\t\tUpdate a users password\n");
+	printf("\talias <user> [<alias>]\t\tModify user to be an alias\n");
+	printf("\tuserdb <user> [<path>]\t\tSet user database path\n");
 	printf("\trevoke <user>\t\t\tRevoke user login credentials (Sets NULL password)\n");
 	printf("\tdelete <user>\t\t\tDelete an account\n");
-	printf("\tlist [<filter>]\t\t\tList all active users, optionally filter by <filter>\n");
 	return 1;
 }
 
@@ -119,6 +123,22 @@ int mode_add(LOGGER log, sqlite3* db, int argc, char** argv){
 		}
 		return mode_passwd(log, db, argc, argv);
 	}
+}
+
+int mode_userdb(LOGGER log, sqlite3* db, int argc, char** argv){
+	if (argc < 2){
+		logprintf(log, LOG_ERROR, "Missing arguments\n");
+	}
+
+	return sqlite_set_userdb(log, db, argv[1], (argc == 3 && strlen(argv[2]) > 1)?argv[2]:NULL);
+}
+
+int mode_alias(LOGGER log, sqlite3* db, int argc, char** argv){
+	if (argc < 2){
+		logprintf(log, LOG_ERROR, "Missing arguments\n");
+	}
+
+	return sqlite_set_alias(log, db, argv[1], (argc == 3 && strcmp(argv[1], argv[2]))?argv[2]:NULL);
 }
 
 int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv){
@@ -190,6 +210,13 @@ int main(int argc, char* argv[]) {
 		exit(usage(argv[0]));
 	}
 
+	//check database version
+	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
+		sqlite3_close(db);
+		return 11;
+	}
+
 	//select command
 	if(!strcmp(cmds[0], "add")){
 		status = mode_add(log, db, cmdsc, cmds);
@@ -202,6 +229,12 @@ int main(int argc, char* argv[]) {
 	}
 	else if(!strcmp(cmds[0], "list")){
 		status = mode_list(log, db, cmdsc, cmds);
+	}
+	else if(!strcmp(cmds[0], "userdb")){
+		status = mode_userdb(log, db, cmdsc, cmds);
+	}
+	else if(!strcmp(cmds[0], "alias")){
+		status = mode_alias(log, db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "password") || !strcmp(cmds[0], "passwd")){
 		status = mode_passwd(log, db, cmdsc, cmds);

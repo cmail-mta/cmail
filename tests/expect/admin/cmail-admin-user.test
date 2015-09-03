@@ -1,0 +1,70 @@
+#!/usr/bin/expect -f
+
+source ../primitives/common
+source ../primitives/db_init
+run reset_database
+
+proc usercount {num {condition ""}} {
+	send "SELECT COUNT(*) FROM users $condition;\r"
+	expect {
+		"$num\r" {
+		}
+		"sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	expect "sqlite>"
+}
+
+run cmail-admin-user add cbdev cbdev
+usercount 1 
+usercount 1 "WHERE user_authdata IS NOT NULL AND user_name = 'cbdev' AND user_alias IS NULL AND user_database IS NULL"
+
+run cmail-admin-user revoke cbdev
+usercount 0 "WHERE user_authdata IS NOT NULL"
+
+run cmail-admin-user passwd cbdev foo
+usercount 1 "WHERE user_authdata IS NOT NULL"
+
+run cmail-admin-user revoke cbdev
+usercount 0 "WHERE user_authdata IS NOT NULL"
+
+run cmail-admin-user password cbdev foo
+usercount 1 "WHERE user_authdata IS NOT NULL"
+
+if { [ catch { run cmail-admin-user alias cbdev cdbev } ] == 0 } {
+	send_user "Unique constraint not enforced\n"
+	exit 1 
+}
+usercount 0 "WHERE user_alias IS NOT NULL"
+
+run cmail-admin-user add cdbev cdbev
+usercount 2
+
+run cmail-admin-user alias cbdev cdbev
+usercount 1 "WHERE user_alias = 'cdbev'"
+
+run cmail-admin-user alias cbdev cbdev
+usercount 0 "WHERE user_alias IS NOT NULL"
+
+run cmail-admin-user alias cbdev cdbev
+usercount 1 "WHERE user_alias IS NOT NULL"
+
+run cmail-admin-user alias cbdev
+usercount 0 "WHERE user_alias IS NOT NULL"
+
+run cmail-admin-user alias cbdev cdbev
+usercount 1 "WHERE user_alias IS NOT NULL"
+
+run cmail-admin-user delete cdbev
+usercount 1
+usercount 0 "WHERE user_alias IS NOT NULL"
+
+run cmail-admin-user userdb cbdev /foo/bar
+usercount 1 "WHERE user_database = '/foo/bar'"
+
+run cmail-admin-user userdb cbdev
+usercount 1 "WHERE user_database IS NULL"
+
+send_user "Done."

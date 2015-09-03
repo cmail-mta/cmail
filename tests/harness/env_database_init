@@ -1,0 +1,6 @@
+#!/bin/bash
+EMPTY_DB=$(mktemp)
+
+printf "environment: Initializing empty database for reset source at %s\n" "$EMPTY_DB"
+printf "export CMAIL_TEST_EMPTY_MASTER=\"%s\"\n" "$EMPTY_DB" >> "$TEST_MARKER_FILE"
+cat ../../sql-update/install_master.sql | sqlite3 "$EMPTY_DB" > /dev/null

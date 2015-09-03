@@ -1,7 +1,5 @@
 #!/usr/bin/expect -f
 
-set host "127.0.0.1"
-set port "2502"
 set mailfrom "expect-test@cmail.rocks"
 set mailto "test@kitinfo.de"
 
@@ -13,6 +11,12 @@ expect "250 "
 sleep 1
 
 send "MAIL FROM:<$mailfrom>\r"
+expect "250 "
+send "RCPT TO:<$mailto>\r"
+expect "250 "
+send "RCPT TO:<$mailto>\r"
+expect "250 "
+send "RCPT TO:<$mailto>\r"
 expect "250 "
 send "RCPT TO:<$mailto>\r"
 expect "250 "

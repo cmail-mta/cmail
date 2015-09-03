@@ -12,13 +12,13 @@ BEGIN TRANSACTION;
 	CREATE TABLE addresses (
 		address_expression	TEXT	NOT NULL, -- UNIQUE constraint breaks some tricks and should not be needed (ordering is enforced)
 		address_order		INTEGER	PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
-		address_user		TEXT	NOT NULL REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE
+		address_router		TEXT NOT NULL DEFAULT ('drop'),
+		address_route		TEXT
 	);
 
-	-- This index ensures that cmail-admin-address parameters exactly match one address entry
-	CREATE UNIQUE INDEX idx_addressexpr_per_user ON addresses ( 
-		address_expression,
-		address_user 
+	CREATE INDEX idx_addr_router ON addresses (
+		address_router,
+		address_route
 	);
 
 	CREATE TABLE mailbox (
@@ -49,17 +49,10 @@ BEGIN TRANSACTION;
 		value	TEXT
 	);
 
-	CREATE TABLE msa (
-		msa_user		TEXT	PRIMARY KEY
-						NOT NULL
-						REFERENCES users ( user_name )	ON DELETE CASCADE
-										ON UPDATE CASCADE,
-		msa_inrouter		TEXT	NOT NULL
-						DEFAULT ( 'store' ),
-		msa_inroute		TEXT,
-		msa_outrouter		TEXT	NOT NULL
-						DEFAULT ( 'drop' ),
-		msa_outroute		TEXT
+	CREATE TABLE smtpd (
+		smtpd_user		TEXT PRIMARY KEY NOT NULL REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE,
+		smtpd_router		TEXT NOT NULL DEFAULT ('drop'),
+		smtpd_route		TEXT
 	);
 
 	CREATE TABLE outbox (
@@ -89,8 +82,8 @@ BEGIN TRANSACTION;
 		api_user 		TEXT	NOT NULL
 						REFERENCES users ( user_name ) 	ON DELETE CASCADE
 										ON UPDATE CASCADE,
-		api_right		TEXT	NOT NULL,
-		CONSTRAINT api_user_right UNIQUE ( api_user, api_right ) ON CONFLICT FAIL
+		api_permission		TEXT	NOT NULL,
+		CONSTRAINT api_user_permission UNIQUE ( api_user, api_permission ) ON CONFLICT FAIL
 	);
 
 	CREATE TABLE api_address_delegates (
@@ -134,5 +127,5 @@ BEGIN TRANSACTION;
 	LEFT JOIN faillog ON mail_id = fail_mail
 	GROUP BY mail_id;
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '8');
+	INSERT INTO meta (key, value) VALUES ('schema_version', '9');
 COMMIT;

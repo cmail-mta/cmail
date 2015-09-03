@@ -1,6 +1,6 @@
 <?php
 
-$API_VERSION = 8;
+$API_VERSION = 9;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -47,9 +47,9 @@ class Controller {
 
 		$sql = "SELECT * FROM meta WHERE key = 'schema_version'";
 
-		$out = $this->db->query(sql, array(), DB::F_SINGLE_ASSOC);
-		$output->add("api_version", $API_VERSION);
-		$output->add("schema_version", $out["value"]);
+		$out = $this->db->query($sql, array(), DB::F_SINGLE_ASSOC);
+		$this->output->add("api_version", $API_VERSION);
+		$this->output->add("schema_version", $out["value"]);
 
 		if ($out["value"] != $API_VERSION) {
 			return false;

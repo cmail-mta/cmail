@@ -1,0 +1,9 @@
+#!/bin/bash
+. ./check-env
+
+reset_database
+cmail-admin-user list
+cmail-admin-user add cbdev cbdev
+cmail-admin-user list
+reset_database
+cmail-admin-user list
