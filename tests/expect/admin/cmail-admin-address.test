@@ -1,0 +1,54 @@
+#!/usr/bin/expect -f
+
+source ../primitives/common
+source ../primitives/db_init
+run reset_database
+
+proc paths {num {condition ""}} {
+	send "SELECT COUNT(*) FROM addresses $condition;\r"
+	expect {
+		"$num\r" {
+		}
+		"sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	expect "sqlite>"
+}
+
+paths 0 
+
+run cmail-admin-address add mpease@kitinfo.de redirect me@mpease.de
+paths 1 "WHERE address_expression = 'mpease@kitinfo.de' AND address_router = 'redirect' AND address_route = 'me@mpease.de'"
+
+run cmail-admin-address add postmaster% reject "not compliant" 123
+paths 1 "WHERE address_order = 123"
+
+run cmail-admin-address delete 123
+paths 1
+
+run cmail-admin-address add postmaster% reject "not compliant" 123
+paths 1 "WHERE address_order = 123"
+
+if { [ catch { run cmail-admin-address add foobar% drop "" 123 } ] == 0 } {
+	send_user "Unique constraint not enforced\n"
+	exit 1
+}
+paths 1 "WHERE address_order = 123"
+
+run cmail-admin-address add test@kitinfo.de drop "" 124
+paths 3
+paths 2 "WHERE address_order IN (123, 124)"
+
+run cmail-admin-address swap 123 124
+paths 1 "WHERE address_order = 123 AND address_expression = 'test@kitinfo.de' AND address_router = 'drop' AND address_route = ''"
+paths 1 "WHERE address_order = 124 AND address_expression = 'postmaster%' AND address_router = 'reject' AND address_route='not compliant'"
+
+run cmail-admin-address update 123 reject
+paths 1 "WHERE address_order = 123 AND address_router = 'reject' AND address_route IS NULL"
+
+run cmail-admin-address update 124 drop test
+paths 1 "WHERE address_order = 124 AND address_router = 'drop' AND address_route = 'test'"
+
+send_user "Done."

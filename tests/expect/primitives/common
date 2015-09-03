@@ -1,0 +1,4 @@
+proc run {args} {
+	send_user "\n** Running $args\n"
+	eval exec $args
+}
