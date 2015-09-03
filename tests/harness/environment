@@ -43,6 +43,7 @@ if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
 	
 	#insert the common stuff
 	printf "export CMAIL_TEST_PRODUCTIVE_MASTER=\"%s\"\n" "/etc/cmail/databases/master.db3" >> "$TEST_MARKER_FILE"
+	printf "export CMAIL_MASTER_DB=\"%s\"\n" "\$CMAIL_TEST_PRODUCTIVE_MASTER" >> "$TEST_MARKER_FILE"
 	printf "export SMTP_PORT=\"%s\"\n" "25" >> "$TEST_MARKER_FILE"
 	printf "export SMTP_HOST=\"%s\"\n" "127.0.0.1" >> "$TEST_MARKER_FILE"
 
