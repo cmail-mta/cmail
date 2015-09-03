@@ -68,6 +68,31 @@ $ cmail-admin-user passwd cbdev anotherbadpassword
 .RE
 
 .TP
+.BI "alias " "user [alias]"
+.RI "Mark " user " as an alias for " alias ". This functionality enables " alias " to have multiple virtual"
+.RI "passwords, thus allowing safe sharing of a mailbox. Take note that " user " will only be able to access"
+.RI "mail stored to " alias ". This operation can be undone by not specifying the " alias " parameter."
+.RS
+.B Example:
+$ cmail-admin-user alias cbdev cdbev
+.RE
+
+.TP
+.BI "userdb " "user [path]"
+.RI "Have all mail stored for " user " be physically located in an SQLite database at " path ". The user database"
+.RI "must conform to the schema outlined in the cmail developer documentation, such as databases created with"
+.BR cmail-admin-database (8).
+.IR path " should always be an absolute path, as the working directory of processes accessing the user databases"
+is subject to change. User databases and the directory containing them must be read- and writable by the user
+running the cmail daemons.
+.RI "This change can be reversed by not specifying " path ". Note that mail stored in a user database"
+that is no longer known to the system can not be retrieved via the cmail suite.
+.RS
+.B Example:
+$ cmail-admin-user userdb cbdev /home/cbdev/mail.db3
+.RE
+
+.TP
 .BI "delete " user
 Delete a specific user
 .RS

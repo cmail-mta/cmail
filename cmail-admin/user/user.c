@@ -1,10 +1,8 @@
 int sqlite_get(LOGGER log, sqlite3* db, const char* username) {
-
-
-	char* sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login FROM users WHERE user_name LIKE ?";
+	char* sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login, user_alias, user_database FROM users WHERE user_name LIKE ?";
+	int status;
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
-
 	if (!stmt) {
 		return 2;
 	}
@@ -14,104 +12,87 @@ int sqlite_get(LOGGER log, sqlite3* db, const char* username) {
 		return 3;
 	}
 
-	int status;
-	const char* user;
-	int login;
-
-	// print header
-	printf("%20s | Can login?\n%33s\n", "User", "--------------------+-----------");
+	printf("%20s | %5s | %15s | %20s\n%s\n", "User", "Auth", "Alias", "User database",
+			"---------------------+-------+-----------------+-----------------------");
 
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-
-		user = (const char*) sqlite3_column_text(stmt, 0);
-		login = sqlite3_column_int(stmt, 1);
-		printf("%20s | %d\n", user, login);
+		printf("%20s | %5d | %15s | %20s\n", (char*)sqlite3_column_text(stmt, 0), sqlite3_column_int(stmt, 1), (sqlite3_column_text(stmt, 2))?(char*)sqlite3_column_text(stmt, 2):"", (sqlite3_column_text(stmt, 3))?(char*)sqlite3_column_text(stmt, 3):"");
 	}
 
 	sqlite3_finalize(stmt);
-	if (status == SQLITE_DONE) {
-		return 0;
+	return (status == SQLITE_DONE) ? 0:-1;
+}
+
+int sqlite_update_user(LOGGER log, sqlite3* db, const char* user, const char* data, char* sql) {
+	sqlite3_stmt* stmt = database_prepare(log, db, sql);
+	int status = 0;
+
+	if (!stmt) {
+		return 2;
 	}
 
+	if (sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC) != SQLITE_OK
+			|| sqlite3_bind_text(stmt, 2, data, -1, SQLITE_STATIC) != SQLITE_OK) {
+			logprintf(log, LOG_ERROR, "Failed to bind a statement parameter\n");
+		status = 4;
+	}
+
+	if (!status && sqlite3_step(stmt) != SQLITE_DONE) {
+		logprintf(log, LOG_ERROR, "Failed to update: %s\n", sqlite3_errmsg(db));
+		status = 5;
+	}
+
+	if (!status && sqlite3_changes(db) < 1) {
+		printf("No such user, no changes made\n");
+	}
+
+	sqlite3_finalize(stmt);
 	return status;
 }
 
-int sqlite_update_user(LOGGER log, sqlite3* db, const char* user, const char* auth, char* sql) {
+int sqlite_set_alias(LOGGER log, sqlite3* db, const char* user, const char* alias){
+	char* sql = "UPDATE users SET user_alias = ?2 WHERE user_name = ?1;";
+	return sqlite_update_user(log, db, user, alias, sql);
+}
 
-        sqlite3_stmt* stmt = database_prepare(log, db, sql);
-        if (!stmt) {
-                return 2;
-        }
-
-        if (sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC) != SQLITE_OK) {
-                logprintf(log, LOG_ERROR, "Cannot bind username.\n");
-                sqlite3_finalize(stmt);
-                return 3;
-        }
-
-        if (auth) {
-                if (sqlite3_bind_text(stmt, 2, auth, -1, SQLITE_STATIC) != SQLITE_OK) {
-                        logprintf(log, LOG_ERROR, "Cannot bind authdata.");
-                        sqlite3_finalize(stmt);
-                        return 4;
-                }
-        } else {
-                sqlite3_bind_null(stmt, 2);
-        }
-
-        if (sqlite3_step(stmt) != SQLITE_DONE) {
-                logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
-                sqlite3_finalize(stmt);
-		return 5;
-        }
-        sqlite3_finalize(stmt);
-
-        return 0;
+int sqlite_set_userdb(LOGGER log, sqlite3* db, const char* user, const char* userdb){
+	char* sql = "UPDATE users SET user_database = ?2 WHERE user_name = ?1;";
+	return sqlite_update_user(log, db, user, userdb, sql);
 }
 
 int sqlite_set_password(LOGGER log, sqlite3* db, const char* user, const char* auth) {
-
-	char* sql = "UPDATE users SET user_authdata = ?2 WHERE user_name = ?1";
-
+	char* sql = "UPDATE users SET user_authdata = ?2 WHERE user_name = ?1;";
 	return sqlite_update_user(log, db, user, auth, sql);
 }
 
-
 int sqlite_delete_user(LOGGER log, sqlite3* db, const char* user) {
-
 	char* sql = "DELETE FROM users WHERE user_name = ?";
-
-	logprintf(log, LOG_INFO, "Username: %s\n", user);
+	int status = 0;
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
-
 	if (!stmt) {
 		return 2;
 	}
 
 	if (sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC) != SQLITE_OK) {
 		logprintf(log, LOG_INFO, "Cannot bind username.\n");
-		sqlite3_finalize(stmt);
-		return 3;
+		status = 3;
 	}
 
-	if (sqlite3_step(stmt) != SQLITE_DONE) {
+	if (!status && sqlite3_step(stmt) != SQLITE_DONE) {
 		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
-		sqlite3_finalize(stmt);
-		return 5;
+		status = 5;
 	}
 
-	if (sqlite3_changes(db) < 1) {
-		printf("User not found.\n");
+	if (!status && sqlite3_changes(db) < 1) {
+		printf("No such user, no changes made\n");
 	}
+
 	sqlite3_finalize(stmt);
-
-	return 0;
+	return status;
 }
 
 int sqlite_add_user(LOGGER log, sqlite3* db, const char* user, const char* auth) {
-
-        char* sql = "INSERT INTO users (user_name, user_authdata) VALUES (?, ?)";
-
+	char* sql = "INSERT INTO users (user_name, user_authdata) VALUES (?, ?)";
 	return sqlite_update_user(log, db, user, auth, sql);
 }
