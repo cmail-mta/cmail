@@ -1,4 +1,5 @@
 #!/usr/bin/expect -f
-spawn sqlite3 $::env(CMAIL_TEST_PRODUCTIVE_MASTER)
+spawn sqlite3 -csv $::env(CMAIL_TEST_PRODUCTIVE_MASTER)
 
 expect "SQLite version 3"
+expect "sqlite>"

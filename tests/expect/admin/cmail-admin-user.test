@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+source ../primitives/db_init
+puts [exec reset_database]
+
+proc usercount {num condition} {
+	send "SELECT COUNT(*) FROM users $condition;\r"
+	expect {
+		"$num\r" {
+		}
+		"sqlite>" {
+			send_user "Invalid number of users\n"
+			exit 1
+		}
+	}
+	expect "sqlite>"
+}
+
+exec cmail-admin-user add cbdev foo
+usercount 1 ""
+usercount 1 "WHERE user_authdata IS NOT NULL and user_name = 'cbdev'"
+
+exec cmail-admin-user revoke cbdev
+usercount 0 "WHERE user_authdata IS NOT NULL"
+
+exec cmail-admin-user passwd cbdev foo
+usercount 1 "WHERE user_authdata IS NOT NULL"
+
+exec cmail-admin-user revoke cbdev
+usercount 0 "WHERE user_authdata IS NOT NULL"
+
+exec cmail-admin-user password cbdev foo
+usercount 1 "WHERE user_authdata IS NOT NULL"
+
+exec cmail-admin-user delete cbdev
+usercount 0 ""
