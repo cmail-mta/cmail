@@ -1,0 +1,48 @@
+#!/usr/bin/expect -f
+
+source ../primitives/common
+source ../primitives/db_init
+run reset_database
+
+proc entries {num {condition ""}} {
+	send "SELECT COUNT(*) FROM smtpd $condition;\r"
+	expect {
+		"$num\r" {
+		}
+		"sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	expect "sqlite>"
+}
+
+if { [ catch { run cmail-admin-smtpd enable mpease } ] == 0 } {
+	send_user "Foreign key constraint not enforced\n"
+	exit 1
+}
+entries 0
+
+run cmail-admin-user add mpease mpease
+run cmail-admin-smtpd enable mpease
+entries 1 "WHERE smtpd_user = 'mpease' AND smtpd_route IS NULL"
+
+run cmail-admin-smtpd disable mpease
+entries 0
+
+run cmail-admin-smtpd enable mpease reject
+entries 1 "WHERE smtpd_user = 'mpease' AND smtpd_router = 'reject' AND smtpd_route IS NULL"
+
+run cmail-admin-smtpd disable mpease
+entries 0
+
+run cmail-admin-smtpd enable mpease redirect mpease@kitinfo.de
+entries 1 "WHERE smtpd_user = 'mpease' AND smtpd_router = 'redirect' AND smtpd_route = 'mpease@kitinfo.de'"
+
+run cmail-admin-smtpd update mpease drop
+entries 1 "WHERE smtpd_router = 'drop' AND smtpd_route IS NULL"
+
+run cmail-admin-smtpd update mpease reject "reject message"
+entries 1 "WHERE smtpd_router = 'reject' AND smtpd_route = 'reject message'"
+
+send_user "Done."

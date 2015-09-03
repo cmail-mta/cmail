@@ -3,3 +3,6 @@ spawn sqlite3 -csv $::env(CMAIL_TEST_PRODUCTIVE_MASTER)
 
 expect "SQLite version 3"
 expect "sqlite>"
+
+send "PRAGMA foreign_keys = ON;\r"
+expect "sqlite>"
