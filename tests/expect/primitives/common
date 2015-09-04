@@ -2,3 +2,10 @@ proc run {args} {
 	send_user "\n** Running $args\n"
 	eval exec $args
 }
+
+expect_after {
+	timeout {
+		send_user "Response timed out\n"
+		exit 1
+	}
+}

@@ -1,0 +1,85 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/smtp_init
+source ../primitives/db_init
+run reset_database
+
+send -i $smtp "EHLO test-client\r"
+expect -i $smtp "250 "
+
+# Connections on port 25 should not be able to auth
+send -i $smtp "AUTH\r"
+expect -i $smtp "500 "
+
+send -i $smtp "AUTH \r"
+expect -i $smtp "503 "
+
+send -i $smtp "QUIT\r"
+expect -i $smtp "250 "
+
+# Try on an auth-enabled port
+set ::env(SMTP_PORT) 587
+source ../primitives/smtp_init
+
+set spawn_id $smtp
+
+send "EHLO test-client\r"
+expect "250 "
+
+send "AUTH\r"
+expect "500 "
+
+send "AUTH \r"
+expect "504 "
+
+send "AUTH EXTERNAL\r"
+expect "504 "
+
+send "STARTTLS\r"
+expect "220 "
+
+# Start negotiation
+send ""
+sleep 1
+send "EHLO test-client-tls\r"
+expect "250 "
+
+send "AUTH\r"
+expect "500 "
+
+send "AUTH \r"
+expect "504 "
+
+send "AUTH EXTERNAL\r"
+expect "504 "
+
+send "AUTH EXTERNAL \r"
+expect "504 "
+
+send "AUTH PLAIN\r"
+expect "334 "
+
+send "*\r"
+expect "501 "
+
+send "AUTH PLAIN \r"
+expect "334 "
+send "AGNI\r"
+expect "535 "
+
+send "AUTH PLAIN AGNI\r"
+expect "535 "
+
+send "AUTH PLAIN 1nv4L1d\r"
+expect "501 "
+
+run cmail-admin-user add cbdev cbdev
+run cmail-admin-smtpd enable cbdev
+
+send "AUTH PLAIN\r"
+expect "334 "
+send "AGNiZGV2AGNiZGV2\r"
+expect "235 "
+
+# Reset SMTP port
+set ::env(SMTP_PORT) 25

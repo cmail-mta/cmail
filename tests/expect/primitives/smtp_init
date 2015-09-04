@@ -1,12 +1,15 @@
 #!/usr/bin/expect -f
 spawn gnutls-cli --crlf --starttls --insecure --port $::env(SMTP_PORT) $::env(SMTP_HOST)
 
-expect "220 "
+set smtp $spawn_id
 
-if {[info exists HELO_STRING] == 1} {
-	send "$HELO_STRING test-client\r"
-} else {
-	send "EHLO test-client\r"
+send_user "Spawned SMTP connection on $smtp\n"
+
+expect {
+	-i $smtp "220 " {
+	}
+	timeout {
+		send_user "SMTP server failed to respond\n"
+		exit 1
+	}
 }
-expect "250 "
-
