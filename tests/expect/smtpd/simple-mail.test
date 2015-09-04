@@ -4,12 +4,13 @@ set mailfrom "sender@bar.baz"
 set mailto "recipient@bar.baz"
 set subject "Simple mail from $mailfrom to $mailto"
 
+source ../primitives/common
 source ../primitives/smtp_init
 
 send -i $smtp "EHLO test-client\r"
 expect -i $smtp "250 "
 
-puts [exec reset_database]
+run reset_database
 
 send "MAIL FROM:<$mailfrom>\r"
 expect "250 "
@@ -17,12 +18,26 @@ expect "250 "
 send "RCPT TO:<$mailto>\r"
 expect "551 "
 
-exec cmail-admin-address add "$mailto" reject "Foo Bar" 123
+run cmail-admin-address add "$mailto" reject "Foo Bar" 123
 
 send "RCPT TO:<$mailto>\r"
 expect "551 "
 
-exec cmail-admin-address update 123 drop
+run cmail-admin-address update 123 drop
+
+send "RCPT TO:<$mailto>\r"
+expect "250 "
+
+send "RCPT TO:<$mailto>\r"
+expect "250 "
+
+source ../primitives/smtp_data
+
+send "RSET\r"
+expect "250 "
+
+send "MAIL FROM:<$mailfrom>\r"
+expect "250 "
 
 send "RCPT TO:<$mailto>\r"
 expect "250 "

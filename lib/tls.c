@@ -115,6 +115,7 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 			return -1;
 		}
 
+		logprintf(log, LOG_DEBUG, "Initializing DH parameter structure\n");
 		if(gnutls_dh_params_init(&(listener->tls_dhparams))){
 			logprintf(log, LOG_ERROR, "Failed to initialize Diffie-Hellman parameters\n");
 			return -1;
