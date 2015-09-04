@@ -135,7 +135,9 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 
 				//heap-copy the routing information
 				path->route.router = common_strdup((char*)sqlite3_column_text(database->query_address, 0));
-				path->route.argument = common_strdup((char*)sqlite3_column_text(database->query_address, 1));
+				if(sqlite3_column_text(database->query_address, 1)){
+					path->route.argument = common_strdup((char*)sqlite3_column_text(database->query_address, 1));
+				}
 
 				if(!path->route.router){
 					logprintf(log, LOG_ERROR, "Failed to allocate storage for routing data\n");

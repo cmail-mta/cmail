@@ -21,13 +21,8 @@ MAILROUTE route_query(LOGGER log, DATABASE* database, char* user){
 	switch(sqlite3_step(database->query_outbound_router)){
 		case SQLITE_ROW:
 			//copy data
-			if(sqlite3_column_text(database->query_outbound_router, 0)){
-				route.router = common_strdup((char*)sqlite3_column_text(database->query_outbound_router, 0));
-			}
-			else{
-				logprintf(log, LOG_ERROR, "Outbound routing entry for %s is NULL\n", user);
-				break;
-			}
+			//This works because router is NOT NULL in schema
+			route.router = common_strdup((char*)sqlite3_column_text(database->query_outbound_router, 0));
 
 			if(sqlite3_column_text(database->query_outbound_router, 1)){
 				route.argument = common_strdup((char*)sqlite3_column_text(database->query_outbound_router, 1));
