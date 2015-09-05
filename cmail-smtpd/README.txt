@@ -1,7 +1,9 @@
-cmail-popd
-----------
-This folder contains the code for the cmail POP3 daemon. It allows cmail users 
-to access their mailboxes via a simple protocol supported by most mail clients.
+cmail-smtpd
+-----------
+This folder contains the code for the cmail SMTP server daemon. 
+This component of cmail handles communication with remote mail servers
+delivering mail for local addresses, as well as with mail clients submitting
+new mail by local users for remote addresses (origination).
 
 Build prerequisites
 -------------------
@@ -11,16 +13,16 @@ libsqlite3-dev
 
 Building
 --------
-Run make from within this directory to build only cmail-popd.
+Run make from within this directory to build only cmail-smtpd.
 Alternatively, run make in the root directory to build the complete cmail suite.
 
 Configuration
 -------------
-cmail-popd reads the config file given to it as an argument on startup,
+cmail-smtpd reads the config file given to it as an argument on startup,
 binding the requested ports and setting up its operating environment.
 Please refer to the website for details of the configuration file format.
 An example configuration file may be found in the project root directory
 within the folder example-configs.
 
 All runtime configuration is stored in the master database and may be
-modified by using cmail-admin-popd or the web administration tools and API.
+modified by using cmail-admin-smtpd or the web administration tools and API.
