@@ -161,7 +161,10 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 				rv = -1;
 			}
 
-			if(!rv && current_path->path[current_path->delimiter_position] && common_strrepl(forward_path, sizeof(forward_path), "(to-domain)", current_path->path + current_path->delimiter_position + 1) < 0){
+			if(!rv &&
+				common_strrepl(forward_path, sizeof(forward_path), "(to-domain)",
+				//this ensures that the variable always gets replaced, with an empty string if need be
+				current_path->path + current_path->delimiter_position + (current_path->path[current_path->delimiter_position] ? 1:0) ) < 0){
 				logprintf(log, LOG_ERROR, "Failed to replace to-domain variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
@@ -177,7 +180,9 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 				}
 			}
 
-			if(!rv && current_path->path[current_path->delimiter_position] && common_strrepl(forward_path, sizeof(forward_path), "(from-domain)", mail->reverse_path.path + mail->reverse_path.delimiter_position + 1) < 0){
+			if(!rv &&
+				common_strrepl(forward_path, sizeof(forward_path), "(from-domain)",
+				mail->reverse_path.path + mail->reverse_path.delimiter_position + (current_path->path[current_path->delimiter_position] ? 1:0)) < 0){
 				logprintf(log, LOG_ERROR, "Failed to replace from-domain variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
