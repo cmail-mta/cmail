@@ -14,7 +14,8 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	char* tls_dh_paramfile = NULL;
 	#endif
 
-	int listener_slot=-1;
+	int listen_fd = -1;
+	int listener_slot = -1;
 	LISTENER settings = {
 		.fixed_user = NULL,
 		.max_size = 0,
@@ -102,7 +103,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	#endif
 
 	//try to open a listening socket
-	int listen_fd = network_listener(config->log, bindhost, port);
+	listen_fd = network_listener(config->log, bindhost, port);
 
 	if(listen_fd < 0){
 		return -1;
