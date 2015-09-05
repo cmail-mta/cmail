@@ -6,12 +6,10 @@ set subject "Special mailpaths test"
 
 source ../primitives/common
 source ../primitives/smtp_init
-
-send "EHLO test-client\r"
-expect "250 "
-
 run reset_database
 run cmail-admin-address add "postmaster%" drop
+
+set spawn_id [smtp_init]
 
 send "MAIL FROM:<$mailfrom>\r"
 expect "250 "

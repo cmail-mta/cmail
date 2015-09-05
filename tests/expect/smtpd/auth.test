@@ -1,12 +1,9 @@
 #!/usr/bin/expect -f
 source ../primitives/common
 source ../primitives/smtp_init
-source ../primitives/db_init
 run reset_database
-set spawn_id $smtp
 
-send "EHLO test-client\r"
-expect "250 "
+set spawn_id [smtp_init]
 
 # Connections on port 25 should not be able to auth
 send "AUTH\r"
@@ -19,11 +16,7 @@ send "QUIT\r"
 expect "250 "
 
 # Try on an auth-enabled port
-set ::env(SMTP_PORT) 587
-source ../primitives/smtp_init
-
-send "EHLO test-client\r"
-expect "250 "
+set spawn_id [smtp_init "localhost" "587"]
 
 send "AUTH\r"
 expect "500 "
@@ -79,8 +72,5 @@ send "AUTH PLAIN\r"
 expect "334 "
 send "AGNiZGV2AGNiZGV2\r"
 expect "235 "
-
-# Reset SMTP port
-set ::env(SMTP_PORT) 25
 
 send_user "Done.\n"

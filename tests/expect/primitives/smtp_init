@@ -1,14 +1,19 @@
 #!/usr/bin/expect -f
-spawn gnutls-cli --crlf --starttls --insecure --port $::env(SMTP_PORT) $::env(SMTP_HOST)
+proc smtp_init {{host "localhost"} {port "25"} {helo "EHLO"}} {
+	spawn gnutls-cli --crlf --starttls --insecure --port $port $host
+	send_user "Spawned SMTP connection on $spawn_id\n"
 
-set smtp $spawn_id
-send_user "Spawned SMTP connection on $smtp\n"
+	expect {
+		"220 " {
+		}
+		default {
+			send_user "SMTP server failed to respond\n"
+			exit 1
+		}
+	}
 
-expect {
-	"220 " {
-	}
-	default {
-		send_user "SMTP server failed to respond\n"
-		exit 1
-	}
+	send "$helo test-client\r"
+	expect "250 "
+
+	return $spawn_id
 }
