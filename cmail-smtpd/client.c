@@ -50,6 +50,13 @@ int client_resolve(LOGGER log, CONNECTION* client){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int status;
 
+	#ifdef CMAIL_TEST_REPL
+	if(client->fd == fileno(stdin)){
+		strncpy(client_data->peer_name, "repl-input", MAX_FQDN_LENGTH -1);
+		return 0;
+	}
+	#endif
+
 	if(getpeername(client->fd, (struct sockaddr*)&data, &len) < 0){
 		logprintf(log, LOG_ERROR, "Failed to get peer name: %s\n", strerror(errno));
 		return -1;
@@ -144,7 +151,16 @@ int client_accept(LOGGER log, DATABASE* database, CONNECTION* listener, CONNPOOL
 		return 1;
 	}
 
+	#ifdef CMAIL_TEST_REPL
+	if(listener->fd == fileno(stderr)){
+		client_slot = connpool_add(clients, fileno(stdin));
+	}
+	else{
+		client_slot = connpool_add(clients, accept(listener->fd, NULL, NULL));
+	}
+	#else
 	client_slot = connpool_add(clients, accept(listener->fd, NULL, NULL));
+	#endif
 
 	if(client_slot < 0){
 		logprintf(log, LOG_ERROR, "Failed to pool client socket\n");
@@ -225,7 +241,13 @@ int client_close(CONNECTION* client){
 	#endif
 
 	//close the socket
+	#ifdef CMAIL_TEST_REPL
+	if(client->fd != fileno(stdin)){
+		close(client->fd);
+	}
+	#else
 	close(client->fd);
+	#endif
 
 	//reset mail buffer contents
 	mail_reset(&(client_data->current_mail));
@@ -237,7 +259,13 @@ int client_close(CONNECTION* client){
 	route_free(&(client_data->originating_route));
 
 	//return the connpool slot
+	#ifdef CMAIL_TEST_REPL
+	if(client->fd != fileno(stdin)){
+		client->fd = -1;
+	}
+	#else
 	client->fd = -1;
+	#endif
 
 	return 0;
 }

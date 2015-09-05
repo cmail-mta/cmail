@@ -1,5 +1,5 @@
 .PHONY: clean run
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -DCMAIL_TEST_REPL
 LDLIBS=-lsqlite3 -lgnutls -lnettle
 
 all: smtpd

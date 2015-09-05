@@ -102,8 +102,19 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	}
 	#endif
 
+	#ifdef CMAIL_TEST_REPL
+	if(!strcmp(bindhost, "repl")){
+		logprintf(config->log, LOG_INFO, "Creating REPL listener\n");
+		listen_fd = fileno(stderr);
+	}
+	else{
+		//try to open a listening socket
+		listen_fd = network_listener(config->log, bindhost, port);
+	}
+	#else
 	//try to open a listening socket
 	listen_fd = network_listener(config->log, bindhost, port);
+	#endif
 
 	if(listen_fd < 0){
 		return -1;

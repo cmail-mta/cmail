@@ -20,7 +20,16 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 		#ifndef CMAIL_NO_TLS
 		switch(client->tls_mode){
 			case TLS_NONE:
-				bytes_written=send(client->fd, data+bytes_sent, bytes_left, 0);
+				#ifdef CMAIL_TEST_REPL
+				if(client->fd == fileno(stdin)){
+					bytes_written = write(fileno(stdout), data+bytes_sent, bytes_left);
+				}
+				else{
+					bytes_written = send(client->fd, data+bytes_sent, bytes_left, 0);
+				}
+				#else
+				bytes_written = send(client->fd, data+bytes_sent, bytes_left, 0);
+				#endif
 				break;
 			case TLS_NEGOTIATE:
 				logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progress\n");
@@ -30,7 +39,16 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 				break;
 		}
 		#else
-		bytes_written=send(client->fd, data+bytes_sent, bytes_left, 0);
+			#ifdef CMAIL_TEST_REPL
+			if(client->fd == fileno(stdin)){
+				bytes_written = write(fileno(stdout), data+bytes_sent, bytes_left);
+			}
+			else{
+				bytes_written = send(client->fd, data+bytes_sent, bytes_left, 0);
+			}
+			#else
+			bytes_written = send(client->fd, data+bytes_sent, bytes_left, 0);
+			#endif
 		#endif
 
 		if(bytes_written+bytes_sent<bytes){

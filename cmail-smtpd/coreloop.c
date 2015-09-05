@@ -14,6 +14,19 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		.paths = NULL
 	};
 
+	#ifdef CMAIL_TEST_REPL
+	//get repl listener and create repl client
+	for(i = 0; i < listeners.count; i++){
+		if(listeners.conns[i].fd == fileno(stderr)){
+			client_accept(log, database, &(listeners.conns[i]), &clients);
+			//remove this listener from active consideration
+			//this works because the listeners connpool is never again expanded
+			listeners.conns[i].fd = -1;
+			break;
+		}
+	}
+	#endif
+
 	while(!abort_signaled){
 		//clear listen fds
 		FD_ZERO(&readfds);
@@ -31,7 +44,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 		//add client fds
 		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd>0){
+			if(clients.conns[i].fd >= 0){
 				FD_SET(clients.conns[i].fd, &readfds);
 				if(clients.conns[i].fd>maxfd){
 					maxfd=clients.conns[i].fd;
@@ -56,7 +69,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 		//check client fds
 		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd > 0){
+			if(clients.conns[i].fd >= 0){
 				if(FD_ISSET(clients.conns[i].fd, &readfds)){
 					//handle data
 					//FIXME handle return value

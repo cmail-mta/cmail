@@ -5,7 +5,7 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 	switch(client->tls_mode){
 		case TLS_NONE:
 			//non-tls client
-			return recv(client->fd, buffer, bytes, 0);
+			return read(client->fd, buffer, bytes);
 		case TLS_NEGOTIATE:
 			//tls handshake not completed
 			status=gnutls_handshake(client->tls_session);
@@ -25,7 +25,7 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 			return gnutls_record_recv(client->tls_session, buffer, bytes);
 	}
 	#else
-	return recv(client->fd, buffer, bytes, 0);
+	return read(client->fd, buffer, bytes);
 	#endif
 
 	logprintf(log, LOG_ERROR, "Network read with invalid TLSMODE\n");
