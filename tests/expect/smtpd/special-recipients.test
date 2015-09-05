@@ -7,18 +7,10 @@ set subject "Special mailpaths test"
 source ../primitives/common
 source ../primitives/smtp_init
 
-send -i $smtp "EHLO test-client\r"
-expect {
-	-i $smtp "250 " {
-	}
-	default {
-		send_user "Failed to initiate dialogue\n"
-		exit 1
-	}
-}
+send "EHLO test-client\r"
+expect "250 "
 
 run reset_database
-
 run cmail-admin-address add "postmaster%" drop
 
 send "MAIL FROM:<$mailfrom>\r"
@@ -27,3 +19,5 @@ send "RCPT TO:<$mailto>\r"
 expect "250 "
 
 source ../primitives/smtp_data
+
+send_user "Done.\n"

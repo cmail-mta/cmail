@@ -2,13 +2,12 @@
 spawn gnutls-cli --crlf --starttls --insecure --port $::env(SMTP_PORT) $::env(SMTP_HOST)
 
 set smtp $spawn_id
-
 send_user "Spawned SMTP connection on $smtp\n"
 
 expect {
-	-i $smtp "220 " {
+	"220 " {
 	}
-	timeout {
+	default {
 		send_user "SMTP server failed to respond\n"
 		exit 1
 	}
