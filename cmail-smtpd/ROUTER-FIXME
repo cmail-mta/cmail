@@ -1,2 +1,0 @@
-Originating router is now a member of the client structure, proper memory release and acquiry must be observed
-Test origination with fixed user
