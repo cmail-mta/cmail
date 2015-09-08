@@ -24,9 +24,18 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 						}
 					}
 					else{
-						//copy to out buffer and update delimiter position
-						path->delimiter_position = out_pos;
-						path->path[out_pos++] = pathspec[in_pos];
+						if(quotes){
+							path->path[out_pos++] = pathspec[in_pos];
+						}
+						else if(path->delimiter_position == 0 && path->path[path->delimiter_position] != '@'){
+							//copy to out buffer and update delimiter position
+							path->delimiter_position = out_pos;
+							path->path[out_pos++] = pathspec[in_pos];
+						}
+						else{
+							logprintf(log, LOG_WARNING, "Multiple delimiters in path\n");
+							return -1;
+						}
 					}
 					break;
 				case '"':

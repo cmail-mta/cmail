@@ -1,0 +1,40 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/smtp_init
+run reset_database
+set spawn_id [smtp_init]
+run cmail-admin-address add % drop
+
+send "MAIL FROM:<local@domain.part>\r"
+expect "250 "
+
+send "RCPT TO:<local+with.fancy-characters@fancy-domain.part>\r"
+expect "250 "
+
+send "RCPT TO:<\"quoted part m@y contain crazy crap\"@domain.part>\r"
+expect "250 "
+
+send "RCPT TO:<(some comments @ local part)real-local@domain(comment).part>\r"
+expect "250 "
+
+send "RCPT TO:<\" \"@domain.part>\r"
+expect "250 "
+
+send "RCPT TO:<\"so.me;:,<>\".unusual@stuff>\r"
+expect "250 "
+
+send "RCPT TO:<#'/*-$%&+=_?^!`{}|~@crazy.crap>\r"
+expect "250 "
+
+
+
+send "RCPT TO:<foo@bar@baz>\r"
+expect "501 "
+
+send "RCPT TO:<there.is.a(runaway comment@this.path>\r"
+expect "501 "
+
+send "RCPT TO:<this)comment@never.opened>\r"
+expect "501 "
+
+send_user "Done.\n"
