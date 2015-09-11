@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <time.h>
+#include <limits.h>
 
 #include "../lib/common.h"
 #define VERSION 			"cmail-smtpd 0.1"
@@ -109,6 +110,11 @@ typedef struct /*_CLIENT_DATA*/ {
 	int connection_score;
 } CLIENT;
 
+typedef struct /*_CONTROL_PIPE*/ {
+	int input;
+	int output;
+} CONTROLPIPE;
+
 typedef struct /*_PATH_POOL*/{
 	unsigned count;
 	MAILPATH** paths;
@@ -144,6 +150,7 @@ typedef struct /*_CONF_META*/ {
 	USER_PRIVS privileges;
 	LOGGER log;
 	DATABASE database;
+	CONTROLPIPE* control_pipes;
 } CONFIGURATION;
 
 //These need some defined types
@@ -171,6 +178,7 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "mail.c"
 #include "smtpstatemachine.c"
 #include "client.c"
+#include "control.c"
 #include "coreloop.c"
 
 #include "arguments.c"

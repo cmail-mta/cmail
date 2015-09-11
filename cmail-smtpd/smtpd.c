@@ -42,7 +42,8 @@ int main(int argc, char** argv){
 			.verbosity = 0,
 			.log_secondary = false,
 			.print_timestamp = true
-		}
+		},
+		.control_pipes = NULL
 	};
 
 	//parse arguments
@@ -126,7 +127,7 @@ int main(int argc, char** argv){
 	}
 
 	//enter main processing loop
-	core_loop(config.log, config.listeners, &(config.database));
+	core_loop(config.log, config.listeners, &(config.database), config.control_pipes);
 
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");
