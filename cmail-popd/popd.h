@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include "../lib/common.h"
 #define VERSION "cmail-popd 0.1"
@@ -63,6 +64,11 @@ typedef enum /*_POP_STATE*/ {
 	STATE_UPDATE
 } POPSTATE;
 
+typedef struct /*_CONTROL_PIPE*/ {
+	int input;
+	int output;
+} CONTROLPIPE;
+
 typedef struct /*_AUTHENTICATION_DATA*/ {
 	AUTH_METHOD method;
 	bool auth_ok;
@@ -99,6 +105,7 @@ typedef struct /*_CONFIGURATION_DATA*/ {
 	DATABASE database;
 	LOGGER log;
 	USER_PRIVS privileges;
+	CONTROLPIPE* control_pipes;
 } CONFIGURATION;
 
 typedef struct /*_CLIENT_DATA*/ {
@@ -145,4 +152,5 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "popfunctions.c"
 #include "popstatemachine.c"
 #include "client.c"
+#include "control.c"
 #include "coreloop.c"

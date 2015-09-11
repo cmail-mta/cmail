@@ -1,4 +1,4 @@
-int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
+int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database, CONTROLPIPE* control_pipes){
 	fd_set readfds;
 	struct timeval select_timeout;
 	int maxfd;
@@ -12,24 +12,34 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	while(!abort_signaled){
 		//clear listen fds
 		FD_ZERO(&readfds);
-		maxfd=-1;
+		maxfd = -1;
+
+		//if enabled, add the control pipe input fds
+		if(control_pipes){
+			for(i = 0; control_pipes[i].input >= 0; i++){
+				FD_SET(control_pipes[i].input, &readfds);
+				if(control_pipes[i].input > maxfd){
+					maxfd = control_pipes[i].input;
+				}
+			}
+		}
 
 		//add listen fds
-		for(i=0;i<listeners.count;i++){
-			if(listeners.conns[i].fd>0){
+		for(i = 0; i < listeners.count; i++){
+			if(listeners.conns[i].fd >= 0){
 				FD_SET(listeners.conns[i].fd, &readfds);
-				if(listeners.conns[i].fd>maxfd){
-					maxfd=listeners.conns[i].fd;
+				if(listeners.conns[i].fd > maxfd){
+					maxfd = listeners.conns[i].fd;
 				}
 			}
 		}
 
 		//add client fds
-		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd>0){
+		for(i = 0; i < clients.count; i++){
+			if(clients.conns[i].fd >= 0){
 				FD_SET(clients.conns[i].fd, &readfds);
-				if(clients.conns[i].fd>maxfd){
-					maxfd=clients.conns[i].fd;
+				if(clients.conns[i].fd > maxfd){
+					maxfd = clients.conns[i].fd;
 				}
 			}
 		}
@@ -50,8 +60,8 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		//check client fds
-		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd > 0){
+		for(i = 0; i < clients.count; i++){
+			if(clients.conns[i].fd >= 0){
 				if(FD_ISSET(clients.conns[i].fd, &readfds)){
 					//handle data
 					//FIXME handle return value
@@ -66,18 +76,27 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		//check listen fds
-		for(i=0;i<listeners.count;i++){
-			if(listeners.conns[i].fd>0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
+		for(i = 0; i < listeners.count; i++){
+			if(listeners.conns[i].fd >= 0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
 				//handle new client
 				//FIXME handle return value
 				client_accept(log, &(listeners.conns[i]), &clients);
 			}
 		}
+
+		//check control pipes
+		if(control_pipes){
+			for(i = 0; control_pipes[i].input >= 0; i++){
+				if(FD_ISSET(control_pipes[i].input, &readfds)){
+					control_process(log, control_pipes[i]);
+				}
+			}
+		}
 	}
 
 	//close connected clients
-	for(i=0;i<clients.count;i++){
-		if(clients.conns[i].fd>=0){
+	for(i = 0; i < clients.count; i++){
+		if(clients.conns[i].fd >= 0){
 			client_close(log, &(clients.conns[i]), database);
 		}
 	}

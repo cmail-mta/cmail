@@ -17,7 +17,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database, CONTROLPIPE* c
 	while(!abort_signaled){
 		//clear listen fds
 		FD_ZERO(&readfds);
-		maxfd=-1;
+		maxfd = -1;
 
 		//if enabled, add the control pipe input fds
 		if(control_pipes){

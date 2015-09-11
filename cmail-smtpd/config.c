@@ -153,8 +153,8 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 	struct passwd* user_info;
 	struct group* group_info;
 
+	errno = 0;
 	if(!strcmp(directive, "user")){
-		errno = 0;
 		user_info = getpwnam(params);
 		if(!user_info){
 			logprintf(config->log, LOG_ERROR, "Failed to get user info for %s\n", params);
@@ -166,7 +166,6 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 		return 0;
 	}
 	else if(!strcmp(directive, "group")){
-		errno = 0;
 		group_info = getgrnam(params);
 		if(!group_info){
 			logprintf(config->log, LOG_ERROR, "Failed to get group info for %s\n", params);
@@ -264,7 +263,7 @@ int config_line(void* config_data, char* line){
 	for(parameter = 0; (!isspace(line[parameter])) && line[parameter] != 0; parameter++){
 	}
 
-	if(line[parameter]!=0){
+	if(line[parameter] != 0){
 		line[parameter] = 0;
 		parameter++;
 	}

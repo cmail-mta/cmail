@@ -24,9 +24,9 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	LISTENER* listener_data = NULL;
 
 	//tokenize line
-	bindhost=strtok_r(params, " ", &tokenize_line);
+	bindhost = strtok_r(params, " ", &tokenize_line);
 	do{
-		token=strtok_r(NULL, " ", &tokenize_line);
+		token = strtok_r(NULL, " ", &tokenize_line);
 		if(token){
 			if(!port){
 				port = token;
@@ -62,8 +62,8 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 
 	#ifndef CMAIL_NO_TLS
 	if(tls_keyfile && tls_certfile){
-		if(tls_mode==TLS_NONE){
-			tls_mode=TLS_NEGOTIATE;
+		if(tls_mode == TLS_NONE){
+			tls_mode = TLS_NEGOTIATE;
 		}
 
 		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities)<0){
@@ -79,31 +79,31 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	//try to open a listening socket
 	listen_fd = network_listener(config->log, bindhost, port);
 
-	if(listen_fd<0){
+	if(listen_fd < 0){
 		return -1;
 	}
 
 	//add the new listener to the pool
-	listener_slot=connpool_add(&(config->listeners), listen_fd);
-	if(listener_slot>=0){
+	listener_slot = connpool_add(&(config->listeners), listen_fd);
+	if(listener_slot >= 0){
 		logprintf(config->log, LOG_INFO, "Bound to %s port %s (slot %d)\n", bindhost, port, listener_slot);
 
 		//create listener auxdata
-		config->listeners.conns[listener_slot].aux_data=calloc(1, sizeof(LISTENER));
+		config->listeners.conns[listener_slot].aux_data = calloc(1, sizeof(LISTENER));
 		if(!config->listeners.conns[listener_slot].aux_data){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener\n");
 			return -1;
 		}
 
-		listener_data=(LISTENER*)config->listeners.conns[listener_slot].aux_data;
-		*listener_data=settings;
+		listener_data = (LISTENER*)config->listeners.conns[listener_slot].aux_data;
+		*listener_data = settings;
 
 		//copy data to heap
 		#ifndef CMAIL_NO_TLS
-		config->listeners.conns[listener_slot].tls_mode=tls_mode;
+		config->listeners.conns[listener_slot].tls_mode = tls_mode;
 		#endif
 
-		listener_data->announce_domain=common_strdup(settings.announce_domain);
+		listener_data->announce_domain = common_strdup(settings.announce_domain);
 		if(!listener_data->announce_domain){
 			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
 			return -1;
@@ -119,26 +119,25 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 	struct passwd* user_info;
 	struct group* group_info;
 
+	errno = 0;
 	if(!strcmp(directive, "user")){
-		errno=0;
-		user_info=getpwnam(params);
+		user_info = getpwnam(params);
 		if(!user_info){
 			logprintf(config->log, LOG_ERROR, "Failed to get user info for %s\n", params);
 			return -1;
 		}
-		config->privileges.uid=user_info->pw_uid;
-		config->privileges.gid=user_info->pw_gid;
+		config->privileges.uid = user_info->pw_uid;
+		config->privileges.gid = user_info->pw_gid;
 		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to uid %d gid %d\n", config->privileges.uid, config->privileges.gid);
 		return 0;
 	}
 	else if(!strcmp(directive, "group")){
-		errno=0;
-		group_info=getgrnam(params);
+		group_info = getgrnam(params);
 		if(!group_info){
 			logprintf(config->log, LOG_ERROR, "Failed to get group info for %s\n", params);
 			return -1;
 		}
-		config->privileges.gid=group_info->gr_gid;
+		config->privileges.gid = group_info->gr_gid;
 		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to gid %d\n", config->privileges.gid);
 		return 0;
 	}
@@ -153,18 +152,18 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 
 	config->database.conn=database_open(config->log, params, SQLITE_OPEN_READWRITE);
 
-	return (config->database.conn)?0:-1;
+	return (config->database.conn) ? 0:-1;
 }
 
 int config_logger(CONFIGURATION* config, char* directive, char* params){
 	FILE* log_file;
 
 	if(!strcmp(directive, "verbosity")){
-		config->log.verbosity=strtoul(params, NULL, 10);
+		config->log.verbosity = strtoul(params, NULL, 10);
 		return 0;
 	}
 	else if(!strcmp(directive, "logfile")){
-		log_file=fopen(params, "a");
+		log_file = fopen(params, "a");
 		if(!log_file){
 			logprintf(config->log, LOG_ERROR, "Failed to open logfile %s for appending\n", params);
 			return -1;
@@ -176,39 +175,88 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 	return -1;
 }
 
-int config_line(void* config_data, char* line){
-	unsigned parameter;
-	CONFIGURATION* config=(CONFIGURATION*) config_data;
+int config_controlpipe(CONFIGURATION* config, char* directive, char* params){
+	CONTROLPIPE pipedata = {
+		.input = -1,
+		.output = -1
+	};
 
+	char* tokenize_parameter = NULL;
+	char* token = strtok_r(params, " ", &tokenize_parameter);
+	int pipe_entries = 0;
 
-	//scan over directive
-	for(parameter=0;(!isspace(line[parameter]))&&line[parameter]!=0;parameter++){
+	//open the control pipe descriptors
+	pipedata.input = open(token, O_RDWR | O_NONBLOCK);
+	if(pipedata.input < 0){
+		logprintf(config->log, LOG_ERROR, "Failed to open control pipe input at %s: %s\n", token, strerror(errno));
+		return -1;
 	}
 
-	if(line[parameter]!=0){
-		line[parameter]=0;
+	logprintf(config->log, LOG_INFO, "Configured control pipe input from %s\n", token);
+	token = strtok_r(NULL, " ", &tokenize_parameter);
+	if(token){
+		pipedata.output = open(token, O_RDWR | O_NONBLOCK);
+		if(pipedata.output < 0){
+			logprintf(config->log, LOG_ERROR, "Failed to open control pipe output at %s: %s\n", token, strerror(errno));
+			return -1;
+		}
+		logprintf(config->log, LOG_INFO, "Configured control pipe output to %s\n", token);
+	}
+
+	//insert the pipe structure into the main configuration
+	if(config->control_pipes){
+		//count entries
+		for(; config->control_pipes[pipe_entries].input >= 0; pipe_entries++){
+		}
+	}
+
+	config->control_pipes = realloc(config->control_pipes, (pipe_entries + 2) * sizeof(CONTROLPIPE));
+	if(!config->control_pipes){
+		logprintf(config->log, LOG_ERROR, "Failed to allocate memory\n");
+		return -1;
+	}
+
+	config->control_pipes[pipe_entries] = pipedata;
+	config->control_pipes[pipe_entries + 1].input = -1;
+	return 0;
+}
+
+int config_line(void* config_data, char* line){
+	unsigned parameter;
+	CONFIGURATION* config = (CONFIGURATION*) config_data;
+
+	//scan over directive
+	for(parameter = 0; (!isspace(line[parameter])) && line[parameter] != 0; parameter++){
+	}
+
+	if(line[parameter] != 0){
+		line[parameter] = 0;
 		parameter++;
 	}
 
 	//scan for parameter begin
-	for(;isspace(line[parameter]);parameter++){
+	for(; isspace(line[parameter]); parameter++){
 	}
 
 	//route directives
 	if(!strncmp(line, "bind", 4)){
-		return config_bind(config, line, line+parameter);
+		return config_bind(config, line, line + parameter);
 	}
 
-	else if(!strncmp(line, "user", 4)||!strncmp(line, "group", 5)){
-		return config_privileges(config, line, line+parameter);
+	else if(!strncmp(line, "user", 4) || !strncmp(line, "group", 5)){
+		return config_privileges(config, line, line + parameter);
 	}
 
 	else if(!strncmp(line, "database", 8)){
-		return config_database(config, line, line+parameter);
+		return config_database(config, line, line + parameter);
 	}
 
-	else if(!strncmp(line, "verbosity", 9)||!strncmp(line, "logfile", 7)){
-		return config_logger(config, line, line+parameter);
+	else if(!strncmp(line, "verbosity", 9) || !strncmp(line, "logfile", 7)){
+		return config_logger(config, line, line + parameter);
+	}
+
+	else if(!strncmp(line, "control", 7)){
+		return config_controlpipe(config, line, line + parameter);
 	}
 
 	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
@@ -219,11 +267,11 @@ void config_free(CONFIGURATION* config){
 	unsigned i;
 	LISTENER* listener_data;
 
-	for(i=0;i<config->listeners.count;i++){
-		listener_data=(LISTENER*)config->listeners.conns[i].aux_data;
+	for(i = 0; i < config->listeners.count; i++){
+		listener_data = (LISTENER*)config->listeners.conns[i].aux_data;
 
 		#ifndef CMAIL_NO_TLS
-		if(config->listeners.conns[i].tls_mode!=TLS_NONE){
+		if(config->listeners.conns[i].tls_mode != TLS_NONE){
 			gnutls_certificate_free_credentials(listener_data->tls_cert);
 			gnutls_priority_deinit(listener_data->tls_priorities);
 			gnutls_dh_params_deinit(listener_data->tls_dhparams);
@@ -232,12 +280,16 @@ void config_free(CONFIGURATION* config){
 		free(listener_data->announce_domain);
 	}
 
+	if(config->control_pipes){
+		//FIXME might want to close the pipefds
+		free(config->control_pipes);
+	}
 
 	connpool_free(&(config->listeners));
 	database_free(config->log, &(config->database));
 
-	if(config->log.stream!=stderr){
+	if(config->log.stream != stderr){
 		fclose(config->log.stream);
-		config->log.stream=stderr;
+		config->log.stream = stderr;
 	}
 }

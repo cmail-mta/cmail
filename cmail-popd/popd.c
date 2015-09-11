@@ -44,7 +44,8 @@ int main(int argc, char** argv){
 		.privileges = {
 			.uid = 0,
 			.gid= 0
-		}
+		},
+		.control_pipes = NULL
 	};
 
 	if(argc<2){
@@ -122,7 +123,7 @@ int main(int argc, char** argv){
 	}
 
 	//run core loop
-	core_loop(config.log, config.listeners, &(config.database));
+	core_loop(config.log, config.listeners, &(config.database), config.control_pipes);
 
 	//cleanup
 	config_free(&config);
