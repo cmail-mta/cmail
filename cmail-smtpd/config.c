@@ -209,49 +209,42 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 	return -1;
 }
 
-int config_controlpipe(CONFIGURATION* config, char* directive, char* params){
-	CONTROLPIPE pipedata = {
-		.input = -1,
-		.output = -1
+int config_control(CONFIGURATION* config, char* directive, char* params){
+	int fd = -1;
+	int entries = 0;
+	struct sockaddr_un addr = {
+		.sun_family = AF_UNIX
 	};
 
-	char* tokenize_parameter = NULL;
-	char* token = strtok_r(params, " ", &tokenize_parameter);
-	int pipe_entries = 0;
+	//unlink the socket file (this is potentially a dumb thing to do)
+	unlink(params);
 
-	//open the control pipe descriptors
-	pipedata.input = open(token, O_RDWR | O_NONBLOCK);
-	if(pipedata.input < 0){
-		logprintf(config->log, LOG_ERROR, "Failed to open control pipe input at %s: %s\n", token, strerror(errno));
+	fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	if(fd < 0){
+		logprintf(config->log, LOG_ERROR, "Failed to create control socket: %s\n", strerror(errno));
 		return -1;
 	}
 
-	logprintf(config->log, LOG_INFO, "Configured control pipe input from %s\n", token);
-	token = strtok_r(NULL, " ", &tokenize_parameter);
-	if(token){
-		pipedata.output = open(token, O_RDWR | O_NONBLOCK);
-		if(pipedata.output < 0){
-			logprintf(config->log, LOG_ERROR, "Failed to open control pipe output at %s: %s\n", token, strerror(errno));
-			return -1;
-		}
-		logprintf(config->log, LOG_INFO, "Configured control pipe output to %s\n", token);
+	strncpy(addr.sun_path, params, sizeof(addr.sun_path) - 1);
+
+	if(bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0){
+		logprintf(config->log, LOG_ERROR, "Failed to bind control socket: %s\n", strerror(errno));
+		return -1;
 	}
 
-	//insert the pipe structure into the main configuration
-	if(config->control_pipes){
-		//count entries
-		for(; config->control_pipes[pipe_entries].input >= 0; pipe_entries++){
-		}
+	if(listen(fd, LISTEN_QUEUE_LENGTH) < 0){
+		logprintf(config->log, LOG_ERROR, "Failed to listen on control socket: %s\n", strerror(errno));
+		return -1;
 	}
 
-	config->control_pipes = realloc(config->control_pipes, (pipe_entries + 2) * sizeof(CONTROLPIPE));
-	if(!config->control_pipes){
+	config->control_sockets = realloc(config->control_sockets, (entries + 2) * sizeof(int));
+	if(!config->control_sockets){
 		logprintf(config->log, LOG_ERROR, "Failed to allocate memory\n");
 		return -1;
 	}
 
-	config->control_pipes[pipe_entries] = pipedata;
-	config->control_pipes[pipe_entries + 1].input = -1;
+	config->control_sockets[entries] = fd;
+	config->control_sockets[entries + 1] = -1;
 	return 0;
 }
 
@@ -290,7 +283,7 @@ int config_line(void* config_data, char* line){
 	}
 
 	else if(!strncmp(line, "control", 7)){
-		return config_controlpipe(config, line, line + parameter);
+		return config_control(config, line, line + parameter);
 	}
 
 	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
@@ -301,7 +294,7 @@ void config_free(CONFIGURATION* config){
 	unsigned i;
 	LISTENER* listener_data;
 
-	for(i=0; i<config->listeners.count; i++){
+	for(i = 0; i<config->listeners.count; i++){
 		listener_data = (LISTENER*)config->listeners.conns[i].aux_data;
 
 		close(config->listeners.conns[i].fd);
@@ -321,9 +314,12 @@ void config_free(CONFIGURATION* config){
 		#endif
 	}
 
-	if(config->control_pipes){
+	if(config->control_sockets){
 		//FIXME might want to close the open fds
-		free(config->control_pipes);
+		for(i = 0; config->control_sockets[i] >= 0; i++){
+			close(config->control_sockets[i]);
+		}
+		free(config->control_sockets);
 	}
 
 	connpool_free(&(config->listeners));

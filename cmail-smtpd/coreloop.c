@@ -1,10 +1,15 @@
-int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database, CONTROLPIPE* control_pipes){
+int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database, int* control_sockets){
 	fd_set readfds;
 	struct timeval select_timeout;
 	int maxfd;
 	int status;
 	unsigned i;
 	CONNPOOL clients = {
+		.count = 0,
+		.conns = NULL
+	};
+
+	CONNPOOL control_clients = {
 		.count = 0,
 		.conns = NULL
 	};
@@ -19,12 +24,21 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database, CONTROLPIPE* c
 		FD_ZERO(&readfds);
 		maxfd = -1;
 
-		//if enabled, add the control pipe input fds
-		if(control_pipes){
-			for(i = 0; control_pipes[i].input >= 0; i++){
-				FD_SET(control_pipes[i].input, &readfds);
-				if(control_pipes[i].input > maxfd){
-					maxfd = control_pipes[i].input;
+		//if enabled, add the control socketinput fds
+		if(control_sockets){
+			for(i = 0; control_sockets[i] >= 0; i++){
+				FD_SET(control_sockets[i], &readfds);
+				if(control_sockets[i] > maxfd){
+					maxfd = control_sockets[i];
+				}
+			}
+
+			for(i = 0; i < control_clients.count; i++){
+				if(control_clients.conns[i].fd >= 0){
+					FD_SET(control_clients.conns[i].fd, &readfds);
+					if(control_clients.conns[i].fd > maxfd){
+						maxfd = control_clients.conns[i].fd;
+					}
 				}
 			}
 		}
@@ -93,18 +107,27 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database, CONTROLPIPE* c
 			}
 		}
 
-		//check control pipes
-		if(control_pipes){
-			for(i = 0; control_pipes[i].input >= 0; i++){
-				if(FD_ISSET(control_pipes[i].input, &readfds)){
-					control_process(log, control_pipes[i]);
+		//check control sockets
+		if(control_sockets){
+			//add control clients
+			for(i = 0; control_sockets[i] >= 0; i++){
+				if(FD_ISSET(control_sockets[i], &readfds)){
+					//handle control client connect
+					control_accept(log, control_sockets[i], &control_clients);
+				}
+			}
+
+			//check control clients
+			for(i = 0; i < control_clients.count; i++){
+				if(control_clients.conns[i].fd >= 0 && FD_ISSET(control_clients.conns[i].fd, &readfds)){
+					control_process(log, &(control_clients.conns[i]));
 				}
 			}
 		}
 	}
 
 	//close connected clients
-	for(i=0;i<clients.count;i++){
+	for(i = 0; i < clients.count; i++){
 		if(clients.conns[i].fd >= 0){
 			client_close(&(clients.conns[i]));
 		}
@@ -113,6 +136,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database, CONTROLPIPE* c
 		client_free(log, &(clients.conns[i]));
 	}
 
+	connpool_free(&control_clients);
 	connpool_free(&clients);
 	pathpool_free(&path_pool);
 
