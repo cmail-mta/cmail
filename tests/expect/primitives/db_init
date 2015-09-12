@@ -1,32 +1,35 @@
 #!/usr/bin/expect -f
-spawn sqlite3 -csv $::env(CMAIL_TEST_PRODUCTIVE_MASTER)
-set database $spawn_id
-send_user "Spawned database shell on $database\n"
+proc db_init {database} {
+	spawn sqlite3 -csv $database
+	send_user "Spawned database shell on $spawn_id\n"
 
-expect {
-	"SQLite version 3" {
+	expect {
+		"SQLite version 3" {
+		}
+		default {
+			send_user "Invalid database version (need sqlite3)\n"
+			exit 1
+		}
 	}
-	default {
-		send_user "Invalid database version (need sqlite3)\n"
-		exit 1
-	}
-}
 
-expect {
-	"sqlite>" {
+	expect {
+		"sqlite>" {
+		}
+		default {
+			send_user "No prompt received\n"
+			exit 1
+		}
 	}
-	default {
-		send_user "No prompt received\n"
-		exit 1	
-	}
-}
 
-send "PRAGMA foreign_keys = ON;\r"
-expect {
-	"sqlite>" {
+	send "PRAGMA foreign_keys = ON;\r"
+	expect {
+		"sqlite>" {
+		}
+		default {
+			send_user "Failed to enable foreign key support\n"
+			exit 1
+		}
 	}
-	default {
-		send_user "Failed to enable foreign key support\n"
-		exit 1
-	}
+
+	return $spawn_id
 }
