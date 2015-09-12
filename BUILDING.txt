@@ -18,3 +18,6 @@ cmail-popd
 
 Building is as simple as running make in the module directories on a
 system with a working C compiler (tcc is fine).
+
+A complete build of the whole system can be started by running make
+in the root directory.

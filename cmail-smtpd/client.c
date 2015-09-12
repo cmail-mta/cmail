@@ -91,7 +91,7 @@ bool client_timeout(LOGGER log, CONNECTION* client){
 }
 
 int client_accept(LOGGER log, DATABASE* database, CONNECTION* listener, CONNPOOL* clients){
-	int client_slot=-1, flags;
+	int client_slot = -1, flags, status;
 	LISTENER* listener_data = (LISTENER*)listener->aux_data;
 	CLIENT empty_data = {
 		.listener = listener,
@@ -156,8 +156,10 @@ int client_accept(LOGGER log, DATABASE* database, CONNECTION* listener, CONNPOOL
 	if(flags < 0){
 		flags = 0;
 	}
-	//FIXME check errno
-	fcntl(clients->conns[client_slot].fd, F_SETFL, flags | O_NONBLOCK);
+	status = fcntl(clients->conns[client_slot].fd, F_SETFL, flags | O_NONBLOCK);
+	if(status < 0){
+		logprintf(log, LOG_ERROR, "Failed to make client socket nonblocking: %s\n", strerror(errno));
+	}
 
 	if(!(clients->conns[client_slot].aux_data)){
 		clients->conns[client_slot].aux_data = malloc(sizeof(CLIENT));
@@ -168,7 +170,6 @@ int client_accept(LOGGER log, DATABASE* database, CONNECTION* listener, CONNPOOL
 	}
 	else{
 		//preserve old data
-		//FIXME does this work?
 		actual_data = (CLIENT*)clients->conns[client_slot].aux_data;
 		empty_data.current_mail.data_allocated = actual_data->current_mail.data_allocated;
 		empty_data.current_mail.data = actual_data->current_mail.data;
@@ -243,16 +244,16 @@ int client_close(CONNECTION* client){
 }
 
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 	ssize_t left, bytes, line_length;
 
 	#ifndef CMAIL_NO_TLS
 	do{
 	#endif
-	left=sizeof(client_data->recv_buffer)-client_data->recv_offset;
+	left = sizeof(client_data->recv_buffer) - client_data->recv_offset;
 
-	if(left<2){
+	if(left < 2){
 		//unterminated line
 		//FIXME this might be kind of a harsh response
 		logprintf(log, LOG_WARNING, "Line too long, closing client connection\n");
@@ -261,10 +262,10 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		return 0;
 	}
 
-	bytes=network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
+	bytes = network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
 
 	//failed to read from socket
-	if(bytes<0){
+	if(bytes < 0){
 		#ifndef CMAIL_NO_TLS
 		switch(client->tls_mode){
 			case TLS_NONE:
@@ -282,7 +283,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			break;
 			case TLS_NEGOTIATE:
 				//errors during TLS negotiation
-				if(bytes==-2){
+				if(bytes == -2){
 					client_close(client);
 				}
 				return 0;
@@ -302,13 +303,13 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 
 	//client disconnect / handshake success
-	else if(bytes==0){
+	else if(bytes == 0){
 		#ifndef CMAIL_NO_TLS
 		switch(client->tls_mode){
 			case TLS_NEGOTIATE:
 				//tls handshake ok
-				client->tls_mode=TLS_ONLY;
-				if(client_data->listener->tls_mode==TLS_ONLY){
+				client->tls_mode = TLS_ONLY;
+				if(client_data->listener->tls_mode == TLS_ONLY){
 					//send greeting if listener is tlsonly
 					client_send(log, client, "220 %s ESMTPS service ready\r\n", listener_data->announce_domain);
 				}
@@ -326,9 +327,9 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
 
 	do{
-		line_length=common_next_line(log, client_data->recv_buffer, &(client_data->recv_offset), &bytes);
-		if(line_length>=0){
-			if(line_length>=SMTP_MAX_LINE_LENGTH-2){
+		line_length = common_next_line(log, client_data->recv_buffer, &(client_data->recv_offset), &bytes);
+		if(line_length >= 0){
+			if(line_length >= SMTP_MAX_LINE_LENGTH - 2){
 				logprintf(log, LOG_WARNING, "Line too long, ignoring\n");
 				client_send(log, client, "500 Line too long\r\n");
 				//client_line(log, client, database, path_pool);
@@ -350,7 +351,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			}
 		}
 	}
-	while(line_length>=0);
+	while(line_length >= 0);
 
 	#ifndef CMAIL_NO_TLS
 	}

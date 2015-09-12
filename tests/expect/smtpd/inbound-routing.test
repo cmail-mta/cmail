@@ -1,0 +1,119 @@
+#!/usr/bin/expect -f
+
+proc mail {{from "xyzzy@bar.baz"} {to "foo@bar.baz"} {result "250"}} {
+	send "MAIL FROM:<$from>\r"
+	expect "250 "
+
+	send "RCPT TO:<$to>\r"
+	expect "250 "
+
+	send "DATA\r"
+	expect "354 "
+
+	send "This is a test mailing\r.\r"
+	expect "$result "
+
+	send "RSET\r"
+	expect "250 "
+}
+
+proc mailbox {num {condition ""}} {
+	global database
+	send -i $database "SELECT COUNT(*) FROM mailbox $condition;\r"
+
+	expect {
+		-i $database "$num\r" {
+		}
+		-i $database "sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	
+	expect -i $database "sqlite>"
+}
+
+proc outbox {num {condition ""}} {
+	global database
+	send -i $database "SELECT COUNT(*) FROM outbox $condition;\r"
+
+	expect {
+		-i $database "$num\r" {
+		}
+		-i $database "sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	
+	expect -i $database "sqlite>"
+}
+
+source ../primitives/common
+source ../primitives/db_init
+source ../primitives/smtp_init
+run reset_database
+
+set database [db_init $::env(CMAIL_MASTER_DB)]
+set spawn_id [smtp_init]
+
+run cmail-admin-address add foo@bar.baz reject "Nope." 123
+send "MAIL FROM:<reject@bar.baz>\r"
+expect "250 "
+send "RCPT TO:<foo@bar.baz>\r"
+expect "551 Nope."
+send "DATA\r"
+expect "503 "
+send "RSET\r"
+expect "250 "
+
+run cmail-admin-address update 123 reject
+send "MAIL FROM:<reject@bar.baz>\r"
+expect "250 "
+send "RCPT TO:<foo@bar.baz>\r"
+expect "551 "
+send "RSET\r"
+expect "250 "
+
+run cmail-admin-address update 123 drop
+mail
+outbox 0
+mailbox 0
+
+run cmail-admin-address update 123 redirect redirect@bar.baz
+mail
+outbox 1 "WHERE mail_envelopeto = 'redirect@bar.baz' AND mail_envelopefrom = 'xyzzy@bar.baz'"
+mailbox 0
+
+run cmail-admin-address update 123 redirect
+mail "reject@bar.baz" "foo@bar.baz" 554
+
+run cmail-admin-address update 123 handoff remote
+mail
+outbox 1 "WHERE mail_remote = 'remote'"
+mailbox 0
+
+run cmail-admin-address update 123 handoff
+mail "reject@bar.baz" "foo@bar.baz" 554
+
+run cmail-admin-user add recipient recipient
+run cmail-admin-address update 123 store recipient
+mail
+outbox 2
+mailbox 1 "WHERE mail_user = 'recipient' AND mail_envelopeto = 'foo@bar.baz' AND mail_envelopefrom = 'xyzzy@bar.baz'"
+
+run cmail-admin-address update 123 store
+mail "reject@bar.baz" "foo@bar.baz" 554
+
+run cmail-admin-address update 123 redirect "(from-local)-(from-domain)-(to-local)@(to-domain)"
+mail "reject@frob.narf" "foo@bar.baz"
+outbox 1 "WHERE mail_envelopeto = 'reject-frob.narf-foo@bar.baz' AND mail_envelopefrom='reject@frob.narf'"
+
+mail "" "foo@bar.baz"
+outbox 1 "WHERE mail_envelopefrom = ''"
+
+run cmail-admin-address add test redirect "(from-local)-(from-domain)-(to-local)-(to-domain)"
+mail "" "test"
+outbox 1 "WHERE mail_envelopeto = '--test-'"
+
+send_user "Done.\n"

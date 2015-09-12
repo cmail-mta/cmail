@@ -4,6 +4,8 @@ source ../primitives/common
 source ../primitives/db_init
 run reset_database
 
+set spawn_id [db_init $::env(CMAIL_MASTER_DB)]
+
 proc paths {num {condition ""}} {
 	send "SELECT COUNT(*) FROM addresses $condition;\r"
 	expect {
