@@ -16,7 +16,7 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 }
 
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
-	int client_slot=-1, flags;
+	int client_slot = -1, flags, status;
 	CLIENT empty_data = {
 		.listener = listener,
 		.recv_offset = 0,
@@ -63,8 +63,10 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	if(flags < 0){
 		flags=0;
 	}
-	//FIXME check errno
-	fcntl(clients->conns[client_slot].fd, F_SETFL, flags | O_NONBLOCK);
+	status = fcntl(clients->conns[client_slot].fd, F_SETFL, flags | O_NONBLOCK);
+	if(status < 0){
+		logprintf(log, LOG_ERROR, "Failed to make client socket nonblocking: %s\n", strerror(errno));
+	}
 
 	if(!(clients->conns[client_slot].aux_data)){
 		clients->conns[client_slot].aux_data = malloc(sizeof(CLIENT));
