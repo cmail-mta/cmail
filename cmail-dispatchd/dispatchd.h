@@ -110,6 +110,7 @@ typedef struct /*_CONFIGURATION_AGGREG*/ {
 	LOGGER log;
 	USER_PRIVS privileges;
 	MTA_SETTINGS settings;
+	char* pid_file;
 } CONFIGURATION;
 
 typedef struct /*_SMTP_REPLY*/ {

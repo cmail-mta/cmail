@@ -106,6 +106,7 @@ typedef struct /*_CONFIGURATION_DATA*/ {
 	LOGGER log;
 	USER_PRIVS privileges;
 	CONTROLPIPE* control_pipes;
+	char* pid_file;
 } CONFIGURATION;
 
 typedef struct /*_CLIENT_DATA*/ {

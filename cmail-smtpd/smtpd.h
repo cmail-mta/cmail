@@ -58,7 +58,6 @@ typedef struct /*_MAIL_PATH*/ {
 	unsigned delimiter_position;
 	char path[SMTP_MAX_PATH_LENGTH];
 	MAILROUTE route;
-	//FIXME resolved_user is used for validity checking multiple times.
 } MAILPATH;
 
 typedef struct /*_MAIL_STRUCT*/ {
@@ -146,6 +145,7 @@ typedef struct /*_CONF_META*/ {
 	LOGGER log;
 	DATABASE database;
 	int* control_sockets;
+	char* pid_file;
 } CONFIGURATION;
 
 //These need some defined types

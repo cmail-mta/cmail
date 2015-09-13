@@ -59,15 +59,16 @@ int main(int argc, char** argv){
 			.tls_padding = 10,
 			.bounce_from = NULL,
 			.bounce_to = NULL
-		}
+		},
+		.pid_file = NULL
 	};
 
-	if(argc<2){
+	if(argc < 2){
 		return usage(argv[0]);
 	}
 
 	//parse arguments
-	if(args_parse(&args, argc-1, argv+1)<0){
+	if(args_parse(&args, argc - 1, argv + 1) < 0){
 		return usage(argv[0]);
 	}
 
@@ -84,7 +85,7 @@ int main(int argc, char** argv){
 	#endif
 
 	//read config file
-	if(config_parse(config.log, &config, args.config_file)<0){
+	if(config_parse(config.log, &config, args.config_file) < 0){
 		logprintf(config.log, LOG_ERROR, "Failed to parse config file\n");
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
@@ -92,7 +93,7 @@ int main(int argc, char** argv){
 	}
 
 	//initialize database
-	if(database_initialize(config.log, &(config.database))<0){
+	if(database_initialize(config.log, &(config.database)) < 0){
 		logprintf(config.log, LOG_ERROR, "Failed to initialize database\n");
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
@@ -104,18 +105,18 @@ int main(int argc, char** argv){
 
 	//drop privileges
 	if(getuid() == 0 && args.drop_privileges){
-		if(privileges_drop(config.log, config.privileges)<0){
+		if(privileges_drop(config.log, config.privileges) < 0){
 			config_free(&config);
 			TLSSUPPORT(gnutls_global_deinit());
 			exit(EXIT_FAILURE);
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));
+		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges ? " (Because you are not root)":""));
 	}
 
 	//detach from console
-	if(args.daemonize && config.log.stream!=stderr){
+	if(args.daemonize && config.log.stream != stderr){
 		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
 
 		//flush the stream so we do not get everything twice
@@ -124,7 +125,7 @@ int main(int argc, char** argv){
 		//stop secondary log output
 		config.log.log_secondary = false;
 
-		switch(daemonize(config.log)){
+		switch(daemonize(config.log, config.pid_file)){
 			case 0:
 				break;
 			case 1:
@@ -140,7 +141,7 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize?" (Because the log output stream is stderr)":""));
+		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize ? " (Because the log output stream is stderr)":""));
 	}
 
 	//run core loop

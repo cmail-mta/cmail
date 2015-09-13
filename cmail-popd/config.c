@@ -66,7 +66,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			tls_mode = TLS_NEGOTIATE;
 		}
 
-		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities)<0){
+		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities) < 0){
 			return -1;
 		}
 	}
@@ -150,7 +150,7 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 		return -1;
 	}
 
-	config->database.conn=database_open(config->log, params, SQLITE_OPEN_READWRITE);
+	config->database.conn = database_open(config->log, params, SQLITE_OPEN_READWRITE);
 
 	return (config->database.conn) ? 0:-1;
 }
@@ -221,9 +221,24 @@ int config_controlpipe(CONFIGURATION* config, char* directive, char* params){
 	return 0;
 }
 
+int config_pidfile(CONFIGURATION* config, char* directive, char* params){
+	if(config->pid_file){
+		logprintf(config->log, LOG_ERROR, "Multiple pidfile stanzas read, aborting\n");
+		return -1;
+	}
+
+	config->pid_file = common_strdup(params);
+
+	if(!config->pid_file){
+		logprintf(config->log, LOG_ERROR, "Failed to allocate memory for pidfile path\n");
+		return -1;
+	}
+	return 0;
+}
+
 int config_line(void* config_data, char* line){
 	unsigned parameter;
-	CONFIGURATION* config = (CONFIGURATION*) config_data;
+	CONFIGURATION* config = (CONFIGURATION*)config_data;
 
 	//scan over directive
 	for(parameter = 0; (!isspace(line[parameter])) && line[parameter] != 0; parameter++){
@@ -251,12 +266,12 @@ int config_line(void* config_data, char* line){
 		return config_database(config, line, line + parameter);
 	}
 
-	else if(!strncmp(line, "verbosity", 9) || !strncmp(line, "logfile", 7)){
-		return config_logger(config, line, line + parameter);
-	}
-
 	else if(!strncmp(line, "control", 7)){
 		return config_controlpipe(config, line, line + parameter);
+	}
+
+	else if(!strncmp(line, "pidfile", 7)){
+		return config_pidfile(config, line, line + parameter);
 	}
 
 	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
@@ -287,6 +302,10 @@ void config_free(CONFIGURATION* config){
 
 	connpool_free(&(config->listeners));
 	database_free(config->log, &(config->database));
+
+	if(config->pid_file){
+		free(config->pid_file);
+	}
 
 	if(config->log.stream != stderr){
 		fclose(config->log.stream);
