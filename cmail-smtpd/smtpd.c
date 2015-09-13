@@ -42,7 +42,8 @@ int main(int argc, char** argv){
 			.verbosity = 0,
 			.log_secondary = false,
 			.print_timestamp = true
-		}
+		},
+		.pid_file = NULL
 	};
 
 	//parse arguments
@@ -106,7 +107,7 @@ int main(int argc, char** argv){
 		//stop secondary log output
 		config.log.log_secondary = false;
 
-		switch(daemonize(config.log)){
+		switch(daemonize(config.log, config.pid_file)){
 			case 0:
 				break;
 			case 1:

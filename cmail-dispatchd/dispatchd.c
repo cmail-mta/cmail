@@ -59,7 +59,8 @@ int main(int argc, char** argv){
 			.tls_padding = 10,
 			.bounce_from = NULL,
 			.bounce_to = NULL
-		}
+		},
+		.pid_file = NULL
 	};
 
 	if(argc<2){
@@ -124,7 +125,7 @@ int main(int argc, char** argv){
 		//stop secondary log output
 		config.log.log_secondary = false;
 
-		switch(daemonize(config.log)){
+		switch(daemonize(config.log, config.pid_file)){
 			case 0:
 				break;
 			case 1:

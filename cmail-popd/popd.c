@@ -44,7 +44,8 @@ int main(int argc, char** argv){
 		.privileges = {
 			.uid = 0,
 			.gid= 0
-		}
+		},
+		.pid_file = NULL
 	};
 
 	if(argc<2){
@@ -102,7 +103,7 @@ int main(int argc, char** argv){
 		//stop secondary log output
 		config.log.log_secondary = false;
 
-		switch(daemonize(config.log)){
+		switch(daemonize(config.log, config.pid_file)){
 			case 0:
 				break;
 			case 1:
