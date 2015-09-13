@@ -266,6 +266,10 @@ int config_line(void* config_data, char* line){
 		return config_database(config, line, line + parameter);
 	}
 
+	else if(!strncmp(line, "verbosity", 9) || !strncmp(line, "logfile", 7)){
+		return config_logger(config, line, line + parameter);
+	}
+
 	else if(!strncmp(line, "control", 7)){
 		return config_controlpipe(config, line, line + parameter);
 	}
