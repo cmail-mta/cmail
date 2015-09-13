@@ -47,7 +47,7 @@ int main(int argc, char** argv){
 	};
 
 	//parse arguments
-	if(!arguments_parse(&args, argc-1, argv+1)){
+	if(!arguments_parse(&args, argc - 1, argv + 1)){
 		arguments_free(&args);
 		exit(usage(argv[0]));
 	}
@@ -61,7 +61,7 @@ int main(int argc, char** argv){
 	#endif
 
 	//read config file
-	if(config_parse(config.log, &config, args.config_file)<0){
+	if(config_parse(config.log, &config, args.config_file) < 0){
 		arguments_free(&args);
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
@@ -70,7 +70,7 @@ int main(int argc, char** argv){
 
 	logprintf(config.log, LOG_INFO, "This is %s, starting up\n", VERSION);
 
-	if(signal_init(config.log)<0){
+	if(signal_init(config.log) < 0){
 		arguments_free(&args);
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
@@ -78,7 +78,7 @@ int main(int argc, char** argv){
 	}
 
 	//attach aux databases
-	if(database_initialize(config.log, &(config.database))<0){
+	if(database_initialize(config.log, &(config.database)) < 0){
 		arguments_free(&args);
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
@@ -87,18 +87,18 @@ int main(int argc, char** argv){
 
 	//drop privileges
 	if(getuid() == 0 && args.drop_privileges){
-		if(privileges_drop(config.log, config.privileges)<0){
+		if(privileges_drop(config.log, config.privileges) < 0){
 			arguments_free(&args);
 			config_free(&config);
 			exit(EXIT_FAILURE);
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));
+		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges ? " (Because you are not root)":""));
 	}
 
 	//detach from console (or dont)
-	if(args.detach && config.log.stream!=stderr){
+	if(args.detach && config.log.stream != stderr){
 		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
 
 		//flush the stream so we do not get everything twice
@@ -123,7 +123,7 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Because the log output stream is stderr)":""));
+		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach ? " (Because the log output stream is stderr)":""));
 	}
 
 	//enter main processing loop
