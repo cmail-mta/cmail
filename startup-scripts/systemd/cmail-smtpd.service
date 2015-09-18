@@ -2,9 +2,10 @@
 Description=SMTP server daemon (cmail-smtpd)
 
 [Service]
-Type=simple
+Type=forking
+PIDFile=/var/run/cmail-smtpd.pid
 TimeoutStartSec=0
-ExecStart=/usr/sbin/cmail-smtpd /etc/cmail/smtpd.conf nodetach
+ExecStart=/usr/sbin/cmail-smtpd /etc/cmail/smtpd.conf
 Requires=network-online.target
 
 [Install]
