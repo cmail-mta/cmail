@@ -117,6 +117,7 @@ typedef struct /*_ARGS*/ {
 	char* config_file;
 	bool drop_privileges;
 	bool detach;
+	bool test_config;
 } ARGUMENTS;
 
 typedef struct /*_USER_MAILBOX_DB*/{

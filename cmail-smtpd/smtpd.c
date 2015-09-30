@@ -15,7 +15,8 @@ int main(int argc, char** argv){
 	ARGUMENTS args = {
 		.config_file = NULL,
 		.drop_privileges = true,
-		.detach = true
+		.detach = true,
+		.test_config = false
 	};
 
 	CONFIGURATION config = {
@@ -136,7 +137,9 @@ int main(int argc, char** argv){
 	}
 
 	//enter main processing loop
-	core_loop(config.log, config.listeners, &(config.database));
+	if(!args.test_config){
+		core_loop(config.log, config.listeners, &(config.database));
+	}
 
 	//clean up allocated resources
 	logprintf(config.log, LOG_INFO, "Cleaning up resources\n");
