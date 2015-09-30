@@ -264,6 +264,10 @@ int client_close(CONNECTION* client){
 	if(client->fd != fileno(stdin)){
 		client->fd = -1;
 	}
+	else{
+		//shut down (allows fuzzing without persistence mode)
+		abort_signaled = 1;
+	}
 	#else
 	client->fd = -1;
 	#endif
