@@ -1,0 +1,9 @@
+EHLO fuzzer
+AUTH PLAIN AGNiZGV2AGNiZGV2
+MAIL FROM:<cb@cbcdn.com>
+RCPT TO:<frob@glorb.buz>
+DATA
+line
+.
+RSET
+QUIT

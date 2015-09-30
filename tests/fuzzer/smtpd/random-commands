@@ -1,0 +1,5 @@
+VRFY foo
+EXPN bar
+STARTTLS
+AUTH
+XYZZY

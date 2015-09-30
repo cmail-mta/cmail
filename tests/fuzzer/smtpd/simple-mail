@@ -1,0 +1,10 @@
+EHLO fuzzer
+MAIL FROM:<foo@bar.baz>
+RCPT TO:<cb@cbcdn.com>
+RCPT TO:<not@lo.cal>
+DATA
+data line 1
+data line 2
+.
+RSET
+QUIT

@@ -1,0 +1,52 @@
+Fuzzing the cmail daemons
+-------------------------
+The cmail daemons (smtpd, popd, and to a lesser extent dispatchd)
+offer 2 prime targets for fuzzing: the configuration file parser
+and the protocol logic. The steps involved in starting a fuzzing
+run on either of these targets is described herein. Since the
+developers chose to concentrate on using afl-fuzz for their fuzzing
+needs, much of this documentation is geared towards it. Most of it
+should be easily adaptable to other fuzzers. Most fuzzing should
+take place in a RAM-backed file system, as SQLite accesses easily
+thrash I/O when executed in parallel.
+
+Fuzzing the configuration file parser
+-------------------------------------
+The daemons (currently only the smtp daemon) support a "config-test"
+argument to their invocation, which executes all normal initialization
+code without actually starting the main processing loop. This setting
+is ideal for fuzzing the configuration file parser.
+
+TODO describe procedure here
+
+Fuzzing the protocol logic
+--------------------------
+The daemon-repl branch contains code necessary to interact with the
+daemons main protocol logic via stdin/stdout, which is needed for
+afl-fuzz to be able to target it (without having to implement the
+persistent mode protocol). A REPL listener is created by specifying
+a bind host of "repl" in the configuration file.
+
+In order for this mode to be activated, compile the daemons with
+the CMAIL_TEST_REPL preprocessor constant defined.
+
+$ CC=afl-gcc CFLAGS="-Wall -g -DCMAIL_TEST_REPL" make
+
+This should generate the instrumented binaries used as targets.
+To create a working environment for the fuzzing run, create copies
+of all databases and configuration files used in your chosen location.
+
+$ cp master.db3 cmail-smtpd/devel-smtpd.conf /run/shm/
+
+afl-fuzz needs a folder for initial test cases and one for its output.
+Some example inputs are supplied in the tests/fuzzer/ directory of
+the source distribution.
+
+$ mkdir in out
+$ cp /path/to/source/tests/fuzzer/smtpd/* in/
+
+After completing these steps, you should be ready to run afl-fuzz against
+the cmail daemons.
+
+$ afl-fuzz -i in -o out /path/to/instrumented/cmail-smtpd \
+	/run/shm/devel-smtpd.conf nodetach
