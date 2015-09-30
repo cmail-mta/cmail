@@ -2,9 +2,10 @@
 Description=Outbound SMTP client (cmail-dispatchd)
 
 [Service]
-Type=simple
+Type=forking
 TimeoutStartSec=0
-ExecStart=/usr/sbin/cmail-dispatchd /etc/cmail/dispatchd.conf nodetach
+PIDFile=/var/run/cmail-dispatchd.pid
+ExecStart=/usr/sbin/cmail-dispatchd /etc/cmail/dispatchd.conf
 Requires=network-online.target
 
 [Install]

@@ -28,7 +28,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	//tokenize line
 	bindhost = strtok_r(params, " ", &tokenize_line);
 	do{
-		token=strtok_r(NULL, " ", &tokenize_line);
+		token = strtok_r(NULL, " ", &tokenize_line);
 		if(token){
 			if(!port){
 				port = token;
@@ -164,26 +164,25 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 	struct passwd* user_info;
 	struct group* group_info;
 
+	errno = 0;
 	if(!strcmp(directive, "user")){
-		errno=0;
-		user_info=getpwnam(params);
+		user_info = getpwnam(params);
 		if(!user_info){
 			logprintf(config->log, LOG_ERROR, "Failed to get user info for %s\n", params);
 			return -1;
 		}
-		config->privileges.uid=user_info->pw_uid;
-		config->privileges.gid=user_info->pw_gid;
+		config->privileges.uid = user_info->pw_uid;
+		config->privileges.gid = user_info->pw_gid;
 		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to uid %d gid %d\n", config->privileges.uid, config->privileges.gid);
 		return 0;
 	}
 	else if(!strcmp(directive, "group")){
-		errno=0;
-		group_info=getgrnam(params);
+		group_info = getgrnam(params);
 		if(!group_info){
 			logprintf(config->log, LOG_ERROR, "Failed to get group info for %s\n", params);
 			return -1;
 		}
-		config->privileges.gid=group_info->gr_gid;
+		config->privileges.gid = group_info->gr_gid;
 		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to gid %d\n", config->privileges.gid);
 		return 0;
 	}
@@ -196,20 +195,20 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 		return -1;
 	}
 
-	config->database.conn=database_open(config->log, params, SQLITE_OPEN_READWRITE);
+	config->database.conn = database_open(config->log, params, SQLITE_OPEN_READWRITE);
 
-	return (config->database.conn)?0:-1;
+	return (config->database.conn) ? 0:-1;
 }
 
 int config_logger(CONFIGURATION* config, char* directive, char* params){
 	FILE* log_file;
 
 	if(!strcmp(directive, "verbosity")){
-		config->log.verbosity=strtoul(params, NULL, 10);
+		config->log.verbosity = strtoul(params, NULL, 10);
 		return 0;
 	}
 	else if(!strcmp(directive, "logfile")){
-		log_file=fopen(params, "a");
+		log_file = fopen(params, "a");
 		if(!log_file){
 			logprintf(config->log, LOG_ERROR, "Failed to open logfile %s for appending\n", params);
 			return -1;
@@ -221,38 +220,57 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 	return -1;
 }
 
-int config_line(void* config_data, char* line){
-	unsigned parameter;
-	CONFIGURATION* config=(CONFIGURATION*) config_data;
-
-	//scan over directive
-	for(parameter=0;(!isspace(line[parameter]))&&line[parameter]!=0;parameter++){
+int config_pidfile(CONFIGURATION* config, char* directive, char* params){
+	if(config->pid_file){
+		logprintf(config->log, LOG_ERROR, "Multiple pidfile stanzas read, aborting\n");
+		return -1;
 	}
 
-	if(line[parameter]!=0){
-		line[parameter]=0;
+	config->pid_file = common_strdup(params);
+
+	if(!config->pid_file){
+		logprintf(config->log, LOG_ERROR, "Failed to allocate memory for pidfile path\n");
+		return -1;
+	}
+	return 0;
+}
+
+int config_line(void* config_data, char* line){
+	unsigned parameter;
+	CONFIGURATION* config = (CONFIGURATION*)config_data;
+
+	//scan over directive
+	for(parameter = 0; (!isspace(line[parameter])) && line[parameter] != 0; parameter++){
+	}
+
+	if(line[parameter] != 0){
+		line[parameter] = 0;
 		parameter++;
 	}
 
 	//scan for parameter begin
-	for(;isspace(line[parameter]);parameter++){
+	for(; isspace(line[parameter]); parameter++){
 	}
 
 	//route directives
 	if(!strncmp(line, "bind", 4)){
-		return config_bind(config, line, line+parameter);
+		return config_bind(config, line, line + parameter);
 	}
 
-	else if(!strncmp(line, "user", 4)||!strncmp(line, "group", 5)){
-		return config_privileges(config, line, line+parameter);
+	else if(!strncmp(line, "user", 4) || !strncmp(line, "group", 5)){
+		return config_privileges(config, line, line + parameter);
 	}
 
 	else if(!strncmp(line, "database", 8)){
-		return config_database(config, line, line+parameter);
+		return config_database(config, line, line + parameter);
 	}
 
-	else if(!strncmp(line, "verbosity", 9)||!strncmp(line, "logfile", 7)){
-		return config_logger(config, line, line+parameter);
+	else if(!strncmp(line, "verbosity", 9) || !strncmp(line, "logfile", 7)){
+		return config_logger(config, line, line + parameter);
+	}
+
+	else if(!strncmp(line, "pidfile", 7)){
+		return config_pidfile(config, line, line + parameter);
 	}
 
 	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
@@ -263,8 +281,8 @@ void config_free(CONFIGURATION* config){
 	unsigned i;
 	LISTENER* listener_data;
 
-	for(i=0;i<config->listeners.count;i++){
-		listener_data=(LISTENER*)config->listeners.conns[i].aux_data;
+	for(i = 0; i < config->listeners.count; i++){
+		listener_data = (LISTENER*)config->listeners.conns[i].aux_data;
 
 		close(config->listeners.conns[i].fd);
 
@@ -275,7 +293,7 @@ void config_free(CONFIGURATION* config){
 		}
 
 		#ifndef CMAIL_NO_TLS
-		if(config->listeners.conns[i].tls_mode!=TLS_NONE){
+		if(config->listeners.conns[i].tls_mode != TLS_NONE){
 			gnutls_certificate_free_credentials(listener_data->tls_cert);
 			gnutls_priority_deinit(listener_data->tls_priorities);
 			gnutls_dh_params_deinit(listener_data->tls_dhparams);
@@ -286,9 +304,13 @@ void config_free(CONFIGURATION* config){
 	connpool_free(&(config->listeners));
 	database_free(config->log, &(config->database));
 
-	if(config->log.stream!=stderr){
+	if(config->pid_file){
+		free(config->pid_file);
+	}
+
+	if(config->log.stream != stderr){
 		fflush(config->log.stream);
 		fclose(config->log.stream);
-		config->log.stream=stderr;
+		config->log.stream = stderr;
 	}
 }

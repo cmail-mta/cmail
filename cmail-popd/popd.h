@@ -99,6 +99,7 @@ typedef struct /*_CONFIGURATION_DATA*/ {
 	DATABASE database;
 	LOGGER log;
 	USER_PRIVS privileges;
+	char* pid_file;
 } CONFIGURATION;
 
 typedef struct /*_CLIENT_DATA*/ {
