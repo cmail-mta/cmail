@@ -3,17 +3,20 @@ bool args_parse(ARGUMENTS* args, int argc, char** argv){
 
 	//FIXME set verbosity
 
-	for(i=0;i<argc;i++){
+	for(i = 0; i < argc; i++){
 		if(!strcmp(argv[i], "nodrop")){
-			args->drop_privileges=false;
+			args->drop_privileges = false;
 		}
 		else if(!strcmp(argv[i], "nodetach")){
-			args->daemonize=false;
+			args->daemonize = false;
+		}
+		else if(!strcmp(argv[i], "test-config")){
+			args->test_config = true;
 		}
 		else{
-			args->config_file=argv[i];
+			args->config_file = argv[i];
 		}
 	}
 
-	return args->config_file!=NULL;
+	return args->config_file != NULL;
 }

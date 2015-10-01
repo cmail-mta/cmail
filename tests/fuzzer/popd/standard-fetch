@@ -1,0 +1,7 @@
+CAPA
+USER cbdev
+PASS cbdev
+UIDL
+RETR 1
+DELE 1
+QUIT

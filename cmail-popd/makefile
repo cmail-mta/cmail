@@ -1,5 +1,5 @@
 .PHONY: clean
-CFLAGS?=-Wall -g
+CFLAGS?=-Wall -g -DCMAIL_TEST_REPL
 LDLIBS=-lsqlite3 -lnettle -lgnutls
 
 all: popd

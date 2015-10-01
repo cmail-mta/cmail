@@ -92,6 +92,7 @@ typedef struct /*_ARGS_COMPOSITE*/ {
 	bool drop_privileges;
 	bool daemonize;
 	char* config_file;
+	bool test_config;
 } ARGUMENTS;
 
 typedef struct /*_CONFIGURATION_DATA*/ {

@@ -51,7 +51,16 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		return 1;
 	}
 
+	#ifdef CMAIL_TEST_REPL
+	if(listener->fd == fileno(stderr)){
+		client_slot = connpool_add(clients, fileno(stdin));
+	}
+	else{
+		client_slot = connpool_add(clients, accept(listener->fd, NULL, NULL));
+	}
+	#else
 	client_slot = connpool_add(clients, accept(listener->fd, NULL, NULL));
+	#endif
 
 	if(client_slot < 0){
 		logprintf(log, LOG_ERROR, "Failed to pool client socket\n");
@@ -123,7 +132,13 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	#endif
 
 	//close the socket
+	#ifdef CMAIL_TEST_REPL
+	if(client->fd != fileno(stdin)){
+		close(client->fd);
+	}
+	#else
 	close(client->fd);
+	#endif
 
 	//reset client data
 	if(client_data->auth.auth_ok && client_data->auth.user.authenticated){
@@ -132,7 +147,17 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	auth_reset(&(client_data->auth));
 
 	//return the conpool slot
+	#ifdef CMAIL_TEST_REPL
+	if(client->fd != fileno(stdin)){
+		client->fd = -1;
+	}
+	else{
+		//shut down in order to allow fuzzing without persistent mode
+		abort_signaled = 1;
+	}
+	#else
 	client->fd = -1;
+	#endif
 
 	return 0;
 }

@@ -15,6 +15,7 @@ int main(int argc, char** argv){
 	ARGUMENTS args = {
 		.drop_privileges = true,
 		.daemonize = true,
+		.test_config = false,
 		.config_file = NULL
 	};
 
@@ -132,7 +133,9 @@ int main(int argc, char** argv){
 	}
 
 	//run core loop
-	core_loop(config.log, config.listeners, &(config.database));
+	if(!args.test_config){
+		core_loop(config.log, config.listeners, &(config.database));
+	}
 
 	//cleanup
 	config_free(&config);
