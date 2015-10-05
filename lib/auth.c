@@ -1,3 +1,9 @@
+/* This file is part of the cmail project (http://cmail.rocks/)
+ * (c) 2015 Fabian "cbdev" Stumpf
+ * License: Simplified BSD (2-Clause)
+ * For further information, consult LICENSE.txt
+ */
+
 int auth_base64decode(LOGGER log, char* in){
 	uint32_t decode_buffer;
 	int group, len, i;

@@ -1,3 +1,9 @@
+/* This file is part of the cmail project (http://cmail.rocks/)
+ * (c) 2015 Fabian "cbdev" Stumpf
+ * License: Simplified BSD (2-Clause)
+ * For further information, consult LICENSE.txt
+ */
+
 ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t bytes){
 	ssize_t bytes_sent = 0, bytes_written = 0, bytes_left;
 
