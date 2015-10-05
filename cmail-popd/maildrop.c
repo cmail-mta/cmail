@@ -21,7 +21,7 @@ int maildrop_read(LOGGER log, sqlite3_stmt* stmt, MAILDROP* maildrop, char* user
 						//expand the maildrop
 						rows += CMAIL_MAILDROP_CHUNK;
 						maildrop->mails = realloc(maildrop->mails, rows * sizeof(POP_MAIL));
-						for(i=index;i<rows;i++){
+						for(i = index; i < rows; i++){
 							maildrop->mails[i] = empty_mail;
 						}
 						maildrop->count = rows;

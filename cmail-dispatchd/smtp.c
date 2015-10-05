@@ -1,5 +1,5 @@
 int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
 	//try esmtp
 	client_send(log, conn, "EHLO %s\r\n", settings.helo_announce);
@@ -8,7 +8,7 @@ int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
 	switch(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){
 		case 0:
 			logprintf(log, LOG_DEBUG, "Negotiated ESMTP\n");
-			conn_data->extensions_supported=true;
+			conn_data->extensions_supported = true;
 			return 0;
 
 		case -1:
@@ -31,7 +31,7 @@ int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
 }
 
 int smtp_starttls(LOGGER log, CONNECTION* conn){
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
 	if(!conn_data->extensions_supported){
 		logprintf(log, LOG_ERROR, "Extensions not supported, not negotiating TLS\n");
@@ -46,7 +46,7 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 	}
 
 	//perform handshake
-	if(tls_handshake(log, conn)<0){
+	if(tls_handshake(log, conn) < 0){
 		logprintf(log, LOG_ERROR, "Failed to negotiate TLS\n");
 		return -1;
 	}
@@ -55,16 +55,16 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 }
 
 int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
 	//need to accept NULL as sender here in order to handle bounces
 	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom ? mail->envelopefrom:"");
-	if(protocol_read(log, conn, SMTP_MAIL_TIMEOUT)<0){
+	if(protocol_read(log, conn, SMTP_MAIL_TIMEOUT) < 0){
 		logprintf(log, LOG_ERROR, "Failed to read response to mail initiation\n");
 		return -1;
 	}
 
-	if(conn_data->reply.code==250){
+	if(conn_data->reply.code == 250){
 		return 0;
 	}
 
@@ -74,16 +74,16 @@ int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
 
 int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){
 	//Calling contract: retn 0 -> accepted, 1 -> fail temp, -1 -> fail perm
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
 	client_send(log, conn, "RCPT TO:<%s>\r\n", path);
 
-	if(protocol_read(log, conn, SMTP_RCPT_TIMEOUT)<0){
+	if(protocol_read(log, conn, SMTP_RCPT_TIMEOUT) < 0){
 		logprintf(log, LOG_ERROR, "Failed to read response to recipient\n");
 		return 1;
 	}
 
-	if(conn_data->reply.code==250){
+	if(conn_data->reply.code == 250){
 		return 0;
 	}
 
@@ -97,7 +97,7 @@ int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){
 }
 
 int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 	char* mail_bytestuff;
 
 	//Calling contract: retn 0 -> accepted, 1 -> fail temp, -1 -> fail perm
@@ -109,15 +109,15 @@ int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
 		return -1;
 	}
 
-	if(mail_data[0]=='.'){
+	if(mail_data[0] == '.'){
 		client_send(log, conn, ".");
 	}
 	do{
-		mail_bytestuff=strstr(mail_data, "\r\n.");
+		mail_bytestuff = strstr(mail_data, "\r\n.");
 		if(mail_bytestuff){
-			client_send_raw(log, conn, mail_data, mail_bytestuff-mail_data);
+			client_send_raw(log, conn, mail_data, mail_bytestuff - mail_data);
 			client_send(log, conn, "\r\n..");
-			mail_data=mail_bytestuff+3;
+			mail_data=mail_bytestuff + 3;
 		}
 		else{
 			//logprintf(log, LOG_DEBUG, "Sending %d bytes message data\n", strlen(mail_data));
@@ -128,12 +128,12 @@ int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
 
 	client_send(log, conn, "\r\n.\r\n");
 
-	if(protocol_read(log, conn, SMTP_DATA_TERMINATION_TIMEOUT)<0){
+	if(protocol_read(log, conn, SMTP_DATA_TERMINATION_TIMEOUT) < 0){
 		logprintf(log, LOG_ERROR, "Failed to read data terminator response\n");
 		return 1;
 	}
 
-	if(conn_data->reply.code==250){
+	if(conn_data->reply.code == 250){
 		logprintf(log, LOG_INFO, "Mail accepted\n");
 		return 0;
 	}
@@ -148,7 +148,7 @@ int smtp_data(LOGGER log, CONNECTION* conn, char* mail_data){
 }
 
 int smtp_rset(LOGGER log, CONNECTION* conn){
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 	client_send(log, conn, "RSET\r\n");
 
 	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 250)){ //FIXME the rfc does not define a timeout for this
@@ -159,7 +159,7 @@ int smtp_rset(LOGGER log, CONNECTION* conn){
 }
 
 int smtp_noop(LOGGER log, CONNECTION* conn){
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 	client_send(log, conn, "NOOP\r\n");
 
 	if(protocol_expect(log, conn, 20, 250)){ //FIXME the rfc does not define a timeout for this
@@ -171,17 +171,17 @@ int smtp_noop(LOGGER log, CONNECTION* conn){
 
 int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
 	unsigned i;
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
 	//if(conn_data->state==STATE_NEW){
 		//initialize first-time data
 		#ifndef CMAIL_NO_TLS
-		if(conn->tls_mode==TLS_NONE){
+		if(conn->tls_mode == TLS_NONE){
 			tls_init_clientpeer(log, conn, remote, settings.tls_credentials);
 
-			if(port.tls_mode==TLS_ONLY){
+			if(port.tls_mode == TLS_ONLY){
 				//perform handshake immediately
-				if(tls_handshake(log, conn)<0){
+				if(tls_handshake(log, conn) < 0){
 					logprintf(log, LOG_ERROR, "Failed to negotiate TLS with TLSONLY remote\n");
 					return -1;
 				}
@@ -191,32 +191,32 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	//}
 
 	//await 220
-	if(protocol_read(log, conn, SMTP_220_TIMEOUT)<0){
+	if(protocol_read(log, conn, SMTP_220_TIMEOUT) < 0){
 		logprintf(log, LOG_ERROR, "Initial SMTP response failed or not properly formatted\n");
 		return -1;
 	}
 
-	if(conn_data->reply.code!=220){
+	if(conn_data->reply.code != 220){
 		logprintf(log, LOG_WARNING, "Server replied with %d: %s\n", conn_data->reply.code, conn_data->reply.response_text);
 		return -1;
 	}
 
 	//negotiate smtp
-	if(smtp_greet(log, conn, settings)<0){
+	if(smtp_greet(log, conn, settings) < 0){
 		logprintf(log, LOG_WARNING, "Failed to negotiate SMTP/ESMTP\n");
 		return -1;
 	}
 
 	#ifndef CMAIL_NO_TLS
-	if(port.tls_mode==TLS_NEGOTIATE && conn->tls_mode==TLS_NONE){
+	if(port.tls_mode == TLS_NEGOTIATE && conn->tls_mode == TLS_NONE){
 		//if requested, proto_starttls
-		if(smtp_starttls(log, conn)<0){
+		if(smtp_starttls(log, conn) < 0){
 			logprintf(log, LOG_ERROR, "Failed to negotiate TLS layer\n");
 			return -1;
 		}
 
 		//perform greeting again
-		if(smtp_greet(log, conn, settings)<0){
+		if(smtp_greet(log, conn, settings) < 0){
 			logprintf(log, LOG_WARNING, "Failed to negotiate SMTPS/ESMTPS\n");
 			return -1;
 		}
@@ -224,7 +224,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	#endif
 
 	//do tls padding
-	if(settings.tls_padding && conn->tls_mode==TLS_ONLY){
+	if(settings.tls_padding && conn->tls_mode == TLS_ONLY){
 		if(common_rand(&i, sizeof(i)) < 0){
 			i = settings.tls_padding;
 		}
@@ -232,8 +232,8 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 			i %= settings.tls_padding;
 		}
 
-		for(;i>0;i--){
-			if(i%2){
+		for(; i > 0; i--){
+			if(i % 2){
 				smtp_noop(log, conn);
 			}
 			else{
