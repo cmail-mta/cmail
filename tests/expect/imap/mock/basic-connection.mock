@@ -1,0 +1,29 @@
+#!expect -f
+
+set done 0
+
+while {$done != 1} {
+	set timeout 60
+	spawn nc -l 1143
+	send "* OK IMAP4rev1 Service Ready\r"
+	
+	set logoff 0
+	while {$logoff != 1} {
+		expect {
+			"CAPABILITY" {
+				send "* CAPABILITY IMAP4rev1 FOO BAR\r"
+				send "1 OK\r"
+			}
+			"LOGOFF" {
+				send "OK\r"
+				set logoff 1
+			}
+			default {
+				set logoff 1
+			}
+		}
+	}
+
+	send_user "Respawning"
+	sleep 2
+}
