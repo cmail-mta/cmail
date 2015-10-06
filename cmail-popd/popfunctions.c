@@ -36,7 +36,7 @@ int pop_stat(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	//calculate maildrop size
-	for(i=0;i<client_data->maildrop.count;i++){
+	for(i = 0; i < client_data->maildrop.count; i++){
 		maildrop_bytes += client_data->maildrop.mails[i].mail_size;
 	}
 
@@ -51,7 +51,7 @@ int pop_list(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	if(mail == 0){
 		//list all mail, multiline
 		client_send(log, client, "+OK Scan listing follows\r\n");
-		for(i=0;i<client_data->maildrop.count;i++){
+		for(i = 0; i < client_data->maildrop.count; i++){
 			if(!client_data->maildrop.mails[i].flag_delete){
 				client_send(log, client, "%d %d\r\n", i + 1, client_data->maildrop.mails[i].mail_size);
 			}
@@ -82,7 +82,7 @@ int pop_uidl(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	if(mail == 0){
 		//list all mail, multiline
 		client_send(log, client, "+OK UID listing follows\r\n");
-		for(i=0;i<client_data->maildrop.count;i++){
+		for(i = 0; i < client_data->maildrop.count; i++){
 			if(!client_data->maildrop.mails[i].flag_delete){
 				client_send(log, client, "%d %s\r\n", i + 1, client_data->maildrop.mails[i].message_id);
 			}
@@ -219,7 +219,7 @@ int pop_rset(LOGGER log, CONNECTION* client, DATABASE* database){
 		return 0;
 	}
 
-	for(i=0;i<client_data->maildrop.count;i++){
+	for(i = 0; i < client_data->maildrop.count; i++){
 		client_data->maildrop.mails[i].flag_delete = false;
 	}
 

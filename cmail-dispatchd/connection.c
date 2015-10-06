@@ -27,7 +27,7 @@ int connection_reset(LOGGER log, CONNECTION* conn, bool data_valid){
 
 		#ifndef CMAIL_NO_TLS
 		//shut down the tls session
-		if(conn->tls_mode!=TLS_NONE){
+		if(conn->tls_mode != TLS_NONE){
 			//this only shuts down the write direction, since gnutls_bye
 			//blocks on a recv() with some peers not shutting down properly
 			gnutls_bye(conn->tls_session, GNUTLS_SHUT_WR);
@@ -35,7 +35,7 @@ int connection_reset(LOGGER log, CONNECTION* conn, bool data_valid){
 		gnutls_deinit(conn->tls_session);
 		#endif
 
-		if(conn->fd>0){
+		if(conn->fd > 0){
 			close(conn->fd);
 		}
 	}
@@ -43,10 +43,10 @@ int connection_reset(LOGGER log, CONNECTION* conn, bool data_valid){
 		logprintf(log, LOG_DEBUG, "Initializing connection data\n");
 	}
 
-	*conn=empty_conn;
+	*conn = empty_conn;
 
 	if(conn->aux_data){
-		conn_data=(CONNDATA*)conn->aux_data;
+		conn_data = (CONNDATA*)conn->aux_data;
 
 		if(data_valid){
 			if(conn_data->reply.response_text){
@@ -54,7 +54,7 @@ int connection_reset(LOGGER log, CONNECTION* conn, bool data_valid){
 			}
 		}
 
-		*conn_data=empty_data;
+		*conn_data = empty_data;
 	}
 
 	return 0;

@@ -1,3 +1,9 @@
+/* This file is part of the cmail project (http://cmail.rocks/)
+ * (c) 2015 Fabian "cbdev" Stumpf
+ * License: Simplified BSD (2-Clause)
+ * For further information, consult LICENSE.txt
+ */
+
 void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 	//mostly copied from sqlite-src/func.c
 

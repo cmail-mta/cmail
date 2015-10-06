@@ -3,7 +3,7 @@ int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt){
 	unsigned i;
 	char* id_list = (char*)sqlite3_column_text(stmt, 0);
 
-	for(i=0;i<strlen(id_list);i++){
+	for(i = 0; i < strlen(id_list); i++){
 		if(id_list[i] == ','){
 			entries++;
 		}
@@ -49,17 +49,17 @@ int mail_dbread(LOGGER log, MAIL* mail, sqlite3_stmt* stmt){
 }
 
 int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool fatal){
-	int rv=0;
+	int rv = 0;
 
 	if(!message){
-		message="No server response";
+		message = "No server response";
 	}
 
 	if(sqlite3_bind_int(database->insert_bounce_reason, 1, dbid) != SQLITE_OK
 		|| sqlite3_bind_text(database->insert_bounce_reason, 2, message, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_int(database->insert_bounce_reason, 3, fatal?1:0)){
 		logprintf(log, LOG_ERROR, "Failed to bind bounce reason parameter: %s\n", sqlite3_errmsg(database->conn));
-		rv=-1;
+		rv = -1;
 	}
 	else{
 		switch(sqlite3_step(database->insert_bounce_reason)){
@@ -67,7 +67,7 @@ int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool f
 				break;
 			default:
 				logprintf(log, LOG_ERROR, "Failed to insert bounce reason for mail %d: %s\n", dbid, sqlite3_errmsg(database->conn));
-				rv=-1;
+				rv = -1;
 		}
 	}
 
@@ -95,7 +95,7 @@ int mail_delete(LOGGER log, DATABASE* database, int dbid){
 }
 
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
-	CONNDATA* conn_data=(CONNDATA*)conn->aux_data;
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 	unsigned i;
 	bool continue_data=false;
 
@@ -104,29 +104,29 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 		return -1;
 	}
 
-	for(i=0;i<mail->recipients;i++){
+	for(i = 0; i < mail->recipients; i++){
 		sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid); //FIXME error check this
 		switch(sqlite3_step(database->query_rcpt)){
 			case SQLITE_DONE:
 				logprintf(log, LOG_WARNING, "dbid %d does not exist anymore\n", mail->rcpt[i].dbid);
-				mail->rcpt[i].status=RCPT_FAIL_PERMANENT;
+				mail->rcpt[i].status = RCPT_FAIL_PERMANENT;
 				break;
 			case SQLITE_ROW:
 				switch(smtp_rcpt(log, conn, (char*)sqlite3_column_text(database->query_rcpt, 0))){
 					case -1:
 						logprintf(log, LOG_INFO, "Recipient %d: %s failed permanently: %s\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0), conn_data->reply.response_text);
 						mail_failure(log, database, mail->rcpt[i].dbid, conn_data->reply.response_text, true);
-						mail->rcpt[i].status=RCPT_FAIL_PERMANENT;
+						mail->rcpt[i].status = RCPT_FAIL_PERMANENT;
 						break;
 					case 0:
 						logprintf(log, LOG_INFO, "Recipient %d: %s accepted\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0));
-						mail->rcpt[i].status=RCPT_OK;
-						continue_data=true;
+						mail->rcpt[i].status = RCPT_OK;
+						continue_data = true;
 						break;
 					case 1:
 						logprintf(log, LOG_INFO, "Recipient %d: %s failed temporarily\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0));
 						mail_failure(log, database, mail->rcpt[i].dbid, conn_data->reply.response_text, false);
-						mail->rcpt[i].status=RCPT_FAIL_TEMPORARY;
+						mail->rcpt[i].status = RCPT_FAIL_TEMPORARY;
 						break;
 				}
 				break;
@@ -149,16 +149,16 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 		case -1:
 			//set all recipients to permanent fail
 			logprintf(log, LOG_WARNING, "Mail rejected\n");
-			for(i=0;i<mail->recipients;i++){
+			for(i = 0; i < mail->recipients; i++){
 				mail_failure(log, database, mail->rcpt[i].dbid, conn_data->reply.response_text, true);
-				mail->rcpt[i].status=RCPT_FAIL_PERMANENT;
+				mail->rcpt[i].status = RCPT_FAIL_PERMANENT;
 			}
 			return -1;
 		case 1:
 			//set all recipients to temp fail
-			for(i=0;i<mail->recipients;i++){
+			for(i = 0; i < mail->recipients; i++){
 				mail_failure(log, database, mail->rcpt[i].dbid, conn_data->reply.response_text, false);
-				mail->rcpt[i].status=RCPT_FAIL_TEMPORARY;
+				mail->rcpt[i].status = RCPT_FAIL_TEMPORARY;
 			}
 			logprintf(log, LOG_WARNING, "Mail not accepted, deferring\n");
 			return -1;
@@ -193,6 +193,6 @@ int mail_reset(MAIL* mail, bool data_valid){
 		}
 	}
 
-	*mail=empty_mail;
+	*mail = empty_mail;
 	return 0;
 }

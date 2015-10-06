@@ -1,3 +1,9 @@
+/* This file is part of the cmail project (http://cmail.rocks/)
+ * (c) 2015 Fabian "cbdev" Stumpf
+ * License: Simplified BSD (2-Clause)
+ * For further information, consult LICENSE.txt
+ */
+
 int config_parse(LOGGER log, void* config_data, char* conf_file){
 	char line_buffer[MAX_CFGLINE+1];
 	char* line_data=NULL;

@@ -16,7 +16,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 				case '@':
 					if(out_pos == 0){
 						//route syntax. skip until next colon.
-						for(;pathspec[in_pos] && pathspec[in_pos]!=':';in_pos++){
+						for(; pathspec[in_pos] && pathspec[in_pos] != ':'; in_pos++){
 						}
 						if(pathspec[in_pos] != ':'){
 							//colon was somehow the last character. someone blew this.
