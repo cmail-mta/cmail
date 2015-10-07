@@ -160,7 +160,7 @@ int tls_init_listener(LOGGER log, LISTENER* listener, char* cert, char* key, cha
 		gnutls_certificate_set_dh_params(listener->tls_cert, listener->tls_dhparams);
 		return 0;
 }
+//CMAIL_LISTENER_TYPE
 #endif
-
-
+//CMAIL_NO_TLS
 #endif

@@ -15,7 +15,7 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 	}
 
 	//create/reuse entry in user storage structure
-	for(slot=0;database->mail_storage.users[slot];slot++){
+	for(slot = 0; database->mail_storage.users[slot]; slot++){
 		if(!database->mail_storage.users[slot]->file_name){
 			break;
 		}
@@ -23,13 +23,13 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 
 	//if no usable slot, reallocate
 	if(!database->mail_storage.users[slot]){
-		database->mail_storage.users=realloc(database->mail_storage.users, (slot+2)*sizeof(USER_DATABASE*));
+		database->mail_storage.users = realloc(database->mail_storage.users, (slot + 2) * sizeof(USER_DATABASE*));
 		if(!database->mail_storage.users){
 			logprintf(log, LOG_ERROR, "Failed to reallocate user storage database structure\n");
 			return -1;
 		}
-		database->mail_storage.users[slot+1]=NULL;
-		database->mail_storage.users[slot]=calloc(1, sizeof(USER_DATABASE));
+		database->mail_storage.users[slot + 1] = NULL;
+		database->mail_storage.users[slot] = calloc(1, sizeof(USER_DATABASE));
 		if(!database->mail_storage.users[slot]){
 			logprintf(log, LOG_ERROR, "Failed to allocate user storage database structure\n");
 			return -1;
@@ -50,13 +50,13 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 				logprintf(log, LOG_INFO, "Attached database %s as %s\n", dbfile, name);
 
 				//create statement
-				user_stmt=calloc(strlen(INSERT_USER_MAILBOX)+strlen(name)+2, sizeof(char));
+				user_stmt = calloc(strlen(INSERT_USER_MAILBOX) + strlen(name) + 2, sizeof(char));
 				if(!user_stmt){
 					logprintf(log, LOG_ERROR, "Failed to allocate temporary statement storage\n");
 					break;
 				}
 
-				snprintf(user_stmt, strlen(INSERT_USER_MAILBOX)+strlen(name)+1, INSERT_USER_MAILBOX, name);
+				snprintf(user_stmt, strlen(INSERT_USER_MAILBOX) + strlen(name) + 1, INSERT_USER_MAILBOX, name);
 				entry->mailbox = database_prepare(log, database->conn, user_stmt);
 				free(user_stmt);
 
@@ -91,17 +91,17 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 }
 
 int database_detach(LOGGER log, DATABASE* database, sqlite3_stmt* detach, USER_DATABASE* db){
-	int status, rv=0;
+	int status, rv = 0;
 	USER_DATABASE empty_db = {
-		.active=false,
+		.active = false,
 		.mailbox = NULL,
 		.file_name = NULL,
 		.conn_handle = NULL
 	};
 
 	if(detach){
-		if(sqlite3_bind_text(detach, 1, db->conn_handle, -1, SQLITE_STATIC)==SQLITE_OK){
-			status=sqlite3_step(detach);
+		if(sqlite3_bind_text(detach, 1, db->conn_handle, -1, SQLITE_STATIC) == SQLITE_OK){
+			status = sqlite3_step(detach);
 
 			switch(status){
 				case SQLITE_DONE:
@@ -109,17 +109,17 @@ int database_detach(LOGGER log, DATABASE* database, sqlite3_stmt* detach, USER_D
 					//FIXME check result
 					break;
 				case SQLITE_ERROR:
-					rv=-1;
+					rv = -1;
 					break;
 				default:
 					logprintf(log, LOG_WARNING, "Uncaught detach response code %d\n", status);
-					rv=1;
+					rv = 1;
 					break;
 			}
 		}
 		else{
 			logprintf(log, LOG_ERROR, "Failed to bind detach statement parameter\n");
-			rv=-1;
+			rv = -1;
 		}
 
 		sqlite3_reset(detach);
@@ -130,7 +130,7 @@ int database_detach(LOGGER log, DATABASE* database, sqlite3_stmt* detach, USER_D
 	free(db->file_name);
 	free(db->conn_handle);
 
-	*db=empty_db;
+	*db = empty_db;
 
 	return rv;
 }
@@ -142,7 +142,7 @@ USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
 		return NULL;
 	}
 
-	for(i=0;database->mail_storage.users[i];i++){
+	for(i = 0; database->mail_storage.users[i]; i++){
 		if(database->mail_storage.users[i]->file_name && !strcmp(database->mail_storage.users[i]->file_name, filename)){
 			return database->mail_storage.users[i];
 		}
@@ -153,31 +153,31 @@ USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
 }
 
 int database_refresh(LOGGER log, DATABASE* database){
-	int status, rv=0;
+	int status, rv = 0;
 	unsigned i;
 
-	char* QUERY_ATTACH_DB="ATTACH DATABASE ? AS ?;";
-	char* QUERY_DETACH_DB="DETACH DATABASE ?;";
-	char* QUERY_USER_DATABASES="SELECT MIN(user_name), user_database FROM main.users WHERE user_database NOT NULL GROUP BY user_database;";
+	char* QUERY_ATTACH_DB = "ATTACH DATABASE ? AS ?;";
+	char* QUERY_DETACH_DB = "DETACH DATABASE ?;";
+	char* QUERY_USER_DATABASES = "SELECT MIN(user_name), user_database FROM main.users WHERE user_database NOT NULL GROUP BY user_database;";
 
-	sqlite3_stmt* attach_db=database_prepare(log, database->conn, QUERY_ATTACH_DB);
-	sqlite3_stmt* detach_db=database_prepare(log, database->conn, QUERY_DETACH_DB);
-	sqlite3_stmt* select_dbs=database_prepare(log, database->conn, QUERY_USER_DATABASES);
+	sqlite3_stmt* attach_db = database_prepare(log, database->conn, QUERY_ATTACH_DB);
+	sqlite3_stmt* detach_db = database_prepare(log, database->conn, QUERY_DETACH_DB);
+	sqlite3_stmt* select_dbs = database_prepare(log, database->conn, QUERY_USER_DATABASES);
 
-	if(!attach_db||!detach_db||!select_dbs){
+	if(!attach_db || !detach_db || !select_dbs){
 		logprintf(log, LOG_ERROR, "Failed to prepare user storage management statements\n");
 		return -1;
 	}
 
 	if(database->mail_storage.users){
-		for(i=0;database->mail_storage.users[i];i++){
-			database->mail_storage.users[i]->active=false;
+		for(i = 0; database->mail_storage.users[i]; i++){
+			database->mail_storage.users[i]->active = false;
 		}
 	}
 
 	do{
 		//fetch user database
-		status=sqlite3_step(select_dbs);
+		status = sqlite3_step(select_dbs);
 		switch(status){
 			case SQLITE_ROW:
 				//if not attached, attach
@@ -199,15 +199,15 @@ int database_refresh(LOGGER log, DATABASE* database){
 				break;
 			default:
 				logprintf(log, LOG_ERROR, "User storage database initialization failed: %s\n", sqlite3_errmsg(database->conn));
-				rv=-1;
+				rv = -1;
 				break;
 		}
 	}
-	while(status==SQLITE_ROW);
+	while(status == SQLITE_ROW);
 
 	//detach inactive databases
 	if(database->mail_storage.users){
-		for(i=0;database->mail_storage.users[i];i++){
+		for(i = 0; database->mail_storage.users[i]; i++){
 			if(!database->mail_storage.users[i]->active){
 				//FIXME check this for return value
 				database_detach(log, database, detach_db, database->mail_storage.users[i]);
@@ -278,7 +278,7 @@ void database_free(LOGGER log, DATABASE* database){
 
 		//finalize user storage
 		if(database->mail_storage.users){
-			for(i=0;database->mail_storage.users[i];i++){
+			for(i = 0; database->mail_storage.users[i]; i++){
 				//FIXME user return value
 				database_detach(log, database, NULL, database->mail_storage.users[i]);
 
@@ -288,6 +288,6 @@ void database_free(LOGGER log, DATABASE* database){
 		}
 
 		sqlite3_close(database->conn);
-		database->conn=NULL;
+		database->conn = NULL;
 	}
 }
