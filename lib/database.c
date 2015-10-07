@@ -124,7 +124,7 @@ int database_schema_version(LOGGER log, sqlite3* conn){
 			break;
 		case SQLITE_DONE:
 			logprintf(log, LOG_ERROR, "The database did not contain a schema_version key\n");
-			statusi = -1;
+			status = -1;
 			break;
 		default:
 			logprintf(log, LOG_ERROR, "Failed to get schema version: %s\n", sqlite3_errmsg(conn));
