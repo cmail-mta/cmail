@@ -17,24 +17,24 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	while(!abort_signaled){
 		//clear listen fds
 		FD_ZERO(&readfds);
-		maxfd=-1;
+		maxfd = -1;
 
 		//add listen fds
-		for(i=0;i<listeners.count;i++){
-			if(listeners.conns[i].fd>0){
+		for(i = 0; i < listeners.count; i++){
+			if(listeners.conns[i].fd >= 0){
 				FD_SET(listeners.conns[i].fd, &readfds);
-				if(listeners.conns[i].fd>maxfd){
-					maxfd=listeners.conns[i].fd;
+				if(listeners.conns[i].fd > maxfd){
+					maxfd = listeners.conns[i].fd;
 				}
 			}
 		}
 
 		//add client fds
-		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd>0){
+		for(i = 0; i < clients.count; i++){
+			if(clients.conns[i].fd >= 0){
 				FD_SET(clients.conns[i].fd, &readfds);
-				if(clients.conns[i].fd>maxfd){
-					maxfd=clients.conns[i].fd;
+				if(clients.conns[i].fd > maxfd){
+					maxfd = clients.conns[i].fd;
 				}
 			}
 		}
@@ -55,8 +55,8 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		//check client fds
-		for(i=0;i<clients.count;i++){
-			if(clients.conns[i].fd > 0){
+		for(i = 0; i < clients.count; i++){
+			if(clients.conns[i].fd >= 0){
 				if(FD_ISSET(clients.conns[i].fd, &readfds)){
 					//handle data
 					//FIXME handle return value
@@ -75,8 +75,8 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		//check listen fds
-		for(i=0;i<listeners.count;i++){
-			if(listeners.conns[i].fd > 0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
+		for(i = 0; i < listeners.count; i++){
+			if(listeners.conns[i].fd >= 0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
 				//handle new client
 				//FIXME handle return value
 				client_accept(log, database, &(listeners.conns[i]), &clients);
@@ -85,7 +85,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	}
 
 	//close connected clients
-	for(i=0;i<clients.count;i++){
+	for(i = 0; i < clients.count; i++){
 		if(clients.conns[i].fd >= 0){
 			client_close(&(clients.conns[i]));
 		}
