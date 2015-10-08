@@ -5,7 +5,7 @@
  */
 
 void signal_handle(int signum){
-	abort_signaled=1;
+	abort_signaled = 1;
 }
 
 int signal_init(LOGGER log){

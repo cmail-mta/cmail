@@ -15,8 +15,8 @@ void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 	const unsigned char* needle;
 	bool text=false;
 
-	if(sqlite3_value_type(argv[0])==SQLITE_NULL
-		|| sqlite3_value_type(argv[1])==SQLITE_NULL){
+	if(sqlite3_value_type(argv[0]) == SQLITE_NULL
+		|| sqlite3_value_type(argv[1]) == SQLITE_NULL){
 		//bail out
 		return;
 	}
@@ -24,38 +24,39 @@ void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 	nHaystack = sqlite3_value_bytes(argv[0]);
 	nNeedle = sqlite3_value_bytes(argv[1]);
 
-	if(sqlite3_value_type(argv[0])==SQLITE_BLOB
-		&& sqlite3_value_type(argv[1])==SQLITE_BLOB){
+	if(sqlite3_value_type(argv[0]) == SQLITE_BLOB
+		&& sqlite3_value_type(argv[1]) == SQLITE_BLOB){
 
-		hay=sqlite3_value_blob(argv[0]);
-		needle=sqlite3_value_blob(argv[1]);
+		hay = sqlite3_value_blob(argv[0]);
+		needle = sqlite3_value_blob(argv[1]);
   	}
 	else{
-		hay=sqlite3_value_text(argv[0]);
-		needle=sqlite3_value_text(argv[1]);
-		text=true;
+		hay = sqlite3_value_text(argv[0]);
+		needle = sqlite3_value_text(argv[1]);
+		text = true;
 	}
 
-	while(nNeedle<=nHaystack && memcmp(hay, needle, nNeedle)!=0 ){
+	while(nNeedle <= nHaystack && memcmp(hay, needle, nNeedle) != 0){
 		N++;
 		do{
 			nHaystack--;
 			hay++;
 		}
-		while(text&&(hay[0]&0xc0)==0x80);
+		//this includes checks for UTF-8 characters
+		while(text && (hay[0] & 0xc0) == 0x80);
 	}
 
-	if(nNeedle>nHaystack){
-		N=0;
+	if(nNeedle > nHaystack){
+		N = 0;
 	}
 	sqlite3_result_int(context, N);
 }
 
 sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 	int status;
-	sqlite3_stmt* target=NULL;
+	sqlite3_stmt* target = NULL;
 
-	status=sqlite3_prepare_v2(conn, query, strlen(query), &target, NULL);
+	status = sqlite3_prepare_v2(conn, query, strlen(query), &target, NULL);
 
 	switch(status){
 		case SQLITE_OK:
@@ -69,7 +70,7 @@ sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 }
 
 sqlite3* database_open(LOGGER log, const char* filename, int flags){
-	sqlite3* db=NULL;
+	sqlite3* db = NULL;
 
 	switch(sqlite3_open_v2(filename, &db, flags, NULL)){
 		case SQLITE_OK:
@@ -91,7 +92,7 @@ sqlite3* database_open(LOGGER log, const char* filename, int flags){
 			return NULL;
 	}
 
-	if(sqlite3_create_function(db, "instr", 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, database_instr, NULL, NULL)!=SQLITE_OK){
+	if(sqlite3_create_function(db, "instr", 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, database_instr, NULL, NULL) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to register instr() with sqlite: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		return NULL;
@@ -108,8 +109,8 @@ sqlite3* database_open(LOGGER log, const char* filename, int flags){
 
 int database_schema_version(LOGGER log, sqlite3* conn){
 	int status;
-	char* QUERY_SCHEMA_VERSION="SELECT value FROM meta WHERE key='schema_version'";
-	sqlite3_stmt* query_version=database_prepare(log, conn, QUERY_SCHEMA_VERSION);
+	char* QUERY_SCHEMA_VERSION = "SELECT value FROM meta WHERE key='schema_version'";
+	sqlite3_stmt* query_version = database_prepare(log, conn, QUERY_SCHEMA_VERSION);
 
 	if(!query_version){
 		logprintf(log, LOG_ERROR, "Failed to query the database schema version, your database file might not be a valid master database\n");
@@ -118,16 +119,16 @@ int database_schema_version(LOGGER log, sqlite3* conn){
 
 	switch(sqlite3_step(query_version)){
 		case SQLITE_ROW:
-			status=strtoul((char*)sqlite3_column_text(query_version, 0), NULL, 10);
+			status = strtoul((char*)sqlite3_column_text(query_version, 0), NULL, 10);
 			logprintf(log, LOG_INFO, "Database schema version is %d\n", status);
 			break;
 		case SQLITE_DONE:
 			logprintf(log, LOG_ERROR, "The database did not contain a schema_version key\n");
-			status=-1;
+			status = -1;
 			break;
 		default:
 			logprintf(log, LOG_ERROR, "Failed to get schema version: %s\n", sqlite3_errmsg(conn));
-			status=-1;
+			status = -1;
 	}
 
 	sqlite3_finalize(query_version);
