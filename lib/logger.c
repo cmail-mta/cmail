@@ -1,3 +1,9 @@
+/* This file is part of the cmail project (http://cmail.rocks/)
+ * (c) 2015 Fabian "cbdev" Stumpf
+ * License: Simplified BSD (2-Clause)
+ * For further information, consult LICENSE.txt
+ */
+
 void logprintf(LOGGER log, unsigned level, char* fmt, ...){
 	va_list args;
 	va_list copy;
@@ -39,9 +45,9 @@ void log_dump_buffer(LOGGER log, unsigned level, void* buffer, size_t bytes){
 
 	logprintf(log, level, "Buffer dump (%d bytes)\n", bytes);
 
-	for(i=0;i<bytes;i++){
+	for(i = 0; i < bytes; i++){
 		logprintf(log, level, "(%d, %c, %02x)", i, isprint(data[i]) ? data[i]:'.', data[i]);
-		if(i && i%8 == 0){
+		if(i && i % 8 == 0){
 			logprintf(log, level, "\n");
 		}
 	}

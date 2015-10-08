@@ -13,7 +13,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 	//create timestring
 	if(common_tprintf("%a, %d %b %Y %T %z", unix_time, time_buffer, sizeof(time_buffer) - 1) < 0){
 		logprintf(log, LOG_ERROR, "Failed to get current time, buffer length probably not suitable\n");
-		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
+		snprintf(time_buffer, sizeof(time_buffer) - 1, "Time failed");
 	}
 
 	if(sqlite3_bind_int(database->query_bounce_candidates, 1, settings.mail_retries) != SQLITE_OK){
@@ -35,7 +35,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 				logprintf(log, LOG_DEBUG, "Bouncing message %d from %s retries %d fatality %d\n", sqlite3_column_int(database->query_bounce_candidates, 0), sqlite3_column_text(database->query_bounce_candidates, 1), sqlite3_column_int(database->query_bounce_candidates, 4), sqlite3_column_int(database->query_bounce_candidates, 5));
 
 				//create message id
-				snprintf(message_id, sizeof(message_id)-1, "%X.%X@%s", (unsigned)unix_time, rand(), settings.helo_announce);
+				snprintf(message_id, sizeof(message_id) - 1, "%X.%X@%s", (unsigned)unix_time, rand(), settings.helo_announce);
 
 				bounce_message = common_strappf(bounce_message, &bounce_allocated,
 						"From: %s\r\n" \
@@ -148,7 +148,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 				break;
 		}
 	}
-	while(status==SQLITE_ROW);
+	while(status == SQLITE_ROW);
 
 	sqlite3_reset(database->query_bounce_candidates);
 	sqlite3_clear_bindings(database->query_bounce_candidates);
@@ -177,11 +177,11 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 	smtp_rset(log, conn);
 
 	//handle failcount increase
-	for(i=0;i<transaction->recipients;i++){
+	for(i = 0; i < transaction->recipients; i++){
 		switch(transaction->rcpt[i].status){
 			case RCPT_OK:
 				//delivery done, remove from database
-				if(mail_delete(log, database, transaction->rcpt[i].dbid)<0){
+				if(mail_delete(log, database, transaction->rcpt[i].dbid) < 0){
 					logprintf(log, LOG_WARNING, "Failed to delete delivered mail id %d\n", transaction->rcpt[i].dbid);
 				}
 
@@ -260,7 +260,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			//TODO report error type
 		}
 		else{
-			for(c=0;c<resolver_answer->nrrs;c++){
+			for(c = 0; c < resolver_answer->nrrs; c++){
 				logprintf(log, LOG_DEBUG, "MX %d: %s\n", c, resolver_answer->rrs.inthostaddr[c].ha.host);
 			}
 
@@ -293,15 +293,15 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 					}
 
 					//clear freshly allocated mails
-					for(c=0;c<CMAIL_REALLOC_CHUNK;c++){
-						mail_reset(mails+c, false);
+					for(c = 0; c < CMAIL_REALLOC_CHUNK; c++){
+						mail_reset(mails + c, false);
 					}
 
 					tx_allocated += CMAIL_REALLOC_CHUNK;
 				}
 
 				//read transaction
-				if(mail_dbread(log, mails+tx_active, tx_statement)<0){
+				if(mail_dbread(log, mails + tx_active, tx_statement) < 0){
 					logprintf(log, LOG_ERROR, "Failed to read transaction %s, database status %s\n", (char*)sqlite3_column_text(tx_statement, 0), sqlite3_errmsg(database->conn));
 				}
 
@@ -327,7 +327,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		}
 		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", current_mx, resolver_remote);
 
-		for(port=0;settings.port_list[port].port;port++){
+		for(port = 0; settings.port_list[port].port; port++){
 			#ifndef CMAIL_NO_TLS
 			logprintf(log, LOG_INFO, "Trying port %d TLS mode %s\n", settings.port_list[port].port, tls_modestring(settings.port_list[port].tls_mode));
 			#else
@@ -339,7 +339,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 			if(conn.fd > 0){
 				//negotiate smtp
-				if(smtp_negotiate(log, settings, resolver_remote, &conn, settings.port_list[port])<0){
+				if(smtp_negotiate(log, settings, resolver_remote, &conn, settings.port_list[port]) < 0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(log, &conn, true);
@@ -348,8 +348,8 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 				//connected, run the delivery loop
 				delivered_mails = 0;
-				for(c=0;c<tx_active;c++){
-					status = logic_handle_transaction(log, database, &conn, mails+c);
+				for(c = 0; c < tx_active; c++){
+					status = logic_handle_transaction(log, database, &conn, mails + c);
 					if(status < 0){
 						logprintf(log, LOG_WARNING, "Mail transaction failed, continuing\n");
 					}
@@ -374,8 +374,8 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 	if(delivered_mails < 0){
 		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", remote.host);
-		for(i=0;i<tx_active;i++){
-			for(c=0;c<mails[i].recipients;c++){
+		for(i = 0; i < tx_active; i++){
+			for(c = 0; c < mails[i].recipients; c++){
 				mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to reach any MX", false);
 			}
 		}
@@ -387,8 +387,8 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	}
 
 	//free mail transactions
-	for(c=0;c<tx_active;c++){
-		mail_reset(mails+c, true);
+	for(c = 0; c < tx_active; c++){
+		mail_reset(mails + c, true);
 	}
 	free(mails);
 
@@ -426,14 +426,14 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 				case SQLITE_ROW:
 					if(remotes_active >= remotes_allocated){
 						//reallocate remote array
-						remotes = realloc(remotes, (remotes_allocated+CMAIL_REALLOC_CHUNK)*sizeof(REMOTE));
+						remotes = realloc(remotes, (remotes_allocated + CMAIL_REALLOC_CHUNK) * sizeof(REMOTE));
 						if(!remotes){
 							logprintf(log, LOG_ERROR, "Failed to allocate memory for remote array\n");
 							return -1;
 						}
 						//clear memory
-						memset(remotes+remotes_allocated, 0, CMAIL_REALLOC_CHUNK*sizeof(REMOTE));
-						remotes_allocated+=CMAIL_REALLOC_CHUNK;
+						memset(remotes + remotes_allocated, 0, CMAIL_REALLOC_CHUNK * sizeof(REMOTE));
+						remotes_allocated += CMAIL_REALLOC_CHUNK;
 					}
 
 					if(remotes[remotes_active].host){
@@ -470,7 +470,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		sqlite3_clear_bindings(database->query_outbound_hosts);
 
 		//deliver all remotes
-		for(i=0;i<remotes_active;i++){
+		for(i = 0; i < remotes_active; i++){
 			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[i].host, (remotes[i].mode == DELIVER_DOMAIN) ? "domain":"handoff");
 
 			//TODO implement multi-threading here
@@ -497,7 +497,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	while(!abort_signaled);
 
 	//free allocated remotes
-	for(i=0;i<remotes_allocated;i++){
+	for(i = 0; i < remotes_allocated; i++){
 		if(remotes[i].host){
 			free(remotes[i].host);
 		}

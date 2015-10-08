@@ -28,8 +28,8 @@ if [ -z "$CMAIL_TEST_ENVIRONMENT_OK" ]; then
 	fi
 
 	#test for prerequisites
-	if ! which sqlite3 || ! which expect; then
-		printf "environment: Need sqlite3 and expect, aborting\n"
+	if ! which sqlite3 || ! which expect || ! which gnutls-cli; then
+		printf "environment: Need sqlite3, expect and gnutls-cli, aborting\n"
 		exit 255
 	fi
 
