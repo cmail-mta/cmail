@@ -1,19 +1,19 @@
 int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	unsigned i;
-	unsigned rv=250;
+	unsigned rv = 250;
 	struct timespec time_spec;
 
 	//generate a message id
-	if(clock_gettime(CLOCK_REALTIME_COARSE, &time_spec)<0){
+	if(clock_gettime(CLOCK_REALTIME_COARSE, &time_spec) < 0){
 		logprintf(log, LOG_ERROR, "Failed to get time for message id generation: %s\n", strerror(errno));
-		time_spec.tv_sec=time(NULL);
+		time_spec.tv_sec = time(NULL);
 	}
 
 	snprintf(mail->message_id, CMAIL_MESSAGEID_MAX, "%X%X.%X-%s", (unsigned)time_spec.tv_sec, (unsigned)time_spec.tv_nsec, rand(), mail->submitter);
 	logprintf(log, LOG_INFO, "Generated message ID %s\n", mail->message_id);
 
 	//iterate over recipients
-	for(i=0;mail->forward_paths[i];i++){
+	for(i = 0; mail->forward_paths[i]; i++){
 		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->route.router ? (mail->forward_paths[i]->route.router):"outbound");
 		if(mail->forward_paths[i]->route.router){
 			//inbound mail, apply inrouter
@@ -48,7 +48,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 }
 
 int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE* database){
-	int rv=250, i;
+	int rv = 250, i;
 
 	//user has no routing entry, reject the mail
 	//this should already have happened early in the conversation
@@ -63,7 +63,7 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE
 	}
 	else if(!strcmp(route.router, "handoff")){
 		if(route.argument){
-			for(i=0;mail->forward_paths[i];i++){
+			for(i = 0; mail->forward_paths[i]; i++){
 				//insert into outbound table
 				logprintf(log, LOG_DEBUG, "Handing off path %d: %s\n", i, mail->forward_paths[i]->path);
 				switch(mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, mail->forward_paths[i]->path, mail)){
@@ -95,27 +95,27 @@ int mail_line(LOGGER log, MAIL* mail, char* line){
 		return -1;
 	}
 
-	if(!mail->data || mail->data_allocated < mail->data_offset+strlen(line)+3){
-		mail->data=realloc(mail->data, mail->data_allocated+strlen(line)+3);
+	if(!mail->data || mail->data_allocated < mail->data_offset+strlen(line) + 3){
+		mail->data = realloc(mail->data, mail->data_allocated + strlen(line) + 3);
 		if(!mail->data){
 			logprintf(log, LOG_ERROR, "Failed to reallocate mail buffer\n");
 			return -1;
 		}
-		mail->data_allocated+=strlen(line)+3;
+		mail->data_allocated += strlen(line) + 3;
 		logprintf(log, LOG_DEBUG, "Reallocated mail data buffer to %d bytes\n", mail->data_allocated);
 	}
 
-	if(mail->data_offset!=0){
+	if(mail->data_offset != 0){
 		//insert crlf
 		logprintf(log, LOG_DEBUG, "Inserting newline into data buffer\n");
-		mail->data[mail->data_offset++]='\r';
-		mail->data[mail->data_offset++]='\n';
+		mail->data[mail->data_offset++] = '\r';
+		mail->data[mail->data_offset++] = '\n';
 	}
 
 	//mind the terminator
 	logprintf(log, LOG_DEBUG, "Adding %d bytes to mail at index %d\n", strlen(line), mail->data_offset);
-	strncpy(mail->data+mail->data_offset, line, strlen(line)+1);
-	mail->data_offset+=strlen(line);
+	strncpy(mail->data + mail->data_offset, line, strlen(line) + 1);
+	mail->data_offset += strlen(line);
 	return 0;
 }
 
@@ -151,7 +151,7 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 
 	logprintf(log, LOG_DEBUG, "%d bytes of header data: %s\n", header_allocated, recv_header);
 
-	for(i=0;i<=header_allocated;i++){
+	for(i = 0; i <= header_allocated; i++){
 		if(recv_header[i] == ' '){
 			mark = i;
 		}
@@ -202,7 +202,7 @@ int mail_reset(MAIL* mail){
 		.data_allocated = 0,
 		.data = NULL,
 		.submitter = NULL,
-		//FIXME this might pose a security risk, settings to UNKNOWN might be better.
+		//FIXME this might pose a security risk, setting to UNKNOWN might be better.
 		//Setting to NULL breaks the constraint when inserting
 		.protocol = mail->protocol,
 		.message_id = "",
@@ -210,17 +210,17 @@ int mail_reset(MAIL* mail){
 		.header_offset = 0
 	};
 
-	empty_mail.data_allocated=mail->data_allocated;
-	empty_mail.data=mail->data;
+	empty_mail.data_allocated = mail->data_allocated;
+	empty_mail.data = mail->data;
 	//Keep submitter pointing to the submitter of the CLIENT structure
-	empty_mail.submitter=mail->submitter;
+	empty_mail.submitter = mail->submitter;
 	path_reset(&(mail->reverse_path));
 
 	if(mail->data){
 		mail->data[0] = 0;
 	}
 
-	for(i=0;i<SMTP_MAX_RECIPIENTS && mail->forward_paths[i];i++){
+	for(i = 0; i < SMTP_MAX_RECIPIENTS && mail->forward_paths[i]; i++){
 		pathpool_return(mail->forward_paths[i]);
 	}
 
@@ -232,32 +232,32 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 	//calling contract: 0 -> ok, -1 -> fail, 1 -> defer
 	int status;
 
-	if(sqlite3_bind_text(stmt, 1, current_path->route.argument, -1, SQLITE_STATIC)!=SQLITE_OK
+	if(sqlite3_bind_text(stmt, 1, current_path->route.argument, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_text(stmt, 2, mail->message_id, -1, SQLITE_STATIC) != SQLITE_OK
-		|| sqlite3_bind_text(stmt, 3, current_path->path, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 4, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 5, mail->submitter, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 6, mail->protocol, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 7, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
+		|| sqlite3_bind_text(stmt, 3, current_path->path, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 4, mail->reverse_path.path, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 5, mail->submitter, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 6, mail->protocol, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 7, mail->data, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);
 		return -1;
 	}
 
-	status=sqlite3_step(stmt);
+	status = sqlite3_step(stmt);
 	switch(status){
 		case SQLITE_DONE:
-			status=0;
+			status = 0;
 			break;
 		case SQLITE_TOOBIG:
 		case SQLITE_CONSTRAINT:
 		case SQLITE_RANGE:
-			status=-1;
+			status = -1;
 			break;
 		default:
 			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
-			status=1;
+			status = 1;
 	}
 
 	sqlite3_reset(stmt);
@@ -269,30 +269,30 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 	//calling contract: 0 -> ok, -1 -> fail, 1 -> defer
 	int status;
 
-	if(sqlite3_bind_text(stmt, 1, mail_remote, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 2, mail->reverse_path.path, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 3, envelope_to, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 4, mail->submitter, -1, SQLITE_STATIC)!=SQLITE_OK
-		|| sqlite3_bind_text(stmt, 5, mail->data, -1, SQLITE_STATIC)!=SQLITE_OK){
+	if(sqlite3_bind_text(stmt, 1, mail_remote, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 2, mail->reverse_path.path, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 3, envelope_to, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 4, mail->submitter, -1, SQLITE_STATIC) != SQLITE_OK
+		|| sqlite3_bind_text(stmt, 5, mail->data, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);
 		return -1;
 	}
 
-	status=sqlite3_step(stmt);
+	status = sqlite3_step(stmt);
 	switch(status){
 		case SQLITE_DONE:
-			status=0;
+			status = 0;
 			break;
 		case SQLITE_TOOBIG:
 		case SQLITE_CONSTRAINT:
 		case SQLITE_RANGE:
-			status=-1;
+			status = -1;
 			break;
 		default:
 			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
-			status=1;
+			status = 1;
 			break;
 	}
 

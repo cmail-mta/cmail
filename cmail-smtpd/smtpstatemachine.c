@@ -525,7 +525,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			logprintf(log, LOG_INFO, "Data line with leading dot, fixing\n");
 			//skip leading dot
 			//FIXME use return value (might indicate message too long)
-			if(mail_line(log, &(client_data->current_mail), client_data->recv_buffer+1) < 0){
+			if(mail_line(log, &(client_data->current_mail), client_data->recv_buffer + 1) < 0){
 				logprintf(log, LOG_WARNING, "Failed to store mail data line\n");
 			}
 			return 0;
