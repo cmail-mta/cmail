@@ -1,7 +1,5 @@
-int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* dbfile, char* name){
-	char* INSERT_USER_MAILBOX = "INSERT INTO %s.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
-	char* user_stmt = NULL;
-	int status, rv = -1;
+int database_attach(LOGGER log, DATABASE* database, char* dbfile){
+	char* INSERT_USER_MAILBOX = "INSERT INTO mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
 	unsigned slot;
 	USER_DATABASE* entry;
 
@@ -16,7 +14,7 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 
 	//create/reuse entry in user storage structure
 	for(slot = 0; database->mail_storage.users[slot]; slot++){
-		if(!database->mail_storage.users[slot]->file_name){
+		if(!database->mail_storage.users[slot]->conn){
 			break;
 		}
 	}
@@ -37,102 +35,46 @@ int database_attach(LOGGER log, DATABASE* database, sqlite3_stmt* attach, char* 
 	}
 
 	entry = database->mail_storage.users[slot];
-
-	if(sqlite3_bind_text(attach, 1, dbfile, -1, SQLITE_STATIC) == SQLITE_OK
-			&& sqlite3_bind_text(attach, 2, name, -1, SQLITE_STATIC) == SQLITE_OK){
-		status = sqlite3_step(attach);
-
-		switch(status){
-			case SQLITE_CANTOPEN:
-				logprintf(log, LOG_ERROR, "Database %s does not exist\n", dbfile);
-				break;
-			case SQLITE_DONE:
-				logprintf(log, LOG_INFO, "Attached database %s as %s\n", dbfile, name);
-
-				//create statement
-				user_stmt = calloc(strlen(INSERT_USER_MAILBOX) + strlen(name) + 2, sizeof(char));
-				if(!user_stmt){
-					logprintf(log, LOG_ERROR, "Failed to allocate temporary statement storage\n");
-					break;
-				}
-
-				snprintf(user_stmt, strlen(INSERT_USER_MAILBOX) + strlen(name) + 1, INSERT_USER_MAILBOX, name);
-				entry->mailbox = database_prepare(log, database->conn, user_stmt);
-				free(user_stmt);
-
-				if(!entry->mailbox){
-					logprintf(log, LOG_ERROR, "Failed to create user mailbox insert query\n");
-					break;
-				}
-
-				//fill entry
-				entry->file_name = common_strdup(dbfile);
-				entry->conn_handle = common_strdup(name);
-
-				if(!entry->file_name || !entry->conn_handle){
-					logprintf(log, LOG_ERROR, "Failed to allocate user storage structure members\n");
-					break;
-				}
-
-				rv = 0;
-				break;
-			default:
-				logprintf(log, LOG_WARNING, "Uncaught attach response code %d: %s\n", status, sqlite3_errmsg(database->conn));
-				break;
-		}
-	}
-	else{
-		logprintf(log, LOG_ERROR, "Failed to bind attach statement parameter\n");
+	entry->conn = database_open(log, dbfile, SQLITE_OPEN_READWRITE);
+	if(!entry->conn){
+		//FIXME this might need some more error handling
+		//TODO Return the slot, etc
+		return -1;
 	}
 
-	sqlite3_reset(attach);
-	sqlite3_clear_bindings(attach);
-	return rv;
+	entry->mailbox = database_prepare(log, entry->conn, INSERT_USER_MAILBOX);
+	if(!entry->mailbox){
+		logprintf(log, LOG_ERROR, "Failed to create user mailbox insert query\n");
+		//FIXME handle error
+		return -1;
+	}
+
+	entry->file_name = common_strdup(dbfile);
+	if(!entry->file_name){
+		logprintf(log, LOG_ERROR, "Failed to copy user storage file name\n");
+		//FIXME better error handling
+		return -1;
+	}
+
+	return 0;
 }
 
-int database_detach(LOGGER log, DATABASE* database, sqlite3_stmt* detach, USER_DATABASE* db){
-	int status, rv = 0;
+int database_detach(LOGGER log, USER_DATABASE* db){
 	USER_DATABASE empty_db = {
+		.conn = NULL,
 		.active = false,
 		.mailbox = NULL,
-		.file_name = NULL,
-		.conn_handle = NULL
+		.file_name = NULL
 	};
 
-	if(detach){
-		if(sqlite3_bind_text(detach, 1, db->conn_handle, -1, SQLITE_STATIC) == SQLITE_OK){
-			status = sqlite3_step(detach);
-
-			switch(status){
-				case SQLITE_DONE:
-					logprintf(log, LOG_INFO, "Detached database %s\n", db->conn_handle);
-					//FIXME check result
-					break;
-				case SQLITE_ERROR:
-					rv = -1;
-					break;
-				default:
-					logprintf(log, LOG_WARNING, "Uncaught detach response code %d\n", status);
-					rv = 1;
-					break;
-			}
-		}
-		else{
-			logprintf(log, LOG_ERROR, "Failed to bind detach statement parameter\n");
-			rv = -1;
-		}
-
-		sqlite3_reset(detach);
-		sqlite3_clear_bindings(detach);
-	}
-
+	//TODO error check these
 	sqlite3_finalize(db->mailbox);
+	sqlite3_close(db->conn);
 	free(db->file_name);
-	free(db->conn_handle);
 
 	*db = empty_db;
 
-	return rv;
+	return 0;
 }
 
 USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
@@ -156,16 +98,11 @@ int database_refresh(LOGGER log, DATABASE* database){
 	int status, rv = 0;
 	unsigned i;
 
-	char* QUERY_ATTACH_DB = "ATTACH DATABASE ? AS ?;";
-	char* QUERY_DETACH_DB = "DETACH DATABASE ?;";
-	char* QUERY_USER_DATABASES = "SELECT MIN(user_name), user_database FROM main.users WHERE user_database NOT NULL GROUP BY user_database;";
+	char* QUERY_USER_DATABASES = "SELECT user_database FROM main.users WHERE user_database NOT NULL GROUP BY user_database;";
 
-	sqlite3_stmt* attach_db = database_prepare(log, database->conn, QUERY_ATTACH_DB);
-	sqlite3_stmt* detach_db = database_prepare(log, database->conn, QUERY_DETACH_DB);
 	sqlite3_stmt* select_dbs = database_prepare(log, database->conn, QUERY_USER_DATABASES);
-
-	if(!attach_db || !detach_db || !select_dbs){
-		logprintf(log, LOG_ERROR, "Failed to prepare user storage management statements\n");
+	if(!select_dbs){
+		logprintf(log, LOG_ERROR, "Failed to prepare user storage management statement\n");
 		return -1;
 	}
 
@@ -181,16 +118,16 @@ int database_refresh(LOGGER log, DATABASE* database){
 		switch(status){
 			case SQLITE_ROW:
 				//if not attached, attach
-				if(!database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 1))){
+				if(!database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 0))){
 					//attach
-					if(database_attach(log, database, attach_db, (char*)sqlite3_column_text(select_dbs, 1), (char*)sqlite3_column_text(select_dbs, 0)) < 0){
+					if(database_attach(log, database, (char*)sqlite3_column_text(select_dbs, 0)) < 0){
 						logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
 						status = SQLITE_ERROR;
 						rv = -1;
 					}
 					else{
 						//database seems to have been attached ok, mark it active
-						database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 1))->active = true;
+						database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 0))->active = true;
 					}
 				}
 				break;
@@ -210,13 +147,11 @@ int database_refresh(LOGGER log, DATABASE* database){
 		for(i = 0; database->mail_storage.users[i]; i++){
 			if(!database->mail_storage.users[i]->active){
 				//FIXME check this for return value
-				database_detach(log, database, detach_db, database->mail_storage.users[i]);
+				database_detach(log, database->mail_storage.users[i]);
 			}
 		}
 	}
 
-	sqlite3_finalize(attach_db);
-	sqlite3_finalize(detach_db);
 	sqlite3_finalize(select_dbs);
 	return rv;
 }
@@ -280,7 +215,7 @@ void database_free(LOGGER log, DATABASE* database){
 		if(database->mail_storage.users){
 			for(i = 0; database->mail_storage.users[i]; i++){
 				//FIXME user return value
-				database_detach(log, database, NULL, database->mail_storage.users[i]);
+				database_detach(log, database->mail_storage.users[i]);
 
 				free(database->mail_storage.users[i]);
 			}

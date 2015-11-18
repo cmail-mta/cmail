@@ -122,9 +122,9 @@ typedef struct /*_ARGS*/ {
 
 typedef struct /*_USER_MAILBOX_DB*/{
 	bool active;
+	sqlite3* conn;
 	sqlite3_stmt* mailbox;
 	char* file_name;
-	char* conn_handle;
 } USER_DATABASE;
 
 typedef struct /*_DATABASE_CONNECTION*/ {
