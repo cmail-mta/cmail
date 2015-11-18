@@ -86,6 +86,7 @@ typedef struct /*_LISTEN_DATA*/ {
 	char* fixed_user;
 	unsigned max_size;
 	bool auth_require;
+	bool suppress_submitter;
 	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_credentials_t tls_cert;

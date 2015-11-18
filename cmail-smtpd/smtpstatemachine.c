@@ -502,7 +502,7 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		client_data->state = STATE_DATA;
 
 		//write received: header
-		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain) < 0){
+		if(mail_recvheader(log, &(client_data->current_mail), listener_data->announce_domain, listener_data->suppress_submitter) < 0){
 			logprintf(log, LOG_WARNING, "Failed to write received header\n");
 		}
 

@@ -119,7 +119,7 @@ int mail_line(LOGGER log, MAIL* mail, char* line){
 	return 0;
 }
 
-int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
+int mail_recvheader(LOGGER log, MAIL* mail, char* announce, bool suppress_submitter){
 	char time_buffer[SMTP_HEADER_LINE_MAX];
 	char* recv_header = NULL;
 	unsigned header_allocated = 0;
@@ -137,7 +137,7 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce){
 	//write received: header
 	recv_header = common_strappf(recv_header, &header_allocated,
 			"Received: from %s by %s%s%s with %s; %s",
-			mail->submitter,
+			suppress_submitter ? "remote":mail->submitter,
 			announce,
 			forward_path ? " for ":"",
 			forward_path ? forward_path->path:"",
