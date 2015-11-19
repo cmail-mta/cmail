@@ -37,22 +37,27 @@ int database_attach(LOGGER log, DATABASE* database, char* dbfile){
 	entry = database->mail_storage.users[slot];
 	entry->conn = database_open(log, dbfile, SQLITE_OPEN_READWRITE);
 	if(!entry->conn){
-		//FIXME this might need some more error handling
-		//TODO Return the slot, etc
+		//this automatically makes the slot reusable (conn = NULL)
+		logprintf(log, LOG_WARNING, "Failed to connect to user database file %s\n", dbfile);
 		return -1;
 	}
 
 	entry->mailbox = database_prepare(log, entry->conn, INSERT_USER_MAILBOX);
 	if(!entry->mailbox){
 		logprintf(log, LOG_ERROR, "Failed to create user mailbox insert query\n");
-		//FIXME handle error
+		//close the database connection and return the slot
+		sqlite3_close(entry->conn);
+		entry->conn = NULL;
 		return -1;
 	}
 
 	entry->file_name = common_strdup(dbfile);
 	if(!entry->file_name){
 		logprintf(log, LOG_ERROR, "Failed to copy user storage file name\n");
-		//FIXME better error handling
+		//close the database connection and return the slot
+		sqlite3_finalize(entry->mailbox);
+		sqlite3_close(entry->conn);
+		entry->conn = NULL;
 		return -1;
 	}
 
@@ -67,10 +72,12 @@ int database_detach(LOGGER log, USER_DATABASE* db){
 		.file_name = NULL
 	};
 
-	//TODO error check these
-	sqlite3_finalize(db->mailbox);
-	sqlite3_close(db->conn);
-	free(db->file_name);
+	if(db->conn){
+		//TODO error check these
+		sqlite3_finalize(db->mailbox);
+		sqlite3_close(db->conn);
+		free(db->file_name);
+	}
 
 	*db = empty_db;
 
