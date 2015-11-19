@@ -26,8 +26,11 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.maildrop = {
 			.count = 0,
 			.mails = NULL,
+			.conn = NULL,
 			.list_user = NULL,
 			.fetch_user = NULL,
+			.mark_deletion = NULL,
+			.unmark_deletions = NULL,
 			.delete_user = NULL
 		},
 		.auth = {

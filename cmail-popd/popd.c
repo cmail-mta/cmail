@@ -32,9 +32,7 @@ int main(int argc, char** argv){
 			.fetch_master = NULL,
 			.mark_deletion = NULL,
 			.unmark_deletions = NULL,
-			.delete_master = NULL,
-			.db_attach = NULL,
-			.db_detach = NULL
+			.delete_master = NULL
 		},
 		.log = {
 			.stream = stderr,
