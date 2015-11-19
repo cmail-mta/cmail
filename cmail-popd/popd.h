@@ -48,7 +48,7 @@ typedef struct /*_MAILDROP_DESC*/ {
 	unsigned count;
 	POP_MAIL* mails;
 
-	sqlite3* conn;
+	sqlite3* user_conn;
 
 	sqlite3_stmt* list_user;
 	sqlite3_stmt* fetch_user;

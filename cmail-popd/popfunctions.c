@@ -219,7 +219,7 @@ int pop_rset(LOGGER log, CONNECTION* client, DATABASE* database){
 		return 0;
 	}
 
-	if(client_data->maildrop.conn && maildrop_unmark(log, client_data->maildrop.conn, client_data->maildrop.unmark_deletions, client_data->auth.user.authorized) < 0){
+	if(client_data->maildrop.user_conn && maildrop_unmark(log, client_data->maildrop.user_conn, client_data->maildrop.unmark_deletions, client_data->auth.user.authorized) < 0){
 		logprintf(log, LOG_ERROR, "Failed to reset the user database deletion marks\n");
 		client_send(log, client, "-ERR Internal error resetting\r\n");
 		return 0;

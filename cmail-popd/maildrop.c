@@ -115,9 +115,9 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 				dbfile = (char*)sqlite3_column_text(database->query_userdatabase, 0);
 				logprintf(log, LOG_INFO, "User %s has user database %s\n", user_name, dbfile);
 
-				maildrop->conn = database_open(log, dbfile, SQLITE_OPEN_READWRITE);
+				maildrop->user_conn = database_open(log, dbfile, SQLITE_OPEN_READWRITE);
 
-				if(!(maildrop->conn)){
+				if(!(maildrop->user_conn)){
 					status = -1;
 					logprintf(log, LOG_ERROR, "Failed to attach user database %s\n", dbfile);
 					break;
@@ -126,7 +126,7 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 				logprintf(log, LOG_INFO, "User database %s attached for user %s\n", dbfile, user_name);
 
 				//create the temp table to store deletions
-				switch(sqlite3_exec(maildrop->conn, CREATE_DELETION_TABLE, NULL, NULL, &err_str)){
+				switch(sqlite3_exec(maildrop->user_conn, CREATE_DELETION_TABLE, NULL, NULL, &err_str)){
 					case SQLITE_OK:
 					case SQLITE_DONE:
 						break;
@@ -141,11 +141,11 @@ int maildrop_user_attach(LOGGER log, DATABASE* database, MAILDROP* maildrop, cha
 				}
 
 				//create user table statements
-				maildrop->list_user = database_prepare(log, maildrop->conn, LIST_MAILS_USER);
-				maildrop->fetch_user = database_prepare(log, maildrop->conn, FETCH_MAIL_USER);
-				maildrop->mark_deletion = database_prepare(log, maildrop->conn, MARK_DELETION);
-				maildrop->unmark_deletions = database_prepare(log, maildrop->conn, UNMARK_DELETIONS);
-				maildrop->delete_user = database_prepare(log, maildrop->conn, DELETE_MAIL_USER);
+				maildrop->list_user = database_prepare(log, maildrop->user_conn, LIST_MAILS_USER);
+				maildrop->fetch_user = database_prepare(log, maildrop->user_conn, FETCH_MAIL_USER);
+				maildrop->mark_deletion = database_prepare(log, maildrop->user_conn, MARK_DELETION);
+				maildrop->unmark_deletions = database_prepare(log, maildrop->user_conn, UNMARK_DELETIONS);
+				maildrop->delete_user = database_prepare(log, maildrop->user_conn, DELETE_MAIL_USER);
 
 				if(!maildrop->list_user || !maildrop->fetch_user || !maildrop->delete_user || !maildrop->mark_deletion || !maildrop->unmark_deletions){
 					logprintf(log, LOG_WARNING, "Failed to prepare user mail access statements\n");
@@ -224,7 +224,7 @@ int maildrop_mark(LOGGER log, DATABASE* database, char* user_name, MAILDROP* mai
 				logprintf(log, LOG_DEBUG, "Marked mail %d %s as deleted (user %s)\n", mail_id, maildrop->mails[mail_id].flag_master? "in master":"in userdb", user_name);
 				break;
 			default:
-				logprintf(log, LOG_WARNING, "Failed to mark mail as deleted: %s\n", sqlite3_errmsg(maildrop->mails[mail_id].flag_master ? database->conn:maildrop->conn));
+				logprintf(log, LOG_WARNING, "Failed to mark mail as deleted: %s\n", sqlite3_errmsg(maildrop->mails[mail_id].flag_master ? database->conn:maildrop->user_conn));
 				rv = -1;
 				break;
 		}
@@ -302,13 +302,13 @@ int maildrop_update(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* us
 	logprintf(log, LOG_INFO, "Deleted %d mails from master database\n", sqlite3_changes(database->conn));
 
 	//delete mails from user database if present
-	if(maildrop->conn){
+	if(maildrop->user_conn){
 		if(maildrop_delete(log, maildrop->delete_user, user_name) < 0){
-			logprintf(log, LOG_ERROR, "Failed to delete marked mails from user database: %s\n", sqlite3_errmsg(maildrop->conn));
+			logprintf(log, LOG_ERROR, "Failed to delete marked mails from user database: %s\n", sqlite3_errmsg(maildrop->user_conn));
 			status = -1;
 		}
 
-		logprintf(log, LOG_INFO, "Deleted %d mails from user database\n", sqlite3_changes(maildrop->conn));
+		logprintf(log, LOG_INFO, "Deleted %d mails from user database\n", sqlite3_changes(maildrop->user_conn));
 	}
 	else{
 		logprintf(log, LOG_DEBUG, "Not deleting from user database, none attached\n");
@@ -321,7 +321,7 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	MAILDROP empty_maildrop = {
 		.count = 0,
 		.mails = NULL,
-		.conn = NULL,
+		.user_conn = NULL,
 		.list_user = NULL,
 		.fetch_user = NULL,
 		.mark_deletion = NULL,
@@ -337,7 +337,7 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	}
 
 	//reset user deletion table
-	if(maildrop->conn && maildrop_unmark(log, maildrop->conn, maildrop->unmark_deletions, user_name) < 0){
+	if(maildrop->user_conn && maildrop_unmark(log, maildrop->user_conn, maildrop->unmark_deletions, user_name) < 0){
 		logprintf(log, LOG_ERROR, "Failed to reset user database deletion table\n");
 		status = -1;
 	}
@@ -348,13 +348,13 @@ int maildrop_release(LOGGER log, DATABASE* database, MAILDROP* maildrop, char* u
 	}
 
 	//free user statements
-	if(maildrop->conn){
+	if(maildrop->user_conn){
 		sqlite3_finalize(maildrop->list_user);
 		sqlite3_finalize(maildrop->fetch_user);
 		sqlite3_finalize(maildrop->delete_user);
 		sqlite3_finalize(maildrop->mark_deletion);
 		sqlite3_finalize(maildrop->unmark_deletions);
-		sqlite3_close(maildrop->conn);
+		sqlite3_close(maildrop->user_conn);
 	}
 
 	//free maildrop data
