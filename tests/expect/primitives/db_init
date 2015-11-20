@@ -1,5 +1,5 @@
 #!/usr/bin/expect -f
-proc db_init {database} {
+proc db_init {{database}} {
 	spawn sqlite3 -csv $database
 	send_user "Spawned database shell on $spawn_id\n"
 

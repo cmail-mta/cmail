@@ -1,3 +1,5 @@
+wildcard resolution
+wildcard precedence
 Run tests with HELO as well as EHLO
 Run tests with STARTTLS as well as with plaintext
 Path resolver
@@ -22,4 +24,4 @@ Authentication
 	Fixed authentication
 
 Size limiting
-User database handling
+Locked database behaviour
