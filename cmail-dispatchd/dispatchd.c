@@ -154,7 +154,6 @@ int main(int argc, char** argv){
 	}
 
 	//run core loop
-	//TODO add run mode for generating bounces
 	if(args.remote.host){
 		logic_handle_remote(config.log, &(config.database), config.settings, args.remote);
 	}
