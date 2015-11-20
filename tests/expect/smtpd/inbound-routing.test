@@ -59,15 +59,11 @@ run reset_database
 set database [db_init $::env(CMAIL_MASTER_DB)]
 
 if {[info exists authdata] == 1} {
-	set spawn_id [smtp_init localhost 587]
 	run cmail-admin-user add cbdev cbdev
 	run cmail-admin-smtpd enable cbdev any
-	send "STARTTLS\r"
-	expect "220 "
-	send "EHLO test-client\r"
-	expect "250 "
+	set spawn_id [smtp_tls_init]
 	send "AUTH PLAIN $authdata\r"
-	expect "235"
+	expect "235 "
 } else {
 	set spawn_id [smtp_init]
 }

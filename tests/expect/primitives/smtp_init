@@ -17,3 +17,14 @@ proc smtp_init {{host "localhost"} {port "25"} {helo "EHLO"}} {
 
 	return $spawn_id
 }
+
+proc smtp_tls_init {{host "localhost"} {port "587"}} {
+	set spawn_id [smtp_init $host $port]
+	send "STARTTLS\r"
+	expect "220 "
+
+	send "EHLO test-client-tls\r"
+	expect "250 "
+
+	return $spawn_id
+}
