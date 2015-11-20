@@ -1,6 +1,10 @@
 #!/bin/bash
 EMPTY_DB=$(mktemp)
+EMPTY_USER=$(mktemp)
 
 printf "environment: Initializing empty database for reset source at %s\n" "$EMPTY_DB"
+printf "environment: Initializing empty user database at %s\n" "$EMPTY_USER"
 printf "export CMAIL_TEST_EMPTY_MASTER=\"%s\"\n" "$EMPTY_DB" >> "$TEST_MARKER_FILE"
+printf "export CMAIL_TEST_EMPTY_USER=\"%s\"\n" "$EMPTY_USER" >> "$TEST_MARKER_FILE"
 cat ../../sql-update/install_master.sql | sqlite3 "$EMPTY_DB" > /dev/null
+cat ../../sql-update/install_user.sql | sqlite3 "$EMPTY_USER" > /dev/null

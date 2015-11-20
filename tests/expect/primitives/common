@@ -3,6 +3,11 @@ proc run {args} {
 	eval exec $args
 }
 
+proc empty_userdb {{path "/etc/cmail/databases/user.db3"}} {
+	exec cp "$::env(EMPTY_USER)" "$path"
+	send_user "\n** Empty user database at $path\n"
+}
+
 expect_after {
 	timeout {
 		send_user "Response timed out\n"
