@@ -31,9 +31,7 @@ send "STARTTLS\r"
 expect "220 "
 
 # Start negotiation
-send ""
-sleep 1
-send "EHLO test-client-tls\r"
+send "EHLO test-client-tls\r"
 expect "250 "
 
 send "AUTH\r"
@@ -63,6 +61,18 @@ send "AUTH PLAIN AGNI\r"
 expect "535 "
 
 send "AUTH PLAIN 1nv4L1d\r"
+expect "501 "
+
+# Quit the connection, the next failure will disconnect based on the connection score
+
+send "QUIT\r"
+#expecting anything here returns a match. bug?
+
+# Reconnect
+set spawn_id [smtp_tls_init]
+
+# This should fail because = is only allowed as trailing character
+send "AUTH PLAIN AGNiZGV2AGNi=GV2\r"
 expect "501 "
 
 run cmail-admin-user add cbdev cbdev

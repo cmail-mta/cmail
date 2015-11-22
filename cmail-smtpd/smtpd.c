@@ -11,6 +11,7 @@ int usage(char* filename){
 }
 
 int main(int argc, char** argv){
+	FILE* pid_file = NULL;
 	ARGUMENTS args = {
 		.config_file = NULL,
 		.drop_privileges = true,
@@ -42,11 +43,12 @@ int main(int argc, char** argv){
 			.verbosity = 0,
 			.log_secondary = false,
 			.print_timestamp = true
-		}
+		},
+		.pid_file = NULL
 	};
 
 	//parse arguments
-	if(!arguments_parse(&args, argc-1, argv+1)){
+	if(!arguments_parse(&args, argc - 1, argv + 1)){
 		arguments_free(&args);
 		exit(usage(argv[0]));
 	}
@@ -60,7 +62,7 @@ int main(int argc, char** argv){
 	#endif
 
 	//read config file
-	if(config_parse(config.log, &config, args.config_file)<0){
+	if(config_parse(config.log, &config, args.config_file) < 0){
 		arguments_free(&args);
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
@@ -69,7 +71,7 @@ int main(int argc, char** argv){
 
 	logprintf(config.log, LOG_INFO, "This is %s, starting up\n", VERSION);
 
-	if(signal_init(config.log)<0){
+	if(signal_init(config.log) < 0){
 		arguments_free(&args);
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
@@ -77,27 +79,35 @@ int main(int argc, char** argv){
 	}
 
 	//attach aux databases
-	if(database_initialize(config.log, &(config.database))<0){
+	if(database_initialize(config.log, &(config.database)) < 0){
 		arguments_free(&args);
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
 		exit(EXIT_FAILURE);
 	}
 
+	//if needed, open pid file handle before dropping privileges
+	if(config.pid_file){
+		pid_file = fopen(config.pid_file, "w");
+		if(!pid_file){
+			logprintf(config.log, LOG_ERROR, "Failed to open pidfile for writing\n");
+		}
+	}
+
 	//drop privileges
 	if(getuid() == 0 && args.drop_privileges){
-		if(privileges_drop(config.log, config.privileges)<0){
+		if(privileges_drop(config.log, config.privileges) < 0){
 			arguments_free(&args);
 			config_free(&config);
 			exit(EXIT_FAILURE);
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges?" (Because you are not root)":""));
+		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges ? " (Because you are not root)":""));
 	}
 
 	//detach from console (or dont)
-	if(args.detach && config.log.stream!=stderr){
+	if(args.detach && config.log.stream != stderr){
 		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
 
 		//flush the stream so we do not get everything twice
@@ -106,7 +116,7 @@ int main(int argc, char** argv){
 		//stop secondary log output
 		config.log.log_secondary = false;
 
-		switch(daemonize(config.log)){
+		switch(daemonize(config.log, pid_file)){
 			case 0:
 				break;
 			case 1:
@@ -122,8 +132,12 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach?" (Because the log output stream is stderr)":""));
+		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach ? " (Because the log output stream is stderr)":""));
+		if(pid_file){
+			fclose(pid_file);
+		}
 	}
+
 
 	//enter main processing loop
 	core_loop(config.log, config.listeners, &(config.database));

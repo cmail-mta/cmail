@@ -47,8 +47,14 @@ typedef struct /*_MAIL_ENTRY*/ {
 typedef struct /*_MAILDROP_DESC*/ {
 	unsigned count;
 	POP_MAIL* mails;
+
+	sqlite3* user_conn;
+
 	sqlite3_stmt* list_user;
 	sqlite3_stmt* fetch_user;
+
+	sqlite3_stmt* mark_deletion;
+	sqlite3_stmt* unmark_deletions;
 	sqlite3_stmt* delete_user;
 } MAILDROP;
 
@@ -77,15 +83,13 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3_stmt* query_authdata;
 	sqlite3_stmt* query_userdatabase;
 	sqlite3_stmt* update_lock;
+
 	sqlite3_stmt* list_master;
 	sqlite3_stmt* fetch_master;
 
 	sqlite3_stmt* mark_deletion;
 	sqlite3_stmt* unmark_deletions;
 	sqlite3_stmt* delete_master;
-
-	sqlite3_stmt* db_attach;
-	sqlite3_stmt* db_detach;
 } DATABASE;
 
 typedef struct /*_ARGS_COMPOSITE*/ {
@@ -99,6 +103,7 @@ typedef struct /*_CONFIGURATION_DATA*/ {
 	DATABASE database;
 	LOGGER log;
 	USER_PRIVS privileges;
+	char* pid_file;
 } CONFIGURATION;
 
 typedef struct /*_CLIENT_DATA*/ {

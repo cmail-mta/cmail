@@ -1,3 +1,9 @@
+/* This file is part of the cmail project (http://cmail.rocks/)
+ * (c) 2015 Fabian "cbdev" Stumpf
+ * License: Simplified BSD (2-Clause)
+ * For further information, consult LICENSE.txt
+ */
+
 ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned bytes){
 	int status;
 
@@ -8,7 +14,7 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 			return recv(client->fd, buffer, bytes, 0);
 		case TLS_NEGOTIATE:
 			//tls handshake not completed
-			status=gnutls_handshake(client->tls_session);
+			status = gnutls_handshake(client->tls_session);
 			if(status){
 				if(gnutls_error_is_fatal(status)){
 					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
@@ -33,7 +39,7 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 }
 
 int network_connect(LOGGER log, char* host, uint16_t port){
-	int sockfd=-1, error;
+	int sockfd = -1, error;
 	char port_str[20];
 	struct addrinfo hints;
 	struct addrinfo* head;
@@ -45,20 +51,20 @@ int network_connect(LOGGER log, char* host, uint16_t port){
 
 	snprintf(port_str, sizeof(port_str), "%d", port);
 
-	error=getaddrinfo(host, port_str, &hints, &head);
+	error = getaddrinfo(host, port_str, &hints, &head);
 	if(error){
 		logprintf(log, LOG_WARNING, "getaddrinfo: %s\r\n", gai_strerror(error));
 		return -1;
 	}
 
-	for(iter=head;iter;iter=iter->ai_next){
-		sockfd=socket(iter->ai_family, iter->ai_socktype, iter->ai_protocol);
-		if(sockfd<0){
+	for(iter = head; iter; iter = iter->ai_next){
+		sockfd = socket(iter->ai_family, iter->ai_socktype, iter->ai_protocol);
+		if(sockfd < 0){
 			continue;
 		}
 
-		error=connect(sockfd, iter->ai_addr, iter->ai_addrlen);
-		if(error!=0){
+		error = connect(sockfd, iter->ai_addr, iter->ai_addrlen);
+		if(error != 0){
 			close(sockfd);
 			continue;
 		}
@@ -67,14 +73,14 @@ int network_connect(LOGGER log, char* host, uint16_t port){
 	}
 
 	freeaddrinfo(head);
-	iter=NULL;
+	iter = NULL;
 
-	if(sockfd<0){
+	if(sockfd < 0){
 		logprintf(log, LOG_WARNING, "Failed to create client socket: %s\n", strerror(errno));
 		return -1;
 	}
 
-	if(error!=0){
+	if(error != 0){
 		logprintf(log, LOG_WARNING, "Failed to connect: %s\n", strerror(errno));
 		return -1;
 	}
@@ -83,40 +89,40 @@ int network_connect(LOGGER log, char* host, uint16_t port){
 }
 
 int network_listener(LOGGER log, char* bindhost, char* port){
-	int fd=-1, status, yes=1;
+	int fd = -1, status, yes = 1;
 	struct addrinfo hints;
 	struct addrinfo* info;
 	struct addrinfo* addr_it;
 
 	memset(&hints, 0, sizeof(hints));
 
-	hints.ai_family=AF_UNSPEC;
-	hints.ai_socktype=SOCK_STREAM;
-	hints.ai_flags=AI_PASSIVE;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
 
-	status=getaddrinfo(bindhost, port, &hints, &info);
-	if(status!=0){
+	status = getaddrinfo(bindhost, port, &hints, &info);
+	if(status != 0){
 		logprintf(log, LOG_ERROR, "Failed to get socket info for %s port %s: %s\n", bindhost, port, gai_strerror(status));
 		return -1;
 	}
 
-	for(addr_it=info;addr_it!=NULL;addr_it=addr_it->ai_next){
-		fd=socket(addr_it->ai_family, addr_it->ai_socktype, addr_it->ai_protocol);
-		if(fd<0){
+	for(addr_it = info; addr_it != NULL; addr_it = addr_it->ai_next){
+		fd = socket(addr_it->ai_family, addr_it->ai_socktype, addr_it->ai_protocol);
+		if(fd < 0){
 			continue;
 		}
 
-		if(setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&yes, sizeof(yes))<0){
+		if(setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&yes, sizeof(yes)) < 0){
 			logprintf(log, LOG_WARNING, "Failed to set IPV6_V6ONLY on socket for %s port %s: %s\n", bindhost, port, strerror(errno));
 		}
 
-		yes=1;
-		if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&yes, sizeof(yes))<0){
+		yes = 1;
+		if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&yes, sizeof(yes)) < 0){
 			logprintf(log, LOG_WARNING, "Failed to set SO_REUSEADDR on socket\n");
 		}
 
-		status=bind(fd, addr_it->ai_addr, addr_it->ai_addrlen);
-		if(status<0){
+		status = bind(fd, addr_it->ai_addr, addr_it->ai_addrlen);
+		if(status < 0){
 			close(fd);
 			continue;
 		}
@@ -131,8 +137,8 @@ int network_listener(LOGGER log, char* bindhost, char* port){
 		return -1;
 	}
 
-	status=listen(fd, LISTEN_QUEUE_LENGTH);
-	if(status<0){
+	status = listen(fd, LISTEN_QUEUE_LENGTH);
+	if(status < 0){
 		logprintf(log, LOG_ERROR, "Failed to listen on socket: %s", strerror(errno));
 		close(fd);
 		return -1;

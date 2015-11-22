@@ -2,10 +2,9 @@ Run tests with HELO as well as EHLO
 Run tests with STARTTLS as well as with plaintext
 Path resolver
 	Forward
-		reject router
 		local path/nonlocal path
 			authenticated/unauthenticated
-				multiple possibilities/single possibility
+				multiple possibilities
 
 	Reverse
 		reject router
@@ -23,3 +22,7 @@ Authentication
 	Fixed authentication
 
 Size limiting
+Locked database behaviour
+
+
+Outbound use of path in defined when routed with negative priority as non-primary match

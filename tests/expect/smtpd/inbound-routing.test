@@ -19,34 +19,36 @@ proc mail {{from "xyzzy@bar.baz"} {to "foo@bar.baz"} {result "250"}} {
 
 proc mailbox {num {condition ""}} {
 	global database
-	send -i $database "SELECT COUNT(*) FROM mailbox $condition;\r"
+	set spawn_id $database
+	send "SELECT COUNT(*) FROM mailbox $condition;\r"
 
 	expect {
-		-i $database "$num\r" {
+		"$num\r" {
 		}
-		-i $database "sqlite>" {
+		"sqlite>" {
 			send_user "Test failed\n"
 			exit 1
 		}
 	}
 	
-	expect -i $database "sqlite>"
+	expect "sqlite>"
 }
 
 proc outbox {num {condition ""}} {
 	global database
-	send -i $database "SELECT COUNT(*) FROM outbox $condition;\r"
+	set spawn_id $database
+	send "SELECT COUNT(*) FROM outbox $condition;\r"
 
 	expect {
-		-i $database "$num\r" {
+		"$num\r" {
 		}
-		-i $database "sqlite>" {
+		"sqlite>" {
 			send_user "Test failed\n"
 			exit 1
 		}
 	}
 	
-	expect -i $database "sqlite>"
+	expect "sqlite>"
 }
 
 source ../primitives/common
@@ -55,7 +57,16 @@ source ../primitives/smtp_init
 run reset_database
 
 set database [db_init $::env(CMAIL_MASTER_DB)]
-set spawn_id [smtp_init]
+
+if {[info exists authdata] == 1} {
+	run cmail-admin-user add cbdev cbdev
+	run cmail-admin-smtpd enable cbdev any
+	set spawn_id [smtp_tls_init]
+	send "AUTH PLAIN $authdata\r"
+	expect "235 "
+} else {
+	set spawn_id [smtp_init]
+}
 
 run cmail-admin-address add foo@bar.baz reject "Nope." 123
 send "MAIL FROM:<reject@bar.baz>\r"
@@ -116,4 +127,11 @@ run cmail-admin-address add test redirect "(from-local)-(from-domain)-(to-local)
 mail "" "test"
 outbox 1 "WHERE mail_envelopeto = '--test-'"
 
-send_user "Done.\n"
+if {[info exists authdata] == 0} {
+	set authdata "AGNiZGV2AGNiZGV2"
+	send_user "Rerunning inbound tests with authentification\n"
+	source $::argv0
+} else {
+	send_user "Done.\n"
+}
+

@@ -1,3 +1,16 @@
+bool router_valid(char* router){
+	if(!strcmp(router, "store") || !strcmp(router, "drop")){
+		return true;
+	}
+	else if(!strcmp(router, "redirect") || !strcmp(router, "handoff")){
+		return true;
+	}
+	else if(!strcmp(router, "reject")){
+		return true;
+	}
+	return false;
+}
+
 int sqlite_get_address(LOGGER log, sqlite3* db, const char* expression) {
 	char* sql = "SELECT address_expression, address_order, address_router, address_route FROM addresses WHERE address_expression LIKE ?";
 

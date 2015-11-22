@@ -39,6 +39,10 @@ int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 		return -1;
 	}
 
+	if(!router_valid(argv[2])){
+		logprintf(log, LOG_WARNING, "Unknown router %s, adding anyway\n", argv[2]);
+	}
+
 	if (argc == 3) {
 		status = sqlite_add_address(log, db, argv[1], argv[2], NULL);
 	} else if (argc == 4) {
@@ -77,6 +81,10 @@ int mode_update(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 	if (argc < 3) {
 		logprintf(log, LOG_ERROR, "Missing arguments\n\n");
 		return -1;
+	}
+
+	if(!router_valid(argv[2])){
+		logprintf(log, LOG_WARNING, "Unknown router %s, adding anyway\n", argv[2]);
 	}
 
 	if(argc == 3){
