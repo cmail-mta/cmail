@@ -29,4 +29,31 @@ expect "502 "
 send "UNKNOWN command\r"
 expect "500 "
 
+# Run NOOP/AUTH/QUIT in RECIPIENTS
+send "MAIL FROM:<foo@bar.baz>\r"
+expect "250 "
+send "NOOP\r"
+expect "250 "
+send "AUTH PLAIN\r"
+expect "503 "
+send "UNKNOWN command\r"
+expect "500 "
+send "QUIT\r"
+expect "221 "
+
+# Test some unusual things...
+spawn gnutls-cli --crlf --starttls --insecure --port 25 localhost
+
+# Unknown commands in NEW
+send "UNKNOWN command\r"
+expect "500 "
+
+# EHLO/STARTTLS/HELO
+send "EHLO test-client\r"
+expect "250 "
+send "STARTTLS\r"
+expect "220 "
+send "HELO test-client-tls\r"
+expect "250 "
+
 send_user "Done.\n"

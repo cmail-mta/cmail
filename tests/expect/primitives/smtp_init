@@ -29,7 +29,7 @@ proc smtp_stls_init {{host "localhost"} {port "587"} {helo_inner "EHLO"}} {
 	return $spawn_id
 }
 
-proc smtp_tls_init {{host "localhost"} {port "587"} {helo "EHLO"}} {
+proc smtp_tls_init {{host "localhost"} {port "465"} {helo "EHLO"}} {
 	spawn gnutls-cli --crlf --insecure --port $port $host
 	send_user "Spawned SSMTP connection on $spawn_id\n"
 

@@ -12,10 +12,6 @@ expect "500 "
 send "AUTH \r"
 expect "503 "
 
-# Also should not be able to negotiate
-send "STARTTLS\r"
-expect "503 "
-
 send "QUIT\r"
 expect "221 "
 

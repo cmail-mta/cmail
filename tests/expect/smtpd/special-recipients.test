@@ -1,6 +1,6 @@
 #!/usr/bin/expect -f
 
-proc maildata {{from "sender@bar.baz"} {to "recipient@bar.baz"}}{
+proc maildata {{from "sender@bar.baz"} {to "recipient@bar.baz"}} {
 	send "DATA\r"
 	expect "354 "
 	send "To: $to\r"
