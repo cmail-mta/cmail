@@ -1,0 +1,32 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/smtp_init
+run reset_database
+
+set spawn_id [smtp_init]
+
+send "NOOP\r"
+expect "250 "
+
+send "RSET\r"
+expect "250 "
+
+# Magic incantation
+send "XYZZY\r"
+expect "250 "
+
+# RFC5321 3.3 says this needs to be implemented
+send "RCPT TO:<foo@bar.baz>\r"
+expect "503 "
+
+# Not implemented but still in the RFC
+send "VRFY foo@bar.baz\r"
+expect "502 "
+
+send "EXPN foo@bar.baz\r"
+expect "502 "
+
+send "UNKNOWN command\r"
+expect "500 "
+
+send_user "Done.\n"

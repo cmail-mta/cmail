@@ -12,8 +12,29 @@ expect "500 "
 send "AUTH \r"
 expect "503 "
 
+# Also should not be able to negotiate
+send "STARTTLS\r"
+expect "503 "
+
 send "QUIT\r"
-expect "250 "
+expect "221 "
+
+# Neither should connections on port 465 (tlsonly)
+set spawn_id [smtp_tls_init "localhost" "465"]
+send "AUTH\r"
+expect "500 "
+
+send "AUTH \r"
+expect "503 "
+
+send "AUTH PLAIN\r"
+expect "503 "
+
+send "STARTTLS\r"
+expect "503 "
+
+send "QUIT\r"
+expect "221 "
 
 # Try on an auth-enabled port
 set spawn_id [smtp_init "localhost" "587"]
@@ -67,9 +88,10 @@ expect "501 "
 
 send "QUIT\r"
 #expecting anything here returns a match. bug?
+expect "221 "
 
 # Reconnect
-set spawn_id [smtp_tls_init]
+set spawn_id [smtp_stls_init]
 
 # This should fail because = is only allowed as trailing character
 send "AUTH PLAIN AGNiZGV2AGNi=GV2\r"
@@ -82,5 +104,9 @@ send "AUTH PLAIN\r"
 expect "334 "
 send "AGNiZGV2AGNiZGV2\r"
 expect "235 "
+
+# Authentication inside a TLS session should be rejected
+send "AUTH PLAIN\r"
+expect "503 "
 
 send_user "Done.\n"
