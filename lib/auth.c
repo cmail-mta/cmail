@@ -22,14 +22,15 @@ int auth_base64decode(LOGGER log, char* in){
 		if(in[i] == '='){
 			//'=' is only allowed as trailing character, so fail if it is within valid base64
 			//this is marked MUST by some rfcs (5034)
-			for(i++; i < len; i++){
+			for(; i < len; i++){
 				if(in[i] != '='){
 					logprintf(log, LOG_WARNING, "Input string contains = as non-trailing character\n");
 					return -1;
 				}
-			}
 
-			in[i] = 0;
+				//need to decode all groups
+				in[i] = 0;
+			}
 			break;
 		}
 

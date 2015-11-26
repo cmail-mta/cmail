@@ -105,4 +105,15 @@ expect "235 "
 send "AUTH PLAIN\r"
 expect "503 "
 
+send "QUIT\r"
+expect "221 "
+
+# Test with password that needs padding when base64'd
+run cmail-admin-user passwd cbdev foo
+set spawn_id [smtp_stls_init]
+
+send "AUTH PLAIN AGNiZGV2AGZvbw==\r"
+expect "235 "
+
+
 send_user "Done.\n"

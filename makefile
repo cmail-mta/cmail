@@ -91,6 +91,21 @@ rtldumps:
 	mv cmail-dispatchd/*.expand rtldumps/
 	mv cmail-popd/*.expand rtldumps/
 
+coverage-build:
+	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-smtpd
+	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-dispatchd
+	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-popd
+	$(MKDIR) bin
+	@mv cmail-smtpd/cmail-smtpd bin/
+	@mv cmail-dispatchd/cmail-dispatchd bin/
+	@mv cmail-popd/cmail-popd bin/
+	# mv cmail-imapd/cmail-imapd bin/
+	$(MKDIR) tests/coverage/gcov
+	@mv cmail-smtpd/smtpd.gcno tests/coverage/gcov
+	@mv cmail-popd/popd.gcno tests/coverage/gcov
+	@mv cmail-dispatchd/dispatchd.gcno tests/coverage/gcov
+	# @mv cmail-imapd/imapd.gcno tests/coverage/gcov
+
 cppcheck:
 	@printf "Running cppcheck on cmail-smtpd\n"
 	cppcheck --enable=all cmail-smtpd/smtpd.c
