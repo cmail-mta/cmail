@@ -40,6 +40,7 @@ send "UNKNOWN command\r"
 expect "500 "
 send "QUIT\r"
 expect "221 "
+expect eof
 
 # Test some unusual things...
 spawn gnutls-cli --crlf --starttls --insecure --port 25 localhost

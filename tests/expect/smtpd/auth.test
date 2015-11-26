@@ -14,6 +14,7 @@ expect "503 "
 
 send "QUIT\r"
 expect "221 "
+expect eof
 
 # Neither should connections on port 465 (tlsonly)
 set spawn_id [smtp_tls_init "localhost" "465"]
@@ -31,6 +32,7 @@ expect "503 "
 
 send "QUIT\r"
 expect "221 "
+expect eof
 
 # Try on an auth-enabled port
 set spawn_id [smtp_init "localhost" "587"]
@@ -81,10 +83,9 @@ send "AUTH PLAIN 1nv4L1d\r"
 expect "501 "
 
 # Quit the connection, the next failure will disconnect based on the connection score
-
 send "QUIT\r"
-#expecting anything here returns a match. bug?
 expect "221 "
+expect eof
 
 # Reconnect
 set spawn_id [smtp_stls_init]
@@ -101,12 +102,13 @@ expect "334 "
 send "AGNiZGV2AGNiZGV2\r"
 expect "235 "
 
-# Authentication inside a TLS session should be rejected
+# Authentication inside an already authenticated session should be rejected
 send "AUTH PLAIN\r"
 expect "503 "
 
 send "QUIT\r"
 expect "221 "
+expect eof
 
 # Test with password that needs padding when base64'd
 run cmail-admin-user passwd cbdev foo

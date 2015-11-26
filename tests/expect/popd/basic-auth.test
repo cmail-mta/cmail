@@ -30,6 +30,7 @@ expect "+OK "
 
 send "QUIT\r"
 expect "+OK "
+expect eof
 
 set spawn_id [pop_stls_init]
 

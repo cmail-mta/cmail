@@ -25,6 +25,7 @@ expect -- "-ERR "
 
 send "QUIT\r"
 expect "+OK "
+expect eof
 
 run cmail-admin-user add user1 user1
 run cmail-admin-popd enable user1
@@ -50,5 +51,6 @@ expect -- "-ERR "
 
 send "QUIT\r"
 expect "+OK "
+expect eof
 
 send_user "Done.\n"
