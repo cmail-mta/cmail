@@ -41,3 +41,10 @@ proc pop_tls_init {{host "localhost"} {port "995"}} {
 
 	return $spawn_id
 }
+
+proc insert_mail {user ident data {from "foo@bar.baz"} {to "bar@frob.narf"}} {
+	global database
+	set spawn_id $database
+	send "INSERT INTO mailbox (mail_user, mail_ident, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_proto, mail_data) VALUES ('$user', '$ident', '$from', '$to', 'test-harness', 'direct', '$data');\r"
+	expect "sqlite>"
+}
