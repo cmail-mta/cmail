@@ -13,7 +13,26 @@ send "AUTH \r"
 expect "503 "
 
 send "QUIT\r"
-expect "250 "
+expect "221 "
+expect eof
+
+# Neither should connections on port 465 (tlsonly)
+set spawn_id [smtp_tls_init "localhost" "465"]
+send "AUTH\r"
+expect "500 "
+
+send "AUTH \r"
+expect "503 "
+
+send "AUTH PLAIN\r"
+expect "503 "
+
+send "STARTTLS\r"
+expect "503 "
+
+send "QUIT\r"
+expect "221 "
+expect eof
 
 # Try on an auth-enabled port
 set spawn_id [smtp_init "localhost" "587"]
@@ -31,9 +50,7 @@ send "STARTTLS\r"
 expect "220 "
 
 # Start negotiation
-send ""
-sleep 1
-send "EHLO test-client-tls\r"
+send "EHLO test-client-tls\r"
 expect "250 "
 
 send "AUTH\r"
@@ -65,6 +82,18 @@ expect "535 "
 send "AUTH PLAIN 1nv4L1d\r"
 expect "501 "
 
+# Quit the connection, the next failure will disconnect based on the connection score
+send "QUIT\r"
+expect "221 "
+expect eof
+
+# Reconnect
+set spawn_id [smtp_stls_init]
+
+# This should fail because = is only allowed as trailing character
+send "AUTH PLAIN AGNiZGV2AGNi=GV2\r"
+expect "501 "
+
 run cmail-admin-user add cbdev cbdev
 run cmail-admin-smtpd enable cbdev
 
@@ -72,5 +101,21 @@ send "AUTH PLAIN\r"
 expect "334 "
 send "AGNiZGV2AGNiZGV2\r"
 expect "235 "
+
+# Authentication inside an already authenticated session should be rejected
+send "AUTH PLAIN\r"
+expect "503 "
+
+send "QUIT\r"
+expect "221 "
+expect eof
+
+# Test with password that needs padding when base64'd
+run cmail-admin-user passwd cbdev foo
+set spawn_id [smtp_stls_init]
+
+send "AUTH PLAIN AGNiZGV2AGZvbw==\r"
+expect "235 "
+
 
 send_user "Done.\n"

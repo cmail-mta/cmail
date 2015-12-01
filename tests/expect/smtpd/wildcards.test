@@ -1,0 +1,56 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/smtp_init
+source ../primitives/db_init
+
+proc mails {num {condition ""}} {
+	global database 
+	set spawn_id $database
+        send "SELECT COUNT(*) FROM mailbox $condition;\r"
+        expect {
+                "$num\r" {
+                }
+                "sqlite>" {
+                        send_user "Test failed\n"
+                        exit 1
+                }
+        }
+        expect "sqlite>"
+}
+
+proc send_mail {from to} {
+	send "MAIL FROM:<$from>\r"
+	expect "250 "
+	send "RCPT TO:<$to>\r"
+	expect "250 "
+	send "DATA\r"
+	expect "354 "
+	send "This is some test mail data\r"
+	send ".\r"
+	expect "250 "
+	send "RSET\r"
+	expect "250 "
+}
+
+run reset_database
+set database [db_init $::env(CMAIL_MASTER_DB)] 
+run cmail-admin-user add user1 user1
+run cmail-admin-user add user2 user2
+run cmail-admin-user add user3 user3
+
+set spawn_id [smtp_init]
+mails 0
+
+run cmail-admin-address add "foo%" store user1 5
+run cmail-admin-address add "foobar%" store user2 10
+
+send_mail "" "foobar@foo.bar"
+mails 1 "WHERE mail_user='user2'"
+mails 0 "WHERE mail_user!='user2'"
+
+run cmail-admin-address add "foo%" store user3 15 
+send_mail "" "foobar@foo.bar"
+mails 1 "WHERE mail_user='user3'"
+mails 1 "WHERE mail_user!='user3'"
+
+send_user "Done.\n"

@@ -133,7 +133,11 @@ int main(int argc, char** argv){
 	}
 	else{
 		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.detach ? " (Because the log output stream is stderr)":""));
+		if(pid_file){
+			fclose(pid_file);
+		}
 	}
+
 
 	//enter main processing loop
 	core_loop(config.log, config.listeners, &(config.database));

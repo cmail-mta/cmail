@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+
+source ../primitives/common
+source ../primitives/pop_init
+run reset_database
+
+run cmail-admin-user add user1 user1
+run cmail-admin-popd enable user1
+
+set spawn_id [pop_init]
+
+# Authentication without TLS should not work
+send "USER user1\r"
+expect -- "-ERR "
+
+send "PASS user1\r"
+expect -- "-ERR "
+
+send "STLS\r"
+expect "+OK "
+
+send "CAPA\r"
+expect "+OK "
+
+send "USER user1\r"
+expect "+OK "
+
+send "PASS user1\r"
+expect "+OK "
+
+send "QUIT\r"
+expect "+OK "
+expect eof
+
+set spawn_id [pop_stls_init]
+
+send "PASS foo\r"
+expect -- "-ERR "
+
+send "USER user1\r"
+expect "+OK "
+
+send "USER user1\r"
+expect -- "-ERR "
+
+send "PASS foo\r"
+expect -- "-ERR "
+
+send "USER user2\r"
+expect "+OK "
+
+send "PASS foo\r"
+expect -- "-ERR "
+
+send "USER user1\r"
+expect "+OK "
+
+send "PASS user1\r"
+expect "+OK "
+
+send_user "Done.\n"

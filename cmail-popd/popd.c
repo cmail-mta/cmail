@@ -32,9 +32,7 @@ int main(int argc, char** argv){
 			.fetch_master = NULL,
 			.mark_deletion = NULL,
 			.unmark_deletions = NULL,
-			.delete_master = NULL,
-			.db_attach = NULL,
-			.db_detach = NULL
+			.delete_master = NULL
 		},
 		.log = {
 			.stream = stderr,
@@ -129,6 +127,9 @@ int main(int argc, char** argv){
 	}
 	else{
 		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize ? " (Because the log output stream is stderr)":""));
+		if(pid_file){
+			fclose(pid_file);
+		}
 	}
 
 	//run core loop

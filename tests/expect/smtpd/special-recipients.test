@@ -1,8 +1,14 @@
 #!/usr/bin/expect -f
 
-set mailfrom "" 
-set mailto "postmaster"
-set subject "Special mailpaths test"
+proc maildata {{from "sender@bar.baz"} {to "recipient@bar.baz"}} {
+	send "DATA\r"
+	expect "354 "
+	send "To: $to\r"
+	send "From: $from\r"
+	send "Subject: Test mailing\r"
+	send "\r\nThis is a test message.\r\nSender was <$from>\r\nRecipient was <$to>.\r\n.\r"
+	expect "250 "
+}
 
 source ../primitives/common
 source ../primitives/smtp_init
@@ -11,11 +17,13 @@ run cmail-admin-address add "postmaster%" drop
 
 set spawn_id [smtp_init]
 
-send "MAIL FROM:<$mailfrom>\r"
+# Special bounce sender address
+send "MAIL FROM:<>\r"
 expect "250 "
-send "RCPT TO:<$mailto>\r"
+# Postmaster address
+send "RCPT TO:<postmaster>\r"
 expect "250 "
 
-source ../primitives/smtp_data
+maildata "" "postmaster"
 
 send_user "Done.\n"
