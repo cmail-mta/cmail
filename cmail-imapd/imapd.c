@@ -24,8 +24,6 @@ int main(int argc, char** argv){
 			.query_authdata = NULL,
 			.query_userdatabase = NULL,
 			.fetch_master = NULL,
-			.db_attach = NULL,
-			.db_detach = NULL
 		},
 		.listeners = {
 			.count = 0,

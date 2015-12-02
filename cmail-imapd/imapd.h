@@ -74,8 +74,6 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3_stmt* query_authdata;
 	sqlite3_stmt* query_userdatabase;
 	sqlite3_stmt* fetch_master; 
-	sqlite3_stmt* db_attach; 
-	sqlite3_stmt* db_detach; 
 } DATABASE;
 
 typedef struct /*_CONF_META*/ {
