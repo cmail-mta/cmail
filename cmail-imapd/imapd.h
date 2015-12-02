@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <fcntl.h>
 
 #include "imaplimits.h"
 
@@ -36,11 +37,23 @@
 #include "../lib/daemonize.c"
 #include "../lib/database.c"
 
+typedef enum /*_AUTH_METHOD*/ {
+	IMAP_AUTHENTICATE,
+	IMAP_LOGIN
+} AUTH_METHOD;
+
 typedef enum /*_IMAP_STATE*/ {
 	STATE_NEW,
 	STATE_AUTHENTICATED,
 	STATE_SELECTED
 } IMAP_STATE;
+
+typedef struct /*_AUTHENTICATION_DATA*/ {
+	AUTH_METHOD method;
+
+	SASL_USER user;
+	SASL_CONTEXT ctx;
+} AUTH_DATA;
 
 typedef struct /*_LISTEN_DATA*/ {
 	char* announce_domain;
@@ -55,10 +68,11 @@ typedef struct /*_LISTEN_DATA*/ {
 typedef struct /*_CLIENT_DATA*/ {
 	CONNECTION* listener;
 	IMAP_STATE state;
+	AUTH_DATA auth;
+
 	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
 	size_t recv_offset;
-	SASL_USER sasl_user;
-	SASL_CONTEXT sasl_context;
+	
 	time_t last_action;
 	int connection_score;
 } CLIENT;
@@ -94,7 +108,7 @@ typedef struct /*_CONF_META*/ {
 #endif
 
 //PROTOTYPES
-int client_close(CONNECTION* client);
+int client_close(LOGGER log, CONNECTION* client, DATABASE* database);
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
 #ifndef CMAIL_NO_TLS
 int client_starttls(LOGGER log, CONNECTION* client);
@@ -103,3 +117,6 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "arguments.c"
 #include "database.c"
 #include "config.c"
+#include "auth.c"
+#include "client.c"
+#include "coreloop.c"
