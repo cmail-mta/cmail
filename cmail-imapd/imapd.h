@@ -65,10 +65,20 @@ typedef struct /*_LISTEN_DATA*/ {
 	#endif
 } LISTENER;
 
+typedef struct /*_IMAP_COMMAND*/ {
+	char* backing_buffer;
+	size_t backing_buffer_length;
+	
+	char* tag;
+	char* command;
+	char* parameters;
+} IMAP_COMMAND;
+
 typedef struct /*_CLIENT_DATA*/ {
 	CONNECTION* listener;
 	IMAP_STATE state;
 	AUTH_DATA auth;
+	IMAP_COMMAND sentence;
 
 	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
 	size_t recv_offset;

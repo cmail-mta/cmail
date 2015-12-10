@@ -1,7 +1,47 @@
 int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
+	unsigned i;
 
 	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
+
+	//parse into structure
+	client_data->sentence.backing_buffer = client_data->recv_buffer;
+	client_data->sentence.backing_buffer_length = strlen(client_data->recv_buffer);
+
+	//scan for first space
+	for(i = 0; client_data->sentence.backing_buffer[i] && !isspace(client_data->sentence.backing_buffer[i]); i++){
+	}
+
+	client_data->sentence.backing_buffer[i] = 0;
+	client_data->sentence.tag = client_data->sentence.backing_buffer;
+
+	if(strlen(client_data->sentence.tag) < 1){
+		logprintf(log, LOG_DEBUG, "Invalid tag provided\n");
+		return -1;
+	}
+
+	if(i >= client_data->sentence.backing_buffer_length){
+		logprintf(log, LOG_DEBUG, "Client sentence contained only tag\n");
+		return -1;
+	}
+
+	client_data->sentence.command = client_data->sentence.backing_buffer + i + 1;
+
+	//scan for next space (verb)
+	for(i++; client_data->sentence.backing_buffer[i] && !isspace(client_data->sentence.backing_buffer[i]); i++){
+	}
+	client_data->sentence.backing_buffer[i] = 0;
+
+	if(strlen(client_data->sentence.command) < 1){
+		logprintf(log, LOG_DEBUG, "Invalid command provided\n");
+		return -1;
+	}
+	
+	if(i < client_data->sentence.backing_buffer_length){
+		client_data->sentence.parameters = client_data->sentence.backing_buffer + i + 1;
+	}
+
+	logprintf(log, LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command, client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
 
 	return 0;
 }
@@ -143,7 +183,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 		return 0;
 	}
 
-	bytes = network_read(log, client, client_data->recv_buffer+client_data->recv_offset, left);
+	bytes = network_read(log, client, client_data->recv_buffer + client_data->recv_offset, left);
 
 	//failed to read from socket
 	if(bytes < 0){
