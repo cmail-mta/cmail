@@ -48,13 +48,22 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 
 	if(client_parse(log, &(client_data->sentence), client_data->recv_buffer) < 0){
 		//failed to properly parse input
-		client_send(log, client, "* NO Error in received command\r\n");
+		client_send(log, client, "* NO Error in received command\r\n"); //FIXME should this be a BAD?
 		return -1;
 	}
 
 	logprintf(log, LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command, client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
+	switch(client_data->state){
+		case STATE_NEW:
+			return imapstate_new(log, client_data->sentence, client, database);
+		case STATE_AUTHENTICATED:
+			break;
+		case STATE_SELECTED:
+			break;
+	}
 
-	return 0;
+	logprintf(log, LOG_ERROR, "Unhandled state in client_line\n");
+	return -1;
 }
 
 int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){

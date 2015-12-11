@@ -48,6 +48,13 @@ typedef enum /*_IMAP_STATE*/ {
 	STATE_SELECTED
 } IMAP_STATE;
 
+typedef enum /*_IMAP_COMMAND_STATE*/ {
+	COMMAND_UNHANDLED = 2,
+	COMMAND_NOREPLY = 1,
+	COMMAND_OK = 0,
+	COMMAND_BAD = -1
+} IMAP_COMMAND_STATE;
+
 typedef struct /*_AUTHENTICATION_DATA*/ {
 	AUTH_METHOD method;
 
@@ -127,5 +134,6 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "database.c"
 #include "config.c"
 #include "auth.c"
+#include "imapstatemachine.c"
 #include "client.c"
 #include "coreloop.c"
