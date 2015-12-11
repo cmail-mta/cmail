@@ -19,7 +19,6 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		#ifndef CMAIL_NO_TLS
 		.tls_require = false,
 		#endif
-		.announce_domain = "cmail-imapd"
 	};
 	LISTENER* listener_data = NULL;
 
@@ -30,9 +29,6 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		if(token){
 			if(!port){
 				port = token;
-			}
-			else if(!strncmp(token, "announce=", 9)){
-				settings.announce_domain = token + 9;
 			}
 			#ifndef CMAIL_NO_TLS
 			else if(!strncmp(token, "cert=", 5)){
@@ -103,11 +99,6 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		config->listeners.conns[listener_slot].tls_mode = tls_mode;
 		#endif
 
-		listener_data->announce_domain = common_strdup(settings.announce_domain);
-		if(!listener_data->announce_domain){
-			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
-			return -1;
-		}
 		return 0;
 	}
 
@@ -246,7 +237,6 @@ void config_free(CONFIGURATION* config){
 			gnutls_dh_params_deinit(listener_data->tls_dhparams);
 		}
 		#endif
-		free(listener_data->announce_domain);
 	}
 
 	connpool_free(&(config->listeners));

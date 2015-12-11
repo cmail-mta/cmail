@@ -56,7 +56,6 @@ typedef struct /*_AUTHENTICATION_DATA*/ {
 } AUTH_DATA;
 
 typedef struct /*_LISTEN_DATA*/ {
-	char* announce_domain;
 	bool tls_require;
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_credentials_t tls_cert;
