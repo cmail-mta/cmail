@@ -1,44 +1,55 @@
-int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
-	CLIENT* client_data = (CLIENT*)client->aux_data;
+int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 	unsigned i;
 
-	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
-
 	//parse into structure
-	client_data->sentence.backing_buffer = client_data->recv_buffer;
-	client_data->sentence.backing_buffer_length = strlen(client_data->recv_buffer);
+	sentence->backing_buffer = client_line;
+	sentence->backing_buffer_length = strlen(client_line);
 
 	//scan for first space
-	for(i = 0; client_data->sentence.backing_buffer[i] && !isspace(client_data->sentence.backing_buffer[i]); i++){
+	for(i = 0; sentence->backing_buffer[i] && !isspace(sentence->backing_buffer[i]); i++){
 	}
 
-	client_data->sentence.backing_buffer[i] = 0;
-	client_data->sentence.tag = client_data->sentence.backing_buffer;
+	sentence->backing_buffer[i] = 0;
+	sentence->tag = sentence->backing_buffer;
 
-	if(strlen(client_data->sentence.tag) < 1){
+	if(strlen(sentence->tag) < 1){
 		logprintf(log, LOG_DEBUG, "Invalid tag provided\n");
 		return -1;
 	}
 
-	if(i >= client_data->sentence.backing_buffer_length){
+	if(i >= sentence->backing_buffer_length){
 		logprintf(log, LOG_DEBUG, "Client sentence contained only tag\n");
 		return -1;
 	}
 
-	client_data->sentence.command = client_data->sentence.backing_buffer + i + 1;
+	sentence->command = sentence->backing_buffer + i + 1;
 
 	//scan for next space (verb)
-	for(i++; client_data->sentence.backing_buffer[i] && !isspace(client_data->sentence.backing_buffer[i]); i++){
+	for(i++; sentence->backing_buffer[i] && !isspace(sentence->backing_buffer[i]); i++){
 	}
-	client_data->sentence.backing_buffer[i] = 0;
+	sentence->backing_buffer[i] = 0;
 
-	if(strlen(client_data->sentence.command) < 1){
+	if(strlen(sentence->command) < 1){
 		logprintf(log, LOG_DEBUG, "Invalid command provided\n");
 		return -1;
 	}
 	
-	if(i < client_data->sentence.backing_buffer_length){
-		client_data->sentence.parameters = client_data->sentence.backing_buffer + i + 1;
+	if(i < sentence->backing_buffer_length){
+		sentence->parameters = sentence->backing_buffer + i + 1;
+	}
+
+	return 0;
+}
+
+int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+
+	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
+
+	if(client_parse(log, &(client_data->sentence), client_data->recv_buffer) < 0){
+		//failed to properly parse input
+		client_send(log, client, "* NO Error in received command\r\n");
+		return -1;
 	}
 
 	logprintf(log, LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command, client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
