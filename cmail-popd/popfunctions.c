@@ -36,7 +36,7 @@ int pop_stat(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	//calculate maildrop size
-	for(i=0;i<client_data->maildrop.count;i++){
+	for(i = 0; i < client_data->maildrop.count; i++){
 		maildrop_bytes += client_data->maildrop.mails[i].mail_size;
 	}
 
@@ -51,7 +51,7 @@ int pop_list(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	if(mail == 0){
 		//list all mail, multiline
 		client_send(log, client, "+OK Scan listing follows\r\n");
-		for(i=0;i<client_data->maildrop.count;i++){
+		for(i = 0; i < client_data->maildrop.count; i++){
 			if(!client_data->maildrop.mails[i].flag_delete){
 				client_send(log, client, "%d %d\r\n", i + 1, client_data->maildrop.mails[i].mail_size);
 			}
@@ -82,7 +82,7 @@ int pop_uidl(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	if(mail == 0){
 		//list all mail, multiline
 		client_send(log, client, "+OK UID listing follows\r\n");
-		for(i=0;i<client_data->maildrop.count;i++){
+		for(i = 0; i < client_data->maildrop.count; i++){
 			if(!client_data->maildrop.mails[i].flag_delete){
 				client_send(log, client, "%d %s\r\n", i + 1, client_data->maildrop.mails[i].message_id);
 			}
@@ -198,7 +198,7 @@ int pop_dele(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	}
 
 	//add a mark in the deletion table
-	if(maildrop_mark(log, database, client_data->auth.user.authorized, client_data->maildrop.mails[mail - 1].database_id, client_data->maildrop.mails[mail - 1].flag_master) < 0){
+	if(maildrop_mark(log, database, client_data->auth.user.authorized, &(client_data->maildrop), mail - 1) < 0){
 		logprintf(log, LOG_ERROR, "Failed to mark message as deleted: %s");
 	}
 
@@ -212,14 +212,20 @@ int pop_rset(LOGGER log, CONNECTION* client, DATABASE* database){
 	unsigned i = 0;
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	//reset all deletion marks in the table
-	if(maildrop_unmark(log, database, client_data->auth.user.authorized) < 0){
-		logprintf(log, LOG_ERROR, "Failed to reset the deletion marks\n");
+	//reset all deletion marks in the master database deletion table
+	if(maildrop_unmark(log, database->conn, database->unmark_deletions, client_data->auth.user.authorized) < 0){
+		logprintf(log, LOG_ERROR, "Failed to reset the master database deletion marks\n");
 		client_send(log, client, "-ERR Internal error resetting\r\n");
 		return 0;
 	}
 
-	for(i=0;i<client_data->maildrop.count;i++){
+	if(client_data->maildrop.user_conn && maildrop_unmark(log, client_data->maildrop.user_conn, client_data->maildrop.unmark_deletions, client_data->auth.user.authorized) < 0){
+		logprintf(log, LOG_ERROR, "Failed to reset the user database deletion marks\n");
+		client_send(log, client, "-ERR Internal error resetting\r\n");
+		return 0;
+	}
+
+	for(i = 0; i < client_data->maildrop.count; i++){
 		client_data->maildrop.mails[i].flag_delete = false;
 	}
 

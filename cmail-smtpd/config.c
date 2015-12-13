@@ -21,7 +21,8 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		.max_size = 0,
 		.announce_domain = "cmail-smtpd",
 		.auth_offer = AUTH_NONE,
-		.auth_require = false
+		.auth_require = false,
+		.suppress_submitter = false
 	};
 	LISTENER* listener_data = NULL;
 
@@ -60,6 +61,9 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 						}
 						else if(!strcmp(token, "strict")){
 							settings.auth_require = true;
+						}
+						else if(!strcmp(token, "private")){
+							settings.suppress_submitter = true;
 						}
 						else if(!strncmp(token, "fixed@", 6)){
 							settings.auth_require = true;
@@ -315,9 +319,6 @@ void config_free(CONFIGURATION* config){
 
 	for(i = 0; i < config->listeners.count; i++){
 		listener_data = (LISTENER*)config->listeners.conns[i].aux_data;
-
-		close(config->listeners.conns[i].fd);
-
 		free(listener_data->announce_domain);
 
 		if(listener_data->fixed_user){

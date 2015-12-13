@@ -1,8 +1,16 @@
 #!/usr/bin/expect -f
 
-set mailfrom "sender@bar.baz" 
 set mailto "recipient@bar.baz"
-set subject "Simple mail from $mailfrom to $mailto"
+
+proc maildata {{from "sender@bar.baz"} {to "recipient@bar.baz"}} {
+	send "DATA\r"
+	expect "354 "
+	send "To: $to\r"
+	send "From: $from\r"
+	send "Subject: Test mailing\r"
+	send "\r\nThis is a test message.\r\nSender was $from\r\nRecipient was $to.\r\n.\r"
+	expect "250 "
+}
 
 source ../primitives/common
 source ../primitives/smtp_init
@@ -10,36 +18,51 @@ run reset_database
 
 set spawn_id [smtp_init]
 
-send "MAIL FROM:<$mailfrom>\r"
+send "MAIL FROM:<sender@bar.baz>\r"
 expect "250 "
 
-send "RCPT TO:<$mailto>\r"
+send "RCPT TO:<recipient@bar.baz>\r"
 expect "551 "
 
-run cmail-admin-address add "$mailto" reject "Foo Bar" 123
+run cmail-admin-address add "recipient@bar.baz" reject "Foo Bar" 123
 
-send "RCPT TO:<$mailto>\r"
+send "RCPT TO:<recipient@bar.baz>\r"
 expect "551 "
 
 run cmail-admin-address update 123 drop
 
-send "RCPT TO:<$mailto>\r"
+send "RCPT TO:<recipient@bar.baz>\r"
 expect "250 "
 
-send "RCPT TO:<$mailto>\r"
+send "RCPT TO:<recipient@bar.baz>\r"
 expect "250 "
 
-source ../primitives/smtp_data
+maildata
 
 send "RSET\r"
 expect "250 "
 
-send "MAIL FROM:<$mailfrom>\r"
+send "MAIL FROM:<sender@bar.baz>\r"
 expect "250 "
 
-send "RCPT TO:<$mailto>\r"
+send "RCPT TO:<recipient@bar.baz>\r"
 expect "250 "
 
-source ../primitives/smtp_data
+maildata
+
+# Run it again with HELO
+set spawn_id [smtp_init "localhost" "25" "HELO"] 
+
+send "MAIL FROM:<sender@bar.baz>\r"
+expect "250 "
+
+send "RCPT TO:<recipient@bar.baz>\r"
+expect "250 "
+
+#The path parser should also accept paths without brackets for compatability
+send "RCPT TO:recipient@bar.baz\r"
+expect "250 "
+
+maildata
 
 send_user "Done.\n"

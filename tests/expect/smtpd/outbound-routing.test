@@ -1,0 +1,70 @@
+#!/usr/bin/expect -f
+
+proc mail {{from "xyzzy@bar.baz"} {to "foo@bar.baz"} {result "250"}} {
+	send "MAIL FROM:<$from>\r"
+	expect "250 "
+
+	send "RCPT TO:<$to>\r"
+	expect "250 "
+
+	send "DATA\r"
+	expect "354 "
+
+	send "This is a test mailing\r.\r"
+	expect "$result "
+
+	send "RSET\r"
+	expect "250 "
+}
+
+proc mailbox {num {condition ""}} {
+	global database
+	set spawn_id $database
+	send "SELECT COUNT(*) FROM mailbox $condition;\r"
+
+	expect {
+		"$num\r" {
+		}
+		"sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	
+	expect "sqlite>"
+}
+
+proc outbox {num {condition ""}} {
+	global database
+	set spawn_id $database
+	send "SELECT COUNT(*) FROM outbox $condition;\r"
+
+	expect {
+		"$num\r" {
+		}
+		"sqlite>" {
+			send_user "Test failed\n"
+			exit 1
+		}
+	}
+	
+	expect "sqlite>"
+}
+
+source ../primitives/common
+source ../primitives/db_init
+source ../primitives/smtp_init
+run reset_database
+
+set database [db_init $::env(CMAIL_MASTER_DB)]
+set spawn_id [smtp_init localhost 587]
+run cmail-admin-user add cbdev cbdev
+run cmail-admin-smtpd enable cbdev any
+send "STARTTLS\r"
+expect "220 "
+send "EHLO test-client\r"
+expect "250 "
+send "AUTH PLAIN AGNiZGV2AGNiZGV2\r"
+expect "235"
+
+send_user "Done."

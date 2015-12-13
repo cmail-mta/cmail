@@ -7,3 +7,4 @@ logs/*
 rtldumps/*
 *.pem
 *.gz
+tests/coverage

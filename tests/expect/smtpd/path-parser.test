@@ -26,7 +26,8 @@ expect "250 "
 send "RCPT TO:<#'/*-$%&+=_?^!`{}|~@crazy.crap>\r"
 expect "250 "
 
-
+send "RCPT TO:foo@bar.baz\r"
+expect "250 "
 
 send "RCPT TO:<foo@bar@baz>\r"
 expect "501 "

@@ -1,0 +1,50 @@
+#!/usr/bin/expect -f
+proc pop_init {{host "localhost"} {port "110"}} {
+	spawn gnutls-cli --crlf --starttls --insecure --port $port $host
+	send_user "Spawned POP3 connection on $spawn_id\n"
+
+	expect {
+		"+OK " {
+		}
+		default {
+			send_user "POP3 server failed to respond\n"
+			exit 1
+		}
+	}
+
+	return $spawn_id
+}
+
+proc pop_stls_init {{host "localhost"} {port "110"}} {
+	set spawn_id [pop_init $host $port]
+	send "STLS\r"
+	expect "+OK "
+
+	send "CAPA\r"
+	expect "+OK "
+
+	return $spawn_id
+}
+
+proc pop_tls_init {{host "localhost"} {port "995"}} {
+	spawn gnutls-cli --crlf --insecure --port $port $host
+	send_user "Spawned SPOP3 connection on $spawn_id\n"
+
+	expect {
+		"+OK " {
+		}
+		default {
+			send_user "POP3 server failed to respond\n"
+			exit 1
+		}
+	}
+
+	return $spawn_id
+}
+
+proc insert_mail {user ident data {from "foo@bar.baz"} {to "bar@frob.narf"}} {
+	global database
+	set spawn_id $database
+	send "INSERT INTO mailbox (mail_user, mail_ident, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_proto, mail_data) VALUES ('$user', '$ident', '$from', '$to', 'test-harness', 'direct', '$data');\r"
+	expect "sqlite>"
+}

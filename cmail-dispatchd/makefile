@@ -1,5 +1,5 @@
 .PHONY: clean
-CFLAGS=-Wall -g
+CFLAGS?=-Wall -g
 LDLIBS=-lsqlite3 -lnettle -lgnutls -ladns
 
 all: dispatchd

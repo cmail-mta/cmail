@@ -1,4 +1,4 @@
-export DOCDIR?=$(DESTDIR)/usr/share/man
+export DOCDIR?=$(DESTDIR)$(PREFIX)/share/man
 .SUFFIXES: .8 .8.gz
 .PHONY: dist-doc install clean
 

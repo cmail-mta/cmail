@@ -11,6 +11,7 @@ int usage(char* filename){
 }
 
 int main(int argc, char** argv){
+	FILE* pid_file = NULL;
 	ARGUMENTS args = {
 		.drop_privileges = true,
 		.daemonize = true,
@@ -31,9 +32,7 @@ int main(int argc, char** argv){
 			.fetch_master = NULL,
 			.mark_deletion = NULL,
 			.unmark_deletions = NULL,
-			.delete_master = NULL,
-			.db_attach = NULL,
-			.db_detach = NULL
+			.delete_master = NULL
 		},
 		.log = {
 			.stream = stderr,
@@ -79,8 +78,16 @@ int main(int argc, char** argv){
 		return EXIT_FAILURE;
 	}
 
-	//set up signal masks
+	//set up signal masks //TODO error check this
 	signal_init(config.log);
+
+	//if needed, open pid file handle before dropping privileges
+	if(config.pid_file){
+		pid_file = fopen(config.pid_file, "w");
+		if(!pid_file){
+			logprintf(config.log, LOG_ERROR, "Failed to open pidfile for writing\n");
+		}
+	}
 
 	//drop privileges
 	if(getuid() == 0 && args.drop_privileges){
@@ -104,7 +111,7 @@ int main(int argc, char** argv){
 		//stop secondary log output
 		config.log.log_secondary = false;
 
-		switch(daemonize(config.log, config.pid_file)){
+		switch(daemonize(config.log, pid_file)){
 			case 0:
 				break;
 			case 1:
@@ -121,6 +128,9 @@ int main(int argc, char** argv){
 	}
 	else{
 		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize ? " (Because the log output stream is stderr)":""));
+		if(pid_file){
+			fclose(pid_file);
+		}
 	}
 
 	//run core loop

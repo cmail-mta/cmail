@@ -1,0 +1,60 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/smtp_init
+run reset_database
+
+set spawn_id [smtp_init]
+
+send "NOOP\r"
+expect "250 "
+
+send "RSET\r"
+expect "250 "
+
+# Magic incantation
+send "XYZZY\r"
+expect "250 "
+
+# RFC5321 3.3 says this needs to be implemented
+send "RCPT TO:<foo@bar.baz>\r"
+expect "503 "
+
+# Not implemented but still in the RFC
+send "VRFY foo@bar.baz\r"
+expect "502 "
+
+send "EXPN foo@bar.baz\r"
+expect "502 "
+
+send "UNKNOWN command\r"
+expect "500 "
+
+# Run NOOP/AUTH/QUIT in RECIPIENTS
+send "MAIL FROM:<foo@bar.baz>\r"
+expect "250 "
+send "NOOP\r"
+expect "250 "
+send "AUTH PLAIN\r"
+expect "503 "
+send "UNKNOWN command\r"
+expect "500 "
+send "QUIT\r"
+expect "221 "
+expect eof
+
+# Test some unusual things...
+spawn gnutls-cli --crlf --starttls --insecure --port 25 localhost
+
+# Unknown commands in NEW
+send "UNKNOWN command\r"
+expect "500 "
+
+# EHLO/STARTTLS/HELO
+send "EHLO test-client\r"
+expect "250 "
+send "STARTTLS\r"
+expect "220 "
+send "HELO test-client-tls\r"
+expect "250 "
+
+send_user "Done.\n"
