@@ -1,5 +1,7 @@
 int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
 	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 	char* state_reason = NULL;
 	int rv = 0;
 
@@ -20,10 +22,40 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 	}
 
 	//actual NEW commands as per RFC 3501 6.2
+	#ifndef CMAIL_NO_TLS
 	else if(!strcasecmp(sentence.command, "starttls")){
-		//TODO implement
-		state = COMMAND_NOREPLY;
+		//accept only when offered, reject when already negotiated
+		if(client->tls_mode != TLS_NONE){
+			logprintf(log, LOG_WARNING, "Client with active TLS session tried to negotiate\n");
+
+			state_reason = "TLS session already negotiated";
+			state = COMMAND_BAD;
+			//increase failscore
+			rv = -1;
+		}
+
+		if(client_data->listener->tls_mode != TLS_NEGOTIATE){
+			logprintf(log, LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
+
+			state_reason = "TLS session already negotiated";
+			state = COMMAND_BAD;
+			//increase the failscore
+			rv = -1;
+		}
+
+		if(state == COMMAND_UNHANDLED){
+			logprintf(log, LOG_INFO, "Client wants to negotiate TLS\n");
+			client_send(log, client, "%s OK Begin TLS negotiation\r\n", sentence.tag);
+
+			client->tls_mode = TLS_NEGOTIATE;
+
+			//this is somewhat dodgy and should probably be replaced by a proper conditional
+			return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
+		}
+
+		state = COMMAND_BAD;
 	}
+	#endif
 	else if(!strcasecmp(sentence.command, "authenticate")){
 		//TODO implement
 		state = COMMAND_NOREPLY;
