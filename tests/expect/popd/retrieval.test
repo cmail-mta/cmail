@@ -1,0 +1,53 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/pop_init
+source ../primitives/db_init
+run reset_database
+
+set server [pop_stls_init]
+set database [db_init $::env(CMAIL_MASTER_DB)]
+set spawn_id "$server"
+
+run cmail-admin-user add foo bar
+run cmail-admin-popd enable foo
+
+# Login first
+
+send "USER foo\r"
+expect "+OK "
+send "PASS bar\r"
+expect "+OK "
+
+insert_mail foo master-1 "Test mailing"
+
+# Logged in before mail -> empty maildrop
+send "STAT\r"
+expect "+OK 0 0"
+
+send "QUIT\r"
+expect eof
+
+insert_mail foo master-2 ".\r\n. Preceding"
+set spawn_id [pop_stls_init]
+
+send "USER foo\r"
+expect "+OK "
+send "PASS bar\r"
+expect "+OK "
+
+send "STAT\r"
+expect "+OK 2"
+
+send "LIST\r"
+expect "+OK "
+expect "1 12"
+expect "2 14"
+expect ".\r"
+
+send "UIDL\r"
+expect "+OK "
+expect "master-1"
+expect "master-2"
+expect ".\r"
+
+send_user "Done.\n"

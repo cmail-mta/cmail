@@ -1,6 +1,6 @@
-export PREFIX?=/usr/sbin
+export PREFIX?=/usr
 export MKDIR?=mkdir -p
-export DOCDIR?=$(DESTDIR)/usr/share/man
+export DOCDIR?=$(DESTDIR)$(PREFIX)/share/man
 LOGDIR?=$(DESTDIR)/var/log/cmail
 CONFDIR?=$(DESTDIR)/etc/cmail
 DBDIR?=$(DESTDIR)$(CONFDIR)/databases
@@ -21,7 +21,7 @@ all:
 
 install:
 	@printf "Installing to %s%s\n" "$(DESTDIR)" "$(PREFIX)"
-	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
+	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)/sbin"
 	$(MAKE) -C cmail-admin install
 
 install-doc:
@@ -30,12 +30,12 @@ install-doc:
 
 uninstall:
 	@printf "Removing daemon binaries from %s%s\n" "$(DESTDIR)" "$(PREFIX)"
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-smtpd
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-dispatchd
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-popd
-	#remove old binaries
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-msa
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-mta
+	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-smtpd
+	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-dispatchd
+	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-popd
+	#remove legacy binaries
+	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-msa
+	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-mta
 	$(MAKE) -C cmail-admin uninstall
 
 init:
@@ -90,6 +90,21 @@ rtldumps:
 	mv cmail-smtpd/*.expand rtldumps/
 	mv cmail-dispatchd/*.expand rtldumps/
 	mv cmail-popd/*.expand rtldumps/
+
+coverage-build:
+	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-smtpd
+	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-dispatchd
+	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-popd
+	$(MKDIR) bin
+	@mv cmail-smtpd/cmail-smtpd bin/
+	@mv cmail-dispatchd/cmail-dispatchd bin/
+	@mv cmail-popd/cmail-popd bin/
+	# mv cmail-imapd/cmail-imapd bin/
+	$(MKDIR) tests/coverage/gcov
+	@mv cmail-smtpd/smtpd.gcno tests/coverage/gcov
+	@mv cmail-popd/popd.gcno tests/coverage/gcov
+	@mv cmail-dispatchd/dispatchd.gcno tests/coverage/gcov
+	# @mv cmail-imapd/imapd.gcno tests/coverage/gcov
 
 cppcheck:
 	@printf "Running cppcheck on cmail-smtpd\n"

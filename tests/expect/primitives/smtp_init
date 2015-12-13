@@ -18,12 +18,31 @@ proc smtp_init {{host "localhost"} {port "25"} {helo "EHLO"}} {
 	return $spawn_id
 }
 
-proc smtp_tls_init {{host "localhost"} {port "587"}} {
-	set spawn_id [smtp_init $host $port]
+proc smtp_stls_init {{host "localhost"} {port "587"} {helo_inner "EHLO"}} {
+	set spawn_id [smtp_init $host $port "EHLO"]
 	send "STARTTLS\r"
 	expect "220 "
 
-	send "EHLO test-client-tls\r"
+	send "$helo_inner test-client-tls\r"
+	expect "250 "
+
+	return $spawn_id
+}
+
+proc smtp_tls_init {{host "localhost"} {port "465"} {helo "EHLO"}} {
+	spawn gnutls-cli --crlf --insecure --port $port $host
+	send_user "Spawned SSMTP connection on $spawn_id\n"
+
+	expect {
+		"220 " {
+		}
+		default {
+			send_user "SMTP server failed to respond\n"
+			exit 1
+		}
+	}
+
+	send "$helo test-client\r"
 	expect "250 "
 
 	return $spawn_id
