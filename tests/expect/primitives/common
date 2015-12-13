@@ -3,9 +3,22 @@ proc run {args} {
 	eval exec $args
 }
 
+proc empty_userdb {{path "/etc/cmail/databases/user.db3"}} {
+	exec cp "$::env(CMAIL_TEST_EMPTY_USER)" "$path"
+	exec chown :cmail "$path"
+	exec chmod 770 "$path"
+	send_user "\n** Empty user database at $path\n"
+}
+set timeout 5
 expect_after {
 	timeout {
 		send_user "Response timed out\n"
+		sleep 30
+		exit 1
+	}
+	default {
+		send_user "Test failed\n"
+		sleep 30
 		exit 1
 	}
 }

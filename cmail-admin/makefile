@@ -19,13 +19,13 @@ all:
 	cp cmail-admin bin/
 
 install:
-	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)"
+	install -m 0755 bin/* "$(DESTDIR)$(PREFIX)/sbin"
 
 install-doc:
 	$(MAKE) -C doc install
 
 uninstall:
-	$(RM) $(DESTDIR)$(PREFIX)/cmail-admin*
+	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-admin*
 
 clean:
 	$(RM) bin/*

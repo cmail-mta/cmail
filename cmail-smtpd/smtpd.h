@@ -86,6 +86,7 @@ typedef struct /*_LISTEN_DATA*/ {
 	char* fixed_user;
 	unsigned max_size;
 	bool auth_require;
+	bool suppress_submitter;
 	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_credentials_t tls_cert;
@@ -122,9 +123,9 @@ typedef struct /*_ARGS*/ {
 
 typedef struct /*_USER_MAILBOX_DB*/{
 	bool active;
+	sqlite3* conn;
 	sqlite3_stmt* mailbox;
 	char* file_name;
-	char* conn_handle;
 } USER_DATABASE;
 
 typedef struct /*_DATABASE_CONNECTION*/ {

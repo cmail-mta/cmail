@@ -1,0 +1,92 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/smtp_init
+source ../primitives/db_init
+
+proc userdb_mails {num {condition ""}} {
+	global userdb
+	set spawn_id $userdb
+        send "SELECT COUNT(*) FROM mailbox $condition;\r"
+        expect {
+                "$num\r" {
+                }
+                "sqlite>" {
+                        send_user "Test failed\n"
+                        exit 1
+                }
+        }
+        expect "sqlite>"
+}
+
+proc masterdb_mails {num {condition ""}} {
+	global masterdb
+	set spawn_id $masterdb
+        send "SELECT COUNT(*) FROM mailbox $condition;\r"
+        expect {
+                "$num\r" {
+                }
+                "sqlite>" {
+                        send_user "Test failed\n"
+                        exit 1
+                }
+        }
+        expect "sqlite>"
+}
+
+proc send_mail {} {
+	send "MAIL FROM:<>\r"
+	expect "250 "
+	send "RCPT TO:<store-userdb@kitinfo.de>\r"
+	expect "250 "
+	send "DATA\r"
+	expect "354 "
+	send "This is some mail data\r"
+	send ".\r"
+	expect "250 "
+	send "RSET\r"
+	expect "250 "
+}
+
+run reset_database
+set masterdb [db_init $::env(CMAIL_MASTER_DB)] 
+empty_userdb /etc/cmail/databases/user1.db3
+set userdb [db_init /etc/cmail/databases/user1.db3]
+run cmail-admin-user add cbdev cbdev
+run cmail-admin-user userdb cbdev /etc/cmail/databases/user1.db3
+run cmail-admin-address add store-userdb@kitinfo.de store cbdev
+set spawn_id [smtp_init]
+
+userdb_mails 0
+masterdb_mails 0
+
+send_mail
+
+userdb_mails 1
+masterdb_mails 0
+
+run cmail-admin-user userdb cbdev
+
+send_mail
+
+userdb_mails 1
+masterdb_mails 1
+
+run cmail-admin-user userdb cbdev /invalid/database/path
+
+send_mail
+
+userdb_mails 1
+masterdb_mails 2
+
+run cmail-admin-user userdb cbdev /etc/cmail/databases/user1.db3
+
+send_mail
+
+userdb_mails 2
+masterdb_mails 2
+
+send_mail
+
+userdb_mails 3
+
+send_user "Done.\n"

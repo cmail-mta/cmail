@@ -1,0 +1,56 @@
+#!/usr/bin/expect -f
+source ../primitives/common
+source ../primitives/pop_init
+run reset_database
+
+set spawn_id [pop_init]
+
+send "CAPA\r"
+expect "+OK "
+
+send "XYZZY\r"
+expect "+OK "
+
+send "UNKNOWN command\r"
+expect -- "-ERR "
+
+send "STLS\r"
+expect "+OK "
+
+send "CAPA\r"
+expect "+OK "
+
+send "STLS\r"
+expect -- "-ERR "
+
+send "QUIT\r"
+expect "+OK "
+expect eof
+
+run cmail-admin-user add user1 user1
+run cmail-admin-popd enable user1
+
+set spawn_id [pop_tls_init]
+
+send "USER user1\r"
+expect "+OK "
+send "PASS user1\r"
+expect "+OK "
+
+send "CAPA\r"
+expect "+OK "
+
+send "XYZZY\r"
+expect "+OK "
+
+send "NOOP\r"
+expect "+OK "
+
+send "UNKNOWN command\r"
+expect -- "-ERR "
+
+send "QUIT\r"
+expect "+OK "
+expect eof
+
+send_user "Done.\n"

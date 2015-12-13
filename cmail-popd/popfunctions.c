@@ -198,7 +198,7 @@ int pop_dele(LOGGER log, CONNECTION* client, DATABASE* database, unsigned mail){
 	}
 
 	//add a mark in the deletion table
-	if(maildrop_mark(log, database, client_data->auth.user.authorized, client_data->maildrop.mails[mail - 1].database_id, client_data->maildrop.mails[mail - 1].flag_master) < 0){
+	if(maildrop_mark(log, database, client_data->auth.user.authorized, &(client_data->maildrop), mail - 1) < 0){
 		logprintf(log, LOG_ERROR, "Failed to mark message as deleted: %s");
 	}
 
@@ -212,9 +212,15 @@ int pop_rset(LOGGER log, CONNECTION* client, DATABASE* database){
 	unsigned i = 0;
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	//reset all deletion marks in the table
-	if(maildrop_unmark(log, database, client_data->auth.user.authorized) < 0){
-		logprintf(log, LOG_ERROR, "Failed to reset the deletion marks\n");
+	//reset all deletion marks in the master database deletion table
+	if(maildrop_unmark(log, database->conn, database->unmark_deletions, client_data->auth.user.authorized) < 0){
+		logprintf(log, LOG_ERROR, "Failed to reset the master database deletion marks\n");
+		client_send(log, client, "-ERR Internal error resetting\r\n");
+		return 0;
+	}
+
+	if(client_data->maildrop.user_conn && maildrop_unmark(log, client_data->maildrop.user_conn, client_data->maildrop.unmark_deletions, client_data->auth.user.authorized) < 0){
+		logprintf(log, LOG_ERROR, "Failed to reset the user database deletion marks\n");
 		client_send(log, client, "-ERR Internal error resetting\r\n");
 		return 0;
 	}

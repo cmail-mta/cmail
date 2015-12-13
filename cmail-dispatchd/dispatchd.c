@@ -151,10 +151,12 @@ int main(int argc, char** argv){
 	}
 	else{
 		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize ? " (Because the log output stream is stderr)":""));
+		if(pid_file){
+			fclose(pid_file);
+		}
 	}
 
 	//run core loop
-	//TODO add run mode for generating bounces
 	if(args.remote.host){
 		logic_handle_remote(config.log, &(config.database), config.settings, args.remote);
 	}
