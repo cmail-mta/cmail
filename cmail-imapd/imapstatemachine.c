@@ -9,38 +9,19 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
-		client_send(log, client, "* CAPABILITY IMAP4rev1");
-		#ifndef CMAIL_NO_TLS
-		if(client_data->listener->tls_mode == TLS_NEGOTIATE && client->tls_mode == TLS_NONE){
-			client_send(log, client, " STARTTLS");
-		}
-		#endif
-		if(!client_data->auth.user.authenticated && (
-					(listener_data->auth_offer == AUTH_ANY) ||
-					(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)
-					)){
-			client_send(log, client, " AUTH=PLAIN");
-		}
-		else{
-			client_send(log, client, " LOGINDISABLED");
-		}
-		client_send(log, client, " XYZZY\r\n");
-		state = COMMAND_OK;
+		state = imap_capability(log, sentence, client, database);
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
 		state = COMMAND_OK;
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
-		client_send(log, client, "* BYE for now\r\n");
 		//this is kind of a hack as it bypasses the default command state responder
-		client_send(log, client, "%s OK LOGOUT completed\r\n", sentence.tag);
-		return client_close(log, client, database);
+		return imap_logout(log, sentence, client, database);
 	}
 	else if(!strcasecmp(sentence.command, "xyzzy")){
-		client_send(log, client, "* XYZZY Nothing happens\r\n");
 		state_reason = "Incantation performed";
-		state = COMMAND_OK;
+		state = imap_xyzzy(log, sentence, client, database);
 	}
 
 	//actual NEW commands as per RFC 3501 6.2
