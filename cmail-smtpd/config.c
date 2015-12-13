@@ -276,9 +276,6 @@ void config_free(CONFIGURATION* config){
 
 	for(i = 0; i < config->listeners.count; i++){
 		listener_data = (LISTENER*)config->listeners.conns[i].aux_data;
-
-		close(config->listeners.conns[i].fd);
-
 		free(listener_data->announce_domain);
 
 		if(listener_data->fixed_user){

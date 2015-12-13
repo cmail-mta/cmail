@@ -1,27 +1,27 @@
 int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* path_pool){
-	CLIENT* client_data=(CLIENT*)client->aux_data;
-	LISTENER* listener_data=(LISTENER*)client_data->listener->aux_data;
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 
 	if(!strncasecmp(client_data->recv_buffer, "ehlo ", 5)){
 		#ifndef CMAIL_NO_TLS
 		switch(client_data->listener->tls_mode){
 			case TLS_ONLY:
-				client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"sesmtpa":"sesmtp");
+				client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "sesmtpa":"sesmtp");
 				break;
 			case TLS_NEGOTIATE:
-				if(client->tls_mode==TLS_ONLY){
-					client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"esmtpsa":"esmtps");
+				if(client->tls_mode == TLS_ONLY){
+					client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "esmtpsa":"esmtps");
 					break;
 				}
 			case TLS_NONE:
-				client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"esmtpa":"esmtp");
+				client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "esmtpa":"esmtp");
 				break;
 		}
 		#else
-		client_data->current_mail.protocol=(client_data->sasl_user.authenticated?"esmtpa":"esmtp");
+		client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "esmtpa":"esmtp");
 		#endif
 
-		client_data->state=STATE_IDLE;
+		client_data->state = STATE_IDLE;
 
 		client_send(log, client, "250-%s ahoyhoy\r\n", listener_data->announce_domain);
 
@@ -36,7 +36,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 				break;
 			case AUTH_TLSONLY:
 				#ifndef CMAIL_NO_TLS
-				if(client->tls_mode!=TLS_ONLY){
+				if(client->tls_mode != TLS_ONLY){
 					break;
 				}
 				#else
@@ -47,8 +47,9 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 				break;
 		}
 		#ifndef CMAIL_NO_TLS
+
 		//advertise only when possible
-		if(client_data->listener->tls_mode==TLS_NEGOTIATE && client->tls_mode==TLS_NONE){
+		if(client_data->listener->tls_mode == TLS_NEGOTIATE && client->tls_mode == TLS_NONE){
 			client_send(log, client, "250-STARTTLS\r\n"); //RFC 3207
 		}
 		#endif
@@ -63,7 +64,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 				client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "ssmtpa":"ssmtp");
 				break;
 			case TLS_NEGOTIATE:
-				if(client->tls_mode==TLS_ONLY){
+				if(client->tls_mode == TLS_ONLY){
 					client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "smtpsa":"smtps");
 					break;
 				}
@@ -75,7 +76,7 @@ int smtpstate_new(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL* 
 		client_data->current_mail.protocol = (client_data->sasl_user.authenticated ? "smtpa":"smtp");
 		#endif
 
-		client_data->state=STATE_IDLE;
+		client_data->state = STATE_IDLE;
 		logprintf(log, LOG_INFO, "Client negotiates smtp\n");
 
 		client_send(log, client, "250 %s ahoyhoy\r\n", listener_data->announce_domain);
@@ -97,7 +98,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	if(client_data->sasl_context.method != SASL_INVALID && !strcmp(client_data->recv_buffer, "*")){
 		//cancel authentication
 		logprintf(log, LOG_INFO, "Client cancelled authentication\n");
-		client_data->state=STATE_IDLE;
+		client_data->state = STATE_IDLE;
 		sasl_cancel(&(client_data->sasl_context));
 		client_send(log, client, "501 Authentication cancelled\r\n");
 		return 0;
@@ -120,7 +121,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	}
 	else{
 		logprintf(log, LOG_ERROR, "Invalid state (No negotiation but data) reached in AUTH, returning to IDLE\r\n");
-		client_data->state=STATE_IDLE;
+		client_data->state = STATE_IDLE;
 		client_send(log, client, "500 Invalid state\r\n");
 		return -1;
 	}
@@ -229,13 +230,13 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 	#ifndef CMAIL_NO_TLS
 	//accept only when offered, reject when already negotiated
 	if(!strncasecmp(client_data->recv_buffer, "starttls", 8)){
-		if(client->tls_mode!=TLS_NONE){
+		if(client->tls_mode != TLS_NONE){
 			logprintf(log, LOG_WARNING, "Client with active TLS session tried to negotiate\n");
 			client_send(log, client, "503 Already in TLS session\r\n");
 			return 0;
 		}
 
-		if(client_data->listener->tls_mode!=TLS_NEGOTIATE){
+		if(client_data->listener->tls_mode != TLS_NEGOTIATE){
 			logprintf(log, LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
 			client_send(log, client, "503 Not advertised\r\n");
 
@@ -245,11 +246,11 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 
 		logprintf(log, LOG_INFO, "Client wants to negotiate TLS\n");
 		mail_reset(&(client_data->current_mail));
-		client_data->state=STATE_NEW;
+		client_data->state = STATE_NEW;
 
 		client_send(log, client, "220 Go ahead\r\n");
 
-		client->tls_mode=TLS_NEGOTIATE;
+		client->tls_mode = TLS_NEGOTIATE;
 
 		//this is somewhat dodgy and should probably be replaced by a proper conditional
 		return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
@@ -292,8 +293,8 @@ int smtpstate_idle(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 		//Using this command for some debug output...
 		logprintf(log, LOG_DEBUG, "Client protocol: %s\n", client_data->current_mail.protocol);
 		logprintf(log, LOG_DEBUG, "Peer name %s, mail submitter %s, data_allocated %d\n", client_data->peer_name, client_data->current_mail.submitter, client_data->current_mail.data_allocated);
-		logprintf(log, LOG_DEBUG, "AUTH Status %s, Authentication: %s, Authorization: %s\n", client_data->sasl_context.method!=SASL_INVALID?"active":"inactive", client_data->sasl_user.authenticated ? client_data->sasl_user.authenticated:"none", client_data->sasl_user.authorized ? client_data->sasl_user.authorized:"none");
-		logprintf(log, LOG_DEBUG, "Originating router: %s (%s)\n", client_data->originating_route.router?client_data->originating_route.router:"none", client_data->originating_route.argument?client_data->originating_route.argument:"none");
+		logprintf(log, LOG_DEBUG, "AUTH Status %s, Authentication: %s, Authorization: %s\n", client_data->sasl_context.method != SASL_INVALID ? "active":"inactive", client_data->sasl_user.authenticated ? client_data->sasl_user.authenticated:"none", client_data->sasl_user.authorized ? client_data->sasl_user.authorized:"none");
+		logprintf(log, LOG_DEBUG, "Originating router: %s (%s)\n", client_data->originating_route.router ? client_data->originating_route.router:"none", client_data->originating_route.argument ? client_data->originating_route.argument:"none");
 		#ifndef CMAIL_NO_TLS
 		logprintf(log, LOG_DEBUG, "TLS State: %s\n", tls_modestring(client->tls_mode));
 		#endif
@@ -580,7 +581,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 				}
 			}
 			mail_reset(&(client_data->current_mail));
-			client_data->state=STATE_IDLE;
+			client_data->state = STATE_IDLE;
 		}
 	}
 	else{
