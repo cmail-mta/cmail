@@ -1,5 +1,6 @@
 int config_bind(CONFIGURATION* config, char* directive, char* params){
 	char* tokenize_line = NULL;
+	char* tokenize_argument = NULL;
 	char* token = NULL;
 
 	char* bindhost = NULL;
@@ -16,9 +17,8 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	int listen_fd = -1;
 	int listener_slot = -1;
 	LISTENER settings = {
-		#ifndef CMAIL_NO_TLS
-		.tls_require = false,
-		#endif
+		.fixed_user = NULL,
+		.auth_offer = AUTH_ANY
 	};
 	LISTENER* listener_data = NULL;
 
@@ -46,10 +46,26 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			else if(!strcmp(token, "tlsonly")){
 				tls_mode = TLS_ONLY;
 			}
-			else if(!strcmp(token, "tlsrequire")){
-				settings.tls_require = true;
-			}
 			#endif
+			else if(!strncmp(token, "auth", 4)){
+				if(token[4] == '='){
+					token = strtok_r(token + 5, ",", &tokenize_argument);
+					while(token){
+						if(!strcmp(token, "tlsonly")){
+							settings.auth_offer = AUTH_TLSONLY;
+						}
+						else if(!strncmp(token, "fixed@", 6)){
+							settings.fixed_user = token + 6;
+						}
+						else{
+							logprintf(config->log, LOG_WARNING, "Unknown auth parameter %s\n", token);
+						}
+						token = strtok_r(NULL, ",", &tokenize_argument);
+					}
+
+					token = ""; //reset to anything but NULL to meet condition
+				}
+			}
 			else{
 				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
 			}
@@ -99,6 +115,13 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 		config->listeners.conns[listener_slot].tls_mode = tls_mode;
 		#endif
 
+		if(settings.fixed_user){
+			listener_data->fixed_user = common_strdup(settings.fixed_user);
+			if(!listener_data->fixed_user){
+				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for fixed user storage\n");
+				return -1;
+			}
+		}
 		return 0;
 	}
 
@@ -110,7 +133,7 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 	struct passwd* user_info;
 	struct group* group_info;
 
-	errno=0;
+	errno = 0;
 	if(!strcmp(directive, "user")){
 		user_info = getpwnam(params);
 		if(!user_info){
@@ -229,6 +252,11 @@ void config_free(CONFIGURATION* config){
 
 	for(i = 0; i < config->listeners.count; i++){
 		listener_data = (LISTENER*)config->listeners.conns[i].aux_data;
+		close(config->listeners.conns[i].fd);
+
+		if(listener_data->fixed_user){
+			free(listener_data->fixed_user);
+		}
 
 		#ifndef CMAIL_NO_TLS
 		if(config->listeners.conns[i].tls_mode != TLS_NONE){

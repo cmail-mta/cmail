@@ -129,6 +129,18 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	actual_data = (CLIENT*)clients->conns[client_slot].aux_data;
 	*actual_data = empty_data;
 
+	if(listener_data->fixed_user){
+		actual_data->auth.user.authenticated = common_strdup(listener_data->fixed_user);
+		actual_data->auth.user.authorized = common_strdup(listener_data->fixed_user);
+		if(!actual_data->auth.user.authenticated || !actual_data->auth.user.authorized){
+			logprintf(log, LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
+			//TODO fail this connection
+		}
+		else{
+			actual_data->state = STATE_AUTHENTICATED;
+		}
+	}
+
 	#ifndef CMAIL_NO_TLS
 	//if on tlsonly port, immediately wait for negotiation
 	if(listener->tls_mode == TLS_ONLY){
@@ -138,12 +150,12 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	}
 	#endif
 
-	//FIXME if(PREAUTHED_CONNECTION){
-		//client_send(log, &(clients->conns[client_slot]), "* PREAUTH IMAP4rev1 server ready with user %s\r\n");
-	//}
-	//else{
+	if(actual_data->auth.user.authenticated){
+		client_send(log, &(clients->conns[client_slot]), "* PREAUTH IMAP4rev1 server ready with user %s\r\n", actual_data->auth.user.authorized);
+	}
+	else{
 		client_send(log, &(clients->conns[client_slot]), "* OK IMAP4rev1 server ready\r\n");
-	//}
+	}
 	return 0;
 }
 
@@ -252,12 +264,12 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				client->tls_mode = TLS_ONLY;
 				if(client_data->listener->tls_mode == TLS_ONLY){
 					//send greeting if listener is tlsonly
-					//FIXME if(PREAUTHED_CONNECTION){
-						//client_send(log, &(clients->conns[client_slot]), "* PREAUTH IMAP4rev1 server ready with user %s\r\n");
-					//}
-					//else{
+					if(client_data->auth.user.authenticated){
+						client_send(log, client, "* PREAUTH IMAP4rev1 server ready with user %s\r\n", client_data->auth.user.authorized);
+					}
+					else{
 						client_send(log, client, "* OK IMAP4rev1 server ready\r\n");
-					//}
+					}
 				}
 				break;
 			default:

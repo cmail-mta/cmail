@@ -62,8 +62,14 @@ typedef struct /*_AUTHENTICATION_DATA*/ {
 	SASL_CONTEXT ctx;
 } AUTH_DATA;
 
+typedef enum /*_AUTH_OFFER_MODE*/ {
+	AUTH_ANY,
+	AUTH_TLSONLY
+} AUTH_OFFER;
+
 typedef struct /*_LISTEN_DATA*/ {
-	bool tls_require;
+	char* fixed_user;
+	AUTH_OFFER auth_offer;
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_credentials_t tls_cert;
 	gnutls_priority_t tls_priorities;

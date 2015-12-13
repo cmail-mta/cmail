@@ -30,8 +30,8 @@ int main(int argc, char** argv){
 			.conns = NULL
 		},
 		.privileges = {
-			.uid=0,
-			.gid=0
+			.uid = 0,
+			.gid = 0
 		},
 		.log = {
 			.stream = stderr,
