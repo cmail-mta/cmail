@@ -1,15 +1,14 @@
-.TH CMAIL-DISPATCHD 8 "August 2015" "v0.1"
+.TH CMAIL-IMAPD 8 "December 2015" "v0.1"
 .SH NAME
-cmail-dispatchd \- Outbound SMTP agent of cmail 
+cmail-imapd \- IMAP4 server component of cmail
 .SH SYNOPSIS
-.B cmail-dispatchd [nodetach] [nodrop] 
+.B cmail-imapd [nodetach] [nodrop] 
 .I config-file
-.B [[ deliver | handoff
-.I remote
-.B ] | genbounces ]
 .SH DESCRIPTION
-.B cmail-dispatchd
-delivers outbound mail to remote (and local) servers via SMTP
+.B cmail-imapd
+is the IMAP4 daemon component of the cmail internet mail
+processing suite. It provides access to user mailboxes via the
+IMAP4rev1 protocol on its configured ports.
 .SH OPTIONS
 .TP 
 .B nodrop  
@@ -21,22 +20,8 @@ Do not detach (daemonize) from the controlling terminal
 .TP
 .I "config-file"
 Run the daemon using the specified configuration file
-.TP
-.BI "deliver " remote
-Dispatch (via delivery) all mail destined for the
-.I remote
-supplied
-.TP
-.BI "handoff " remote
-Dispatch all handoff mail destined for the
-.I remote
-supplied
-.TP
-.B genbounces
-Generate (but do not dispatch) bounce notification messages
-for all outbound mail that is above failure thresholds
 .SH FILES
-.I /etc/cmail/dispatchd.conf
+.I /etc/cmail/imapd.conf
 .RS
 Default location of configuration file when installed systemwide
 .SH DIAGNOSTICS
@@ -77,8 +62,8 @@ Fabian "cbdev" Stumpf <fjs at fabianstumpf dot de>
 Online documentation and homepage at http://cmail.rocks/
 .PP
 .BR cmail-popd (8),
+.BR cmail-dispatchd (8),
 .BR cmail-smtpd (8),
-.BR cmail-imapd (8),
 .BR cmail-master-database (5),
 .BR cmail-admin-user (8),
 .BR cmail-admin-address (8),

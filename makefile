@@ -17,7 +17,7 @@ all:
 	@mv cmail-smtpd/cmail-smtpd bin/
 	@mv cmail-dispatchd/cmail-dispatchd bin/
 	@mv cmail-popd/cmail-popd bin/
-	# mv cmail-imapd/cmail-imapd bin/
+	@mv cmail-imapd/cmail-imapd bin/
 
 install:
 	@printf "Installing to %s%s\n" "$(DESTDIR)" "$(PREFIX)"
@@ -33,6 +33,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-smtpd
 	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-dispatchd
 	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-popd
+	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-imapd
 	#remove legacy binaries
 	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-msa
 	$(RM) $(DESTDIR)$(PREFIX)/sbin/cmail-mta
@@ -55,6 +56,7 @@ init:
 	sed -e 's,LOGFILE,$(LOGDIR)/cmail-smtpd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/smtpd.conf.src" > $(CONFDIR)/smtpd.conf
 	sed -e 's,LOGFILE,$(LOGDIR)/cmail-dispatchd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/dispatchd.conf.src" > $(CONFDIR)/dispatchd.conf
 	sed -e 's,LOGFILE,$(LOGDIR)/cmail-popd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/popd.conf.src" > $(CONFDIR)/popd.conf
+	#sed -e 's,LOGFILE,$(LOGDIR)/cmail-imapd.log,' -e 's,MASTERDB,$(DBDIR)/master.db3,' "$(CONFDIR)/imapd.conf.src" > $(CONFDIR)/imapd.conf
 	@printf "\n*** Creating empty master database in %s/master.db3\n" "$(DBDIR)"
 	cat sql-update/install_master.sql | sqlite3 "$(DBDIR)/master.db3"
 	chown root:cmail "$(DBDIR)/master.db3"
@@ -86,6 +88,7 @@ rtldumps:
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-smtpd
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-dispatchd
 	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-popd
+	$(MAKE) CC=gcc CFLAGS=-fdump-rtl-expand -C cmail-imapd
 	$(MKDIR) rtldumps
 	mv cmail-smtpd/*.expand rtldumps/
 	mv cmail-dispatchd/*.expand rtldumps/
@@ -95,16 +98,17 @@ coverage-build:
 	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-smtpd
 	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-dispatchd
 	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-popd
+	$(MAKE) CC=gcc CFLAGS="-fprofile-arcs -ftest-coverage" -C cmail-imapd
 	$(MKDIR) bin
 	@mv cmail-smtpd/cmail-smtpd bin/
 	@mv cmail-dispatchd/cmail-dispatchd bin/
 	@mv cmail-popd/cmail-popd bin/
-	# mv cmail-imapd/cmail-imapd bin/
+	@mv cmail-imapd/cmail-imapd bin/
 	$(MKDIR) tests/coverage/gcov
 	@mv cmail-smtpd/smtpd.gcno tests/coverage/gcov
 	@mv cmail-popd/popd.gcno tests/coverage/gcov
 	@mv cmail-dispatchd/dispatchd.gcno tests/coverage/gcov
-	# @mv cmail-imapd/imapd.gcno tests/coverage/gcov
+	@mv cmail-imapd/imapd.gcno tests/coverage/gcov
 
 cppcheck:
 	@printf "Running cppcheck on cmail-smtpd\n"
@@ -113,6 +117,8 @@ cppcheck:
 	cppcheck --enable=all cmail-dispatchd/dispatchd.c
 	@printf "\nRunning cppcheck on cmail-popd\n"
 	cppcheck --enable=all cmail-popd/popd.c
+	@printf "\nRunning cppcheck on cmail-imapd\n"
+	cppcheck --enable=all cmail-imapd/imapd.c
 
 clean:
 	$(RM) bin/*
