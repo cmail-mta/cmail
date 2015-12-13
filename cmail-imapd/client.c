@@ -47,15 +47,19 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
 
 	if(client_parse(log, &(client_data->sentence), client_data->recv_buffer) < 0){
-		//failed to properly parse input
-		client_send(log, client, "* NO Error in received command\r\n"); //FIXME should this be a BAD?
-		return -1;
+		if(client_data->state != STATE_SASL){ //except continuation commands...
+			//failed to properly parse input
+			client_send(log, client, "* NO Error in received command\r\n"); //FIXME should this be a BAD?
+			return -1;
+		}
 	}
 
-	logprintf(log, LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command, client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
+	logprintf(log, LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command ? client_data->sentence.command:"-none-", client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
 	switch(client_data->state){
 		case STATE_NEW:
 			return imapstate_new(log, client_data->sentence, client, database);
+		case STATE_SASL:
+			return imapstate_sasl(log, client_data->sentence, client, database);
 		case STATE_AUTHENTICATED:
 			break;
 		case STATE_SELECTED:
@@ -73,6 +77,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		.state = STATE_NEW,
 		.auth = {
 			.method = IMAP_LOGIN,
+			.auth_tag = NULL,
 			.ctx = {
 				.method = SASL_INVALID
 				//rest handled by sasl_begin

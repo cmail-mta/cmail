@@ -44,6 +44,7 @@ typedef enum /*_AUTH_METHOD*/ {
 
 typedef enum /*_IMAP_STATE*/ {
 	STATE_NEW,
+	STATE_SASL,
 	STATE_AUTHENTICATED,
 	STATE_SELECTED
 } IMAP_STATE;
@@ -58,6 +59,7 @@ typedef enum /*_IMAP_COMMAND_STATE*/ {
 
 typedef struct /*_AUTHENTICATION_DATA*/ {
 	AUTH_METHOD method;
+	char* auth_tag;
 
 	SASL_USER user;
 	SASL_CONTEXT ctx;

@@ -18,7 +18,7 @@ IMAP_COMMAND_STATE imap_capability(LOGGER log, IMAP_COMMAND sentence, CONNECTION
 				(listener_data->auth_offer == AUTH_ANY) ||
 				(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)
 				)){
-		client_send(log, client, " AUTH=PLAIN");
+		client_send(log, client, " AUTH=PLAIN SASL-IR");
 	}
 	else{
 		client_send(log, client, " LOGINDISABLED");
