@@ -5,6 +5,8 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 	char* state_reason = NULL;
 	int rv = 0;
 
+	unsigned i;
+
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
 		client_send(log, client, "* CAPABILITY IMAP4rev1");
@@ -82,8 +84,68 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 		state = COMMAND_NOREPLY;
 	}
 	else if(!strcasecmp(sentence.command, "login")){
-		//TODO implement
-		state = COMMAND_NOREPLY;
+		if(client_data->auth.user.authenticated){
+			//this should never happen as successful authentication should transition state
+			client_data->state = STATE_AUTHENTICATED;
+			state_reason = "Already authenticated";
+			state = COMMAND_BAD;
+			rv = -1;
+		}
+
+		if((listener_data->auth_offer == AUTH_ANY) ||
+				(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)){
+			//split for password
+			char* login_password = NULL;
+			for(i = 0; sentence.parameters[i] && !isspace(sentence.parameters[i]); i++){
+			}
+
+			if(sentence.parameters[i] == ' '){
+				sentence.parameters[i] = 0;
+				login_password = sentence.parameters + i + 1;
+			}
+
+			if(login_password){
+				if(auth_validate(log, database, sentence.parameters, login_password, &(client_data->auth.user.authorized)) < 0){
+					//failed to authenticate
+					logprintf(log, LOG_INFO, "Failed to authenticate client\n");
+					auth_reset(&(client_data->auth));
+
+					state_reason = "Failed to authenticate";
+					state = COMMAND_NO;
+
+					//increase failscore
+					rv = -1;
+				}
+				else{
+					client_data->auth.user.authenticated = common_strdup(sentence.parameters);
+					if(!client_data->auth.user.authenticated){
+						logprintf(log, LOG_ERROR, "Failed to allocate memory for authentication user name\n");
+						auth_reset(&(client_data->auth));
+
+						state_reason = "Internal error";
+						state = COMMAND_BAD;
+					}
+					else{
+						client_data->state = STATE_AUTHENTICATED;
+						logprintf(log, LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
+
+						state_reason = "Authentication successful";
+						state = COMMAND_OK;
+						rv = 1;
+					}
+				}
+			}
+			else{
+				state_reason = "No password supplied";
+				state = COMMAND_BAD;
+				rv = -1;
+			}
+		}
+		else{
+			state_reason = "Authentication not possible now";
+			state = COMMAND_BAD;
+			rv = -1;
+		}
 	}
 
 	switch(state){
@@ -96,6 +158,9 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 			return rv;
 		case COMMAND_BAD:
 			client_send(log, client, "%s BAD %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
+			return rv;
+		case COMMAND_NO:
+			client_send(log, client, "%s NO %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
 			return rv;
 		case COMMAND_NOREPLY:
 			return rv;
