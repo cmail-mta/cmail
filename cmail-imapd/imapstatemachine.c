@@ -7,7 +7,22 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
-		client_send(log, client, "* CAPABILITY IMAP4rev1 STARTTLS LOGINDISABLED XYZZY\r\n"); //TODO make this dynamic
+		client_send(log, client, "* CAPABILITY IMAP4rev1");
+		#ifndef CMAIL_NO_TLS
+		if(client_data->listener->tls_mode == TLS_NEGOTIATE && client->tls_mode == TLS_NONE){
+			client_send(log, client, " STARTTLS");
+		}
+		#endif
+		if(!client_data->auth.user.authenticated && (
+					(listener_data->auth_offer == AUTH_ANY) ||
+					(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)
+					)){
+			client_send(log, client, " AUTH=PLAIN");
+		}
+		else{
+			client_send(log, client, " LOGINDISABLED");
+		}
+		client_send(log, client, " XYZZY\r\n");
 		state = COMMAND_OK;
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
@@ -42,7 +57,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 		if(client_data->listener->tls_mode != TLS_NEGOTIATE){
 			logprintf(log, LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
 
-			state_reason = "TLS session already negotiated";
+			state_reason = "TLS not possible now";
 			state = COMMAND_BAD;
 			//increase the failscore
 			rv = -1;
@@ -63,6 +78,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 	#endif
 	else if(!strcasecmp(sentence.command, "authenticate")){
 		//TODO implement
+		//TODO check if tlsonly auth, etc
 		state = COMMAND_NOREPLY;
 	}
 	else if(!strcasecmp(sentence.command, "login")){
