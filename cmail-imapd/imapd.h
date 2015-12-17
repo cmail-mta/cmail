@@ -83,7 +83,7 @@ typedef struct /*_LISTEN_DATA*/ {
 typedef struct /*_IMAP_COMMAND*/ {
 	char* backing_buffer;
 	size_t backing_buffer_length;
-	
+
 	char* tag;
 	char* command;
 	char* parameters;
@@ -98,7 +98,7 @@ typedef struct /*_CLIENT_DATA*/ {
 	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
 	size_t recv_offset;
 	unsigned recv_literal_bytes;
-	
+
 	time_t last_action;
 	int connection_score;
 } CLIENT;

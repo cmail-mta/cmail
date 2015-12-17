@@ -33,7 +33,7 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 		logprintf(log, LOG_DEBUG, "Invalid command provided\n");
 		return -1;
 	}
-	
+
 	if(i < sentence->backing_buffer_length){
 		sentence->parameters = sentence->backing_buffer + i + 1;
 	}
