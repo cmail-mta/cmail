@@ -61,7 +61,7 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 		case STATE_SASL:
 			return imapstate_sasl(log, client_data->sentence, client, database);
 		case STATE_AUTHENTICATED:
-			break;
+			return imapstate_authenticated(log, client_data->sentence, client, database);
 		case STATE_SELECTED:
 			break;
 	}

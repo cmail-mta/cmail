@@ -218,17 +218,26 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 
 			i = protocol_parse_astring(sentence.parameters, &login_user, &astring_end, &astring_data_end);
 			if(i >= 0 && astring_end[0]){
-				//terminate user
-				astring_end[0] = 0;
-
 				//ensure space between arguments
 				if(astring_data_end[0] == ' '){
+					//terminate user
+					astring_end[0] = 0; //this needs to be past the previous condition
+
 					i = protocol_parse_astring(astring_data_end + 1, &login_password, &astring_end, &astring_data_end);
 					if(i >= 0 && astring_end[0]){
 						//terminate password
 						astring_end[0] = 0;
 					}
+					else{
+						logprintf(log, LOG_WARNING, "Failed to parse password astring\n");
+					}
 				}
+				else{
+					logprintf(log, LOG_WARNING, "Invalid delimiter between arguments: %02X\n", astring_data_end[0]);
+				}
+			}
+			else{
+				logprintf(log, LOG_WARNING, "Failed to parse user name astring\n");
 			}
 
 			if(login_user && login_password){
@@ -275,6 +284,50 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 			state = COMMAND_BAD;
 			rv = -1;
 		}
+	}
+
+	switch(state){
+		case COMMAND_UNHANDLED:
+			logprintf(log, LOG_WARNING, "Unhandled command %s in state NEW\n", sentence.command);
+			client_send(log, client, "%s BAD Command not recognized\r\n", sentence.tag); //FIXME is this correct
+			return -1;
+		case COMMAND_OK:
+			client_send(log, client, "%s OK %s\r\n", sentence.tag, state_reason ? state_reason:"Command completed");
+			return rv;
+		case COMMAND_BAD:
+			client_send(log, client, "%s BAD %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
+			return rv;
+		case COMMAND_NO:
+			client_send(log, client, "%s NO %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
+			return rv;
+		case COMMAND_NOREPLY:
+			return rv;
+	}
+
+	logprintf(log, LOG_ERROR, "Illegal branch reached in state NEW\n");
+	return -2;
+}
+
+int imapstate_authenticated(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
+	char* state_reason = NULL;
+	int rv = 0;
+
+	//commands valid in any state as per RFC 3501 6.1
+	if(!strcasecmp(sentence.command, "capability")){
+		state = imap_capability(log, sentence, client, database);
+	}
+	else if(!strcasecmp(sentence.command, "noop")){
+		//this one is easy
+		state = COMMAND_OK;
+	}
+	else if(!strcasecmp(sentence.command, "logout")){
+		//this is kind of a hack as it bypasses the default command state responder
+		return imap_logout(log, sentence, client, database);
+	}
+	else if(!strcasecmp(sentence.command, "xyzzy")){
+		state_reason = "Incantation performed";
+		state = imap_xyzzy(log, sentence, client, database);
 	}
 
 	switch(state){
