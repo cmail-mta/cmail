@@ -347,6 +347,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				//FIXME this test might not be quite correct
 				if(client_data->recv_literal_bytes >= left){
 					client_send(log, client, "* BAD Literal too long\r\n"); //FIXME this should probably be a tagged response
+					client_data->recv_literal_bytes = 0;
 					client_data->recv_offset = 0; //FIXME is this enough to reset the read buffer?
 				}
 				else{
