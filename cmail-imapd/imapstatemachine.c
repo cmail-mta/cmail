@@ -175,7 +175,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 			rv = -1;
 		}
 
-		if((listener_data->auth_offer == AUTH_ANY) ||
+		else if((listener_data->auth_offer == AUTH_ANY) ||
 				(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)){
 			if(client_data->auth.auth_tag){
 				logprintf(log, LOG_INFO, "Client tried to run multiple AUTHENTICATE commands\n");
