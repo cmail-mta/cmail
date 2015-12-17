@@ -89,6 +89,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		},
 
 		.recv_offset = 0,
+		.recv_literal_bytes = 0,
 		.last_action = time(NULL),
 		.connection_score = 0,
 	};
@@ -205,6 +206,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	ssize_t left, bytes, line_length;
+	int i;
 
 	#ifndef CMAIL_NO_TLS
 	do{
@@ -214,6 +216,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 	if(left < 2){
 		//unterminated line
 		//FIXME this might be kind of a harsh response
+		//if we're changing this, need to reset recv_*
 		logprintf(log, LOG_WARNING, "Line too long, closing client connection\n");
 		client_send(log, client, "* BYE Command line too long\r\n");
 		client_close(log, client, database);
@@ -287,10 +290,24 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 		return 0;
 	}
 
-	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d\n", bytes, client_data->recv_offset);
+	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d, recv_literal_bytes is %d\n", bytes, client_data->recv_offset, client_data->recv_literal_bytes);
 
 	do{
-		line_length = common_next_line(log, client_data->recv_buffer, &(client_data->recv_offset), &bytes);
+		//process literal byte reception
+		if(client_data->recv_literal_bytes){
+			if(bytes <= client_data->recv_literal_bytes){
+				client_data->recv_literal_bytes -= bytes;
+				client_data->recv_offset += bytes;
+				bytes = 0;
+			}
+			else{
+				bytes -= client_data->recv_literal_bytes;
+				client_data->recv_offset += client_data->recv_literal_bytes;
+				client_data->recv_literal_bytes = 0;
+			}
+		}
+
+		line_length = protocol_next_line(log, client_data->recv_buffer, &(client_data->recv_offset), &bytes);
 		if(line_length >= 0){
 			if(line_length >= CMAIL_MAX_IMAP_LINE - 2){
 				logprintf(log, LOG_WARNING, "Line too long, ignoring\n");
@@ -311,6 +328,36 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 					client_close(log, client, database);
 					return 0;
 				}
+			}
+		}
+		else if(line_length == -2){
+			//RFC 3501 7.5 says the server should reject invalid commands before requesting continuation
+			//Since this would not fit into the current command parsing structure, we're requesting the full command
+			//line before rejecting anything (excepting bad literal lengths)
+
+			//literal string continuation requested by line parser
+			//scan for literal length
+			for(i = client_data->recv_offset - 3; i >= 0 && (isdigit(client_data->recv_buffer[i])); i--){
+			}
+
+			if(client_data->recv_buffer[i] == '{' && client_data->recv_buffer[i + 1] != '}'){
+				//mark connection for literal scanning
+				client_data->recv_literal_bytes = strtoul(client_data->recv_buffer + i + 1, NULL, 10);
+
+				//FIXME this test might not be quite correct
+				if(client_data->recv_literal_bytes >= left){
+					client_send(log, client, "* BAD Literal too long\r\n"); //FIXME this should probably be a tagged response
+					client_data->recv_offset = 0; //FIXME is this enough to reset the read buffer?
+				}
+				else{
+					//request continuation
+					client_send(log, client, "+ Continue transmission of %d bytes\r\n", client_data->recv_literal_bytes);
+				}
+			}
+			else{
+				//bad literal length, reject
+				client_send(log, client, "* BAD Literal length invalid\r\n"); //FIXME this should probably be a tagged response
+				client_data->recv_offset = 0; //FIXME is this enough to reset the read buffer?
 			}
 		}
 	}

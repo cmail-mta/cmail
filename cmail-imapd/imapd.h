@@ -97,6 +97,7 @@ typedef struct /*_CLIENT_DATA*/ {
 
 	char recv_buffer[CMAIL_RECEIVE_BUFFER_LENGTH];
 	size_t recv_offset;
+	unsigned recv_literal_bytes;
 	
 	time_t last_action;
 	int connection_score;
@@ -143,6 +144,7 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "database.c"
 #include "config.c"
 #include "auth.c"
+#include "protocol.c"
 #include "imapcommands.c"
 #include "imapstatemachine.c"
 #include "client.c"
