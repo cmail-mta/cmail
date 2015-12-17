@@ -112,7 +112,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
 	char* state_reason = NULL;
 	int rv = 0;
-	unsigned i;
+	ssize_t i;
 
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
@@ -209,18 +209,30 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 		}
 		else if((listener_data->auth_offer == AUTH_ANY) ||
 				(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)){
-			//split for password
+
+			//read argument astrings
+			char* login_user = NULL;
 			char* login_password = NULL;
-			for(i = 0; sentence.parameters[i] && !isspace(sentence.parameters[i]); i++){
+			char* astring_end = NULL;
+			char* astring_data_end = NULL;
+
+			i = protocol_parse_astring(sentence.parameters, &login_user, &astring_end, &astring_data_end);
+			if(i >= 0 && astring_end[0]){
+				//terminate user
+				astring_end[0] = 0;
+
+				//ensure space between arguments
+				if(astring_data_end[0] == ' '){
+					i = protocol_parse_astring(astring_data_end + 1, &login_password, &astring_end, &astring_data_end);
+					if(i >= 0 && astring_end[0]){
+						//terminate password
+						astring_end[0] = 0;
+					}
+				}
 			}
 
-			if(sentence.parameters[i] == ' '){
-				sentence.parameters[i] = 0;
-				login_password = sentence.parameters + i + 1;
-			}
-
-			if(login_password){
-				if(auth_validate(log, database, sentence.parameters, login_password, &(client_data->auth.user.authorized)) < 0){
+			if(login_user && login_password){
+				if(auth_validate(log, database, login_user, login_password, &(client_data->auth.user.authorized)) < 0){
 					//failed to authenticate
 					logprintf(log, LOG_INFO, "Failed to authenticate client\n");
 					auth_reset(&(client_data->auth));
@@ -232,7 +244,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 					rv = -1;
 				}
 				else{
-					client_data->auth.user.authenticated = common_strdup(sentence.parameters);
+					client_data->auth.user.authenticated = common_strdup(login_user);
 					if(!client_data->auth.user.authenticated){
 						logprintf(log, LOG_ERROR, "Failed to allocate memory for authentication user name\n");
 						auth_reset(&(client_data->auth));
@@ -253,7 +265,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 				}
 			}
 			else{
-				state_reason = "No password supplied";
+				state_reason = "Bad credentials supplied";
 				state = COMMAND_BAD;
 				rv = -1;
 			}

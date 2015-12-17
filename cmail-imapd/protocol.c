@@ -50,6 +50,7 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** string_e
 			//RFC 3501 is unclear on whether quoted-strings may contain \0 characters
 			//(CHAR does not resolve in the abnf, assuming it means CHAR8, \0 bytes are not allowed)
 			//currently, this is filtered out in the condition, but we're checking it anyway
+			//Update: The main note on section 9 states that \0 is illegal in all cases
 			else if(input[i] == 0 || input[i] == '\r' || input[i] == '\n'){
 				//illegal character in quotedstring
 				return -1;
