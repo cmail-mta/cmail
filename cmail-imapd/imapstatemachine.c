@@ -202,8 +202,12 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 			state = COMMAND_BAD;
 			rv = -1;
 		}
-
-		if((listener_data->auth_offer == AUTH_ANY) ||
+		else if(!sentence.parameters){
+			state_reason = "Parameters expected";
+			state = COMMAND_BAD;
+			rv = -1;
+		}
+		else if((listener_data->auth_offer == AUTH_ANY) ||
 				(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)){
 			//split for password
 			char* login_password = NULL;

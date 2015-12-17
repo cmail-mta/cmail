@@ -2,3 +2,4 @@ Create cmail-admin tool and documentation
 Create website section
 Enable main makefile sections
 Test literal strings without waiting for continuation
+Test all commands with NULL parameters
