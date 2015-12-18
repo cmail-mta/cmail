@@ -213,20 +213,19 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 			//read argument astrings
 			char* login_user = NULL;
 			char* login_password = NULL;
-			char* astring_end = NULL;
 			char* astring_data_end = NULL;
 
-			i = protocol_parse_astring(sentence.parameters, &login_user, &astring_end, &astring_data_end);
-			if(i >= 0 && astring_end[0]){
+			i = protocol_parse_astring(sentence.parameters, &login_user, &astring_data_end);
+			if(i >= 0 && login_user[i]){
 				//ensure space between arguments
 				if(astring_data_end[0] == ' '){
 					//terminate user
-					astring_end[0] = 0; //this needs to be past the previous condition
+					login_user[i] = 0; //this needs to be past the previous condition
 
-					i = protocol_parse_astring(astring_data_end + 1, &login_password, &astring_end, &astring_data_end);
-					if(i >= 0 && astring_end[0]){
+					i = protocol_parse_astring(astring_data_end + 1, &login_password, &astring_data_end);
+					if(i >= 0 && login_password[i]){
 						//terminate password
-						astring_end[0] = 0;
+						login_password[i] = 0;
 					}
 					else{
 						logprintf(log, LOG_WARNING, "Failed to parse password astring\n");

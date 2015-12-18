@@ -1,5 +1,5 @@
 //this function may destructively modify the input buffer (in the case of a quoted string)
-ssize_t protocol_parse_astring(char* input, char** string_begin, char** string_end, char** data_end){
+ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end){
 	//non-ASTRING chars: anything <= 32, (){%*\" 
 	char* astring_illegal = "(){%*\\\"";
 	size_t length = 0, i;
@@ -25,7 +25,6 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** string_e
 		}
 
 		*string_begin = current_position + 2;
-		*string_end = current_position + length + 2;
 		*data_end = current_position + length + 2;
 		return length;
 	}
@@ -62,7 +61,6 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** string_e
 
 		//FIXME assert that the end of the string is a DQUOTE
 		*string_begin = input + 1;
-		*string_end = input + length;
 		*data_end = input + i + 1;
 		return length - 1;
 	}
@@ -72,8 +70,7 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** string_e
 		}
 
 		*string_begin = input;
-		*string_end = input + length;
-		*data_end = *string_end;
+		*data_end = input + length;
 		return length;
 	}
 

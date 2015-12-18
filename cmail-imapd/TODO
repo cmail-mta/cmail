@@ -1,3 +1,4 @@
+Test sending literal string with CR's followed by out-of-literal LF (kind of illegal, but does it trigger the nextline parser?)
 Create cmail-admin tool and documentation
 Create website section
 Enable main makefile sections
