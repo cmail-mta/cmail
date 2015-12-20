@@ -59,6 +59,9 @@ typedef struct _QUEUED_COMMAND {
 	struct _QUEUED_COMMAND* next;
 	struct _QUEUED_COMMAND* prev;
 
+	//TODO which connection does the command belong to
+	//TODO which user does that connection belong to
+
 	QUEUED_COMMAND_STATE queue_state;
 	char* backing_buffer;
 	size_t backing_buffer_length;

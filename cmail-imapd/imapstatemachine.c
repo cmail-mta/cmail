@@ -318,6 +318,7 @@ int imapstate_authenticated(LOGGER log, IMAP_COMMAND sentence, CONNECTION* clien
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
+		//TODO also enqueue NOOP for imap idle checking
 		state = COMMAND_OK;
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
@@ -328,6 +329,57 @@ int imapstate_authenticated(LOGGER log, IMAP_COMMAND sentence, CONNECTION* clien
 		state_reason = "Incantation performed";
 		state = imap_xyzzy(log, sentence, client, database);
 	}
+
+	//AUTHENTICATED state commands, grouped by command signature
+	else if(!strcasecmp(sentence.command, "select") || !strcasecmp(sentence.command, "examine")){
+		//TODO params mboxname (= astring)
+	}
+	else if(!strcasecmp(sentence.command, "create") || !strcasecmp(sentence.command, "delete")){
+		//TODO params mboxname
+	}
+	else if(!strcasecmp(sentence.command, "rename")){
+		//TODO params from(astring) to(astring)
+	}
+	else if(!strcasecmp(sentence.command, "subscribe") || !strcasecmp(sentence.command, "unsubscribe")){
+		//TODO params mboxname
+	}
+	else if(!strcasecmp(sentence.command, "list") || !strcasecmp(sentence.command, "lsub")){
+		//TODO params refname(astring) mbxname(astring with %/* allowed)
+	}
+	else if(!strcasecmp(sentence.command, "status")){
+		//TODO params mboxname status-attribs(= paren-list of status-attribs)
+	}
+	else if(!strcasecmp(sentence.command, "append")){
+		//TODO params mboxname [flag-list(paren-list of flags)] [date-time(timefmt)] data(astring)
+	}
+
+	//SELECTED state commands, grouped by command signature
+	//else if(MBX_SELECTED){
+		if(!strcasecmp(sentence.command, "check")){
+			//TODO checkpoint the database - fsync?
+		}
+		else if(!strcasecmp(sentence.command, "close")){
+			//TODO close a mailbox
+		}
+		else if(!strcasecmp(sentence.command, "expunge")){
+			//TODO delete flagged messages
+		}
+		else if(!strcasecmp(sentence.command, "search")){
+			//TODO params ["CHARSET" cset(astring)] 1*(search-key)
+		}
+		else if(!strcasecmp(sentence.command, "fetch")){
+			//TODO params seqs(=sequence-sets) fetch-att(=astring) or paren-list of astring
+		}
+		else if(!strcasecmp(sentence.command, "store")){
+			//TODO params lots
+		}
+		else if(!strcasecmp(sentence.command, "copy")){
+			//TODO params seq(=sequence-set) mboxname
+		}
+		else if(!strcasecmp(sentence.command, "uid")){
+			//TODO params lots of weird things
+		}
+	//}
 
 	switch(state){
 		case COMMAND_UNHANDLED:
