@@ -9,6 +9,19 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		.conns = NULL
 	};
 
+	COMMAND_QUEUE command_queue = {
+		.entries = NULL,
+		.entries_length = 0,
+		.queue_access = PTHREAD_MUTEX_INITIALIZER,
+		.tail = NULL,
+		.head = NULL
+	};
+
+	if(commandqueue_initialize(log, &command_queue) < 0){
+		logprintf(log, LOG_ERROR, "Failed to initialize command_queue\n");
+		return -1;
+	}
+
 	while(!abort_signaled){
 		//clear listen fds
 		FD_ZERO(&readfds);
@@ -84,6 +97,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 	//TODO free connpool aux_data structures
 	connpool_free(&clients);
+	commandqueue_free(&command_queue);
 
 	return 0;
 }

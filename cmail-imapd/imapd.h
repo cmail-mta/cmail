@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <time.h>
+#include <pthread.h>
 
 #include "imaplimits.h"
 
@@ -37,6 +39,48 @@
 #include "../lib/daemonize.c"
 #include "../lib/database.c"
 
+typedef enum /*_IMAP_COMMAND_STATE*/ {
+	COMMAND_UNHANDLED = 9001,
+	COMMAND_NO = 2,
+	COMMAND_NOREPLY = 1,
+	COMMAND_OK = 0,
+	COMMAND_BAD = -1
+} IMAP_COMMAND_STATE;
+
+typedef enum /*_QUEUED_COMMAND_STATE*/ {
+	COMMAND_NEW,
+	COMMAND_IN_PROGRESS,
+	COMMAND_REPLY
+} QUEUED_COMMAND_STATE;
+
+typedef struct _QUEUED_COMMAND {
+	bool active;
+	time_t last_enqueue;
+	struct _QUEUED_COMMAND* next;
+	struct _QUEUED_COMMAND* prev;
+
+	QUEUED_COMMAND_STATE queue_state;
+	char* backing_buffer;
+	size_t backing_buffer_length;
+
+	char* tag;
+	char* command;
+	char** parameters;
+	size_t parameters_length;
+
+	char* replies;
+	size_t replies_length;
+} QUEUED_COMMAND;
+
+typedef struct /*_COMMAND_QUEUE*/ {
+	QUEUED_COMMAND* entries;
+	size_t entries_length;
+
+	pthread_mutex_t queue_access;
+	QUEUED_COMMAND* tail;
+	QUEUED_COMMAND* head;
+} COMMAND_QUEUE;
+
 typedef enum /*_AUTH_METHOD*/ {
 	IMAP_AUTHENTICATE,
 	IMAP_LOGIN
@@ -48,14 +92,6 @@ typedef enum /*_IMAP_STATE*/ {
 	STATE_AUTHENTICATED,
 	STATE_SELECTED
 } IMAP_STATE;
-
-typedef enum /*_IMAP_COMMAND_STATE*/ {
-	COMMAND_UNHANDLED = 9001,
-	COMMAND_NO = 2,
-	COMMAND_NOREPLY = 1,
-	COMMAND_OK = 0,
-	COMMAND_BAD = -1
-} IMAP_COMMAND_STATE;
 
 typedef struct /*_AUTHENTICATION_DATA*/ {
 	AUTH_METHOD method;
@@ -145,6 +181,7 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "config.c"
 #include "auth.c"
 #include "protocol.c"
+#include "commandqueue.c"
 #include "imapcommands.c"
 #include "imapstatemachine.c"
 #include "client.c"
