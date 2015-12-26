@@ -80,6 +80,7 @@ typedef struct /*_COMMAND_QUEUE*/ {
 	size_t entries_length;
 
 	pthread_mutex_t queue_access;
+	pthread_cond_t queue_dirty;
 	QUEUED_COMMAND* tail;
 	QUEUED_COMMAND* head;
 } COMMAND_QUEUE;
@@ -163,6 +164,11 @@ typedef struct /*_CONF_META*/ {
 	char* pid_file;
 } CONFIGURATION;
 
+typedef struct /*_THREAD_PARAM*/ {
+	LOGGER log;
+	COMMAND_QUEUE* queue;
+} THREAD_CONFIG;
+
 //These need some defined types
 #include "../lib/auth.h"
 #include "../lib/auth.c"
@@ -188,4 +194,5 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "imapcommands.c"
 #include "imapstatemachine.c"
 #include "client.c"
+#include "queueworker.c"
 #include "coreloop.c"

@@ -1,6 +1,6 @@
 int commandqueue_initialize(LOGGER log, COMMAND_QUEUE* command_queue){
 	//TODO
-	return -1;
+	return 0;
 }
 
 int commandqueue_enqueue(LOGGER log, IMAP_COMMAND* command, char** parameters){
@@ -51,8 +51,10 @@ void commandqueue_reset_entry(QUEUED_COMMAND* entry, bool keep_allocations){
 void commandqueue_free(COMMAND_QUEUE* command_queue){
 	size_t i;
 
-	//TODO assert all conditional waits on the mutex are satisfied
+	//all dependencies on the mutex and the condition variables should be satisfied,
+	//as the worker thread should have been joined prior to this function
 	pthread_mutex_destroy(&(command_queue->queue_access));
+	pthread_cond_destroy(&(command_queue->queue_dirty));
 
 	for(i = 0; i < command_queue->entries_length; i++){
 		if(command_queue->entries[i].backing_buffer){

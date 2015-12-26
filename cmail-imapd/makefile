@@ -1,6 +1,6 @@
 .PHONY: clean run
 CFLAGS=-Wall -g
-LDLIBS=-lsqlite3 -lgnutls -lnettle
+LDLIBS=-lsqlite3 -lgnutls -lnettle -lpthread
 
 all: imapd
 	mv imapd cmail-imapd
