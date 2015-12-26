@@ -307,7 +307,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 	return -2;
 }
 
-int imapstate_authenticated(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
 	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
 	char* state_reason = NULL;
 	int rv = 0;
@@ -318,7 +318,9 @@ int imapstate_authenticated(LOGGER log, IMAP_COMMAND sentence, CONNECTION* clien
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
-		//TODO also enqueue NOOP for imap idle checking
+		//FIXME do not discard return value here
+		commandqueue_enqueue(log, command_queue, sentence, NULL);
+		//FIXME maybe wait for queue round-trip instead of direct response here
 		state = COMMAND_OK;
 	}
 	else if(!strcasecmp(sentence.command, "logout")){

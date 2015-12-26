@@ -41,7 +41,7 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 	return 0;
 }
 
-int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
+int client_line(LOGGER log, COMMAND_QUEUE* command_queue, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 
 	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
@@ -61,9 +61,7 @@ int client_line(LOGGER log, CONNECTION* client, DATABASE* database){
 		case STATE_SASL:
 			return imapstate_sasl(log, client_data->sentence, client, database);
 		case STATE_AUTHENTICATED:
-			return imapstate_authenticated(log, client_data->sentence, client, database);
-		case STATE_SELECTED:
-			break;
+			return imapstate_authenticated(log, command_queue, client_data->sentence, client, database);
 	}
 
 	logprintf(log, LOG_ERROR, "Unhandled state in client_line\n");
@@ -203,7 +201,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	return 0;
 }
 
-int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
+int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	ssize_t left, bytes, line_length;
 	int i;
@@ -319,7 +317,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database){
 				//update last action timestamp
 				client_data->last_action = time(NULL);
 
-				client_data->connection_score += client_line(log, client, database);
+				client_data->connection_score += client_line(log, command_queue, client, database);
 
 				//kick the client after too many failed commands
 				if(client_data->connection_score < CMAIL_FAILSCORE_LIMIT){

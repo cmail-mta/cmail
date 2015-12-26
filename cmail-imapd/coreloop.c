@@ -84,7 +84,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 				if(FD_ISSET(clients.conns[i].fd, &readfds)){
 					//handle data
 					//FIXME handle return value
-					client_process(log, &(clients.conns[i]), database);
+					client_process(log, &(clients.conns[i]), database, &command_queue);
 				}
 				else if(client_timeout(log, &(clients.conns[i]))){
 					logprintf(log, LOG_WARNING, "Client timed out, disconnecting\n");
@@ -102,6 +102,8 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 				client_accept(log, &(listeners.conns[i]), &clients);
 			}
 		}
+
+		//TODO run queue completion check here, including preemptive cross-connection notifications
 	}
 
 	//close connected clients
