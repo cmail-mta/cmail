@@ -10,5 +10,8 @@ imapd: imapd.c
 run: all
 	valgrind --leak-check=full ./cmail-imapd devel-imapd.conf nodetach
 
+helgrind: all
+	valgrind --tool=helgrind ./cmail-imapd devel-imapd.conf nodetach
+
 clean:
 	$(RM) cmail-imapd

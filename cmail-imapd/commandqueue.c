@@ -53,6 +53,7 @@ int commandqueue_initialize(LOGGER log, COMMAND_QUEUE* command_queue){
 int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command, char** parameters){
 	size_t entry;
 	int rv = 0;
+	unsigned i;
 
 	//find empty entry
 	//this works because only the client handler thread is allowed to update the entry active flag
@@ -76,11 +77,53 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 		return -1;
 	}
 
+	//reset the entry
+	commandqueue_reset_entry(queue->entries + entry, true);
+
+	//store command data
+	//FIXME this allocation strategy might not be optimal and should probably be replaced
+	//by a zero-copy storage design passing around complete buffers.
+	if(queue->entries[entry].backing_buffer_length < command.backing_buffer_length){
+		queue->entries[entry].backing_buffer = realloc(queue->entries[entry].backing_buffer, command.backing_buffer_length * sizeof(char));
+		if(!queue->entries[entry].backing_buffer){
+			logprintf(log, LOG_ERROR, "Failed to allocate memory for queue entry backing buffer\n");
+			return -1;
+		}
+		queue->entries[entry].backing_buffer_length = command.backing_buffer_length;
+	}
+	memcpy(queue->entries[entry].backing_buffer, command.backing_buffer, command.backing_buffer_length);
+
+	//copy tag / command info
+	queue->entries[entry].tag = queue->entries[entry].backing_buffer + (command.tag - command.backing_buffer);
+	queue->entries[entry].command = queue->entries[entry].backing_buffer + (command.command - command.backing_buffer);
+
+	//fix up parameter pointers
+	//this requires that all parameter pointers are offsets into command.backing_buffer, but that should always be the case...
+	if(parameters){
+		//count how many there are in the first place
+		for(i = 0; parameters[i]; i++){
+		}
+
+		if(i + 1 > queue->entries[entry].parameters_length){
+			//reallocate parameters array
+			queue->entries[entry].parameters = realloc(queue->entries[entry].parameters, (i + 1) * sizeof(char*));
+			if(!queue->entries[entry].parameters){
+				logprintf(log, LOG_ERROR, "Failed to allocate memory for command queue entry parameter array\n");
+				return -1;
+			}
+			queue->entries[entry].parameters_length = i + 1;
+		}
+
+		for(i = 0; parameters[i]; i++){
+			queue->entries[entry].parameters[i] = queue->entries[entry].backing_buffer + (parameters[i] - command.backing_buffer);
+			queue->entries[entry].parameters[i + 1] = NULL;
+		}
+	}
+
 	//update bookkeeping data
 	queue->entries[entry].active = true;
 	queue->entries[entry].last_enqueue = time(NULL);
 	queue->entries[entry].queue_state = COMMAND_NEW;
-	//TODO update command data
 
 	pthread_mutex_lock(&(queue->queue_access));
 
