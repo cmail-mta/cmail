@@ -42,8 +42,8 @@ int commandqueue_initialize(LOGGER log, COMMAND_QUEUE* command_queue){
 	size_t i;
 
 	//allocate initial queue entry buffer
-	command_queue->entries_length = CMAIL_IMAP_QUEUE_INITIAL;
-	command_queue->entries = calloc(CMAIL_IMAP_QUEUE_INITIAL, sizeof(QUEUED_COMMAND));
+	command_queue->entries_length = CMAIL_IMAP_QUEUE_MAX;
+	command_queue->entries = calloc(CMAIL_IMAP_QUEUE_MAX, sizeof(QUEUED_COMMAND));
 	for(i = 0; i < command_queue->entries_length; i++){
 		commandqueue_reset_entry(command_queue->entries + i, false);
 	}
@@ -66,14 +66,16 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 
 	if(entry >= queue->entries_length){
 		//reallocate queue
-		logprintf(log, LOG_WARNING, "Command queue needs reallocation\n");
-		pthread_mutex_lock(&(queue->queue_access));
-		//TODO this can only happen if no entry is currently IN_PROGRESS in order to avoid dangling pointers
-		//TODO this also needs to update all next/previous/head/tail pointers
-		//TODO reallocate entries array
-		pthread_mutex_unlock(&(queue->queue_access));
+		logprintf(log, LOG_WARNING, "Command queue exhausted\n");
+		//pthread_mutex_lock(&(queue->queue_access));
+		//this can only happen if no entry is currently IN_PROGRESS in order to avoid dangling pointers
+		//this also needs to update all next/previous/head/tail pointers
+		//reallocate entries array
+		//FIXME this can actually never happen, as we can only do this when the queue workers head pointer is not in use
+		//as there is no way to guarantee this, this is not possible
+		//pthread_mutex_unlock(&(queue->queue_access));
 
-		//FIXME remove this temporary bailout
+		//bail out
 		return -1;
 	}
 
