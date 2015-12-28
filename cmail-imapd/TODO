@@ -2,6 +2,7 @@ Test sending literal string with CR's followed by out-of-literal LF (kind of ill
 Create cmail-admin tool and documentation
 Create website section
 Enable main makefile sections
-Test literal strings without waiting for continuation
+Test literal strings without waiting for continuation -> Works, but probably should not
 Test all commands with NULL parameters
 Error check pthread_ calls
+Implement non-continuation literal strings

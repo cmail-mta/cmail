@@ -73,6 +73,9 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 		//reallocate entries array
 		//FIXME this can actually never happen, as we can only do this when the queue workers head pointer is not in use
 		//as there is no way to guarantee this, this is not possible
+		//since this does not happen anymore and the entry memory can thus be assumed to be static,
+		//the queue worker will not create local copies of the entries. when allowing this feature again in the future,
+		//that needs to be taken into account
 		//pthread_mutex_unlock(&(queue->queue_access));
 
 		//bail out
@@ -85,6 +88,7 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 	//store command data
 	//FIXME this allocation strategy might not be optimal and should probably be replaced
 	//by a zero-copy storage design passing around complete buffers.
+	//FIXME this could also be optimized by not relying on command.backing_buffer_length as command length
 	if(queue->entries[entry].backing_buffer_length < command.backing_buffer_length){
 		queue->entries[entry].backing_buffer = realloc(queue->entries[entry].backing_buffer, command.backing_buffer_length * sizeof(char));
 		if(!queue->entries[entry].backing_buffer){

@@ -223,7 +223,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 					login_user[i] = 0; //this needs to be past the previous condition
 
 					i = protocol_parse_astring(astring_data_end + 1, &login_password, &astring_data_end);
-					if(i >= 0 && login_password[i]){
+					if(i >= 0){
 						//terminate password
 						login_password[i] = 0;
 					}

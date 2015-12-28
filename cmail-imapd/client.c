@@ -3,7 +3,7 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 
 	//parse into structure
 	sentence->backing_buffer = client_line;
-	sentence->backing_buffer_length = strlen(client_line);
+	sentence->backing_buffer_length = strlen(client_line) + 1;
 
 	//scan for first space
 	for(i = 0; sentence->backing_buffer[i] && !isspace(sentence->backing_buffer[i]); i++){
@@ -17,7 +17,7 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 		return -1;
 	}
 
-	if(i >= sentence->backing_buffer_length){
+	if(i + 1 >= sentence->backing_buffer_length){
 		logprintf(log, LOG_DEBUG, "Client sentence contained only tag\n");
 		return -1;
 	}
@@ -34,7 +34,7 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 		return -1;
 	}
 
-	if(i < sentence->backing_buffer_length){
+	if(i + 1 < sentence->backing_buffer_length){
 		sentence->parameters = sentence->backing_buffer + i + 1;
 	}
 

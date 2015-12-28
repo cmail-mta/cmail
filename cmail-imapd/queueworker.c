@@ -22,10 +22,10 @@ void* queueworker_coreloop(void* param){
 		while(head){
 			//process queue head
 			head->queue_state = COMMAND_IN_PROGRESS;
-			//TODO create local copy of command contents
 			pthread_mutex_unlock(&(queue->queue_access));
 
 			//TODO do the actual work
+			logprintf(log, LOG_DEBUG, "Handling command [%s]: %s\n", head->backing_buffer + head->tag_offset, head->backing_buffer + head->command_offset);
 
 			pthread_mutex_lock(&(queue->queue_access));
 			entries_done++;
