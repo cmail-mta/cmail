@@ -66,9 +66,9 @@ typedef struct _QUEUED_COMMAND {
 	char* backing_buffer;
 	size_t backing_buffer_length;
 
-	char* tag;
-	char* command;
-	char** parameters;
+	int tag_offset;
+	int command_offset;
+	int* parameters;
 	size_t parameters_length;
 
 	char* replies;

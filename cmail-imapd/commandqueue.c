@@ -11,8 +11,8 @@ void commandqueue_reset_entry(QUEUED_COMMAND* entry, bool keep_allocations){
 		.backing_buffer = (keep_allocations) ? entry->backing_buffer:NULL,
 		.backing_buffer_length = (keep_allocations) ? entry->backing_buffer_length:0,
 		
-		.tag = NULL,
-		.command = NULL,
+		.tag_offset = 0,
+		.command_offset = 0,
 		.parameters = (keep_allocations) ? entry->parameters:NULL,
 		.parameters_length = (keep_allocations) ? entry->parameters_length:0,
 
@@ -30,7 +30,7 @@ void commandqueue_reset_entry(QUEUED_COMMAND* entry, bool keep_allocations){
 		}
 
 		for(i = 0; i < empty.parameters_length; i++){
-			empty.parameters[i] = NULL;
+			empty.parameters[i] = -1;
 		}
 	}
 
@@ -96,8 +96,8 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 	memcpy(queue->entries[entry].backing_buffer, command.backing_buffer, command.backing_buffer_length);
 
 	//copy tag / command info
-	queue->entries[entry].tag = queue->entries[entry].backing_buffer + (command.tag - command.backing_buffer);
-	queue->entries[entry].command = queue->entries[entry].backing_buffer + (command.command - command.backing_buffer);
+	queue->entries[entry].tag_offset = command.tag - command.backing_buffer;
+	queue->entries[entry].command_offset = command.command - command.backing_buffer;
 
 	//fix up parameter pointers
 	//this requires that all parameter pointers are offsets into command.backing_buffer, but that should always be the case...
@@ -108,7 +108,7 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 
 		if(i + 1 > queue->entries[entry].parameters_length){
 			//reallocate parameters array
-			queue->entries[entry].parameters = realloc(queue->entries[entry].parameters, (i + 1) * sizeof(char*));
+			queue->entries[entry].parameters = realloc(queue->entries[entry].parameters, (i + 1) * sizeof(int));
 			if(!queue->entries[entry].parameters){
 				logprintf(log, LOG_ERROR, "Failed to allocate memory for command queue entry parameter array\n");
 				return -1;
@@ -117,8 +117,8 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 		}
 
 		for(i = 0; parameters[i]; i++){
-			queue->entries[entry].parameters[i] = queue->entries[entry].backing_buffer + (parameters[i] - command.backing_buffer);
-			queue->entries[entry].parameters[i + 1] = NULL;
+			queue->entries[entry].parameters[i] = parameters[i] - command.backing_buffer;
+			queue->entries[entry].parameters[i + 1] = -1;
 		}
 	}
 
