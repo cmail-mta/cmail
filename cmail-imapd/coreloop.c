@@ -7,7 +7,8 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	pthread_t queue_worker;
 
 	THREAD_CONFIG thread_config = {
-		.log = log
+		.log = log,
+		.feedback_pipe = {-1, -1}
 	};
 
 	CONNPOOL clients = {
@@ -24,6 +25,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		.head = NULL
 	};
 
+	//initialize the command queue data structures
 	if(commandqueue_initialize(log, &command_queue) < 0){
 		logprintf(log, LOG_ERROR, "Failed to initialize command_queue\n");
 		return -1;
@@ -31,9 +33,21 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 	thread_config.queue = &command_queue;
 
+	//create feedback pipe to trigger command queue processing
+	if(pipe(thread_config.feedback_pipe) < 0){
+		logprintf(log, LOG_ERROR, "Failed to create queue worker feedback pipe: %s\n", strerror(errno));
+		commandqueue_free(&command_queue);
+		return -1;
+	}
+
+	//TODO set the pipefd nonblocking
+
+	//run the queue worker
 	if(pthread_create(&queue_worker, NULL, queueworker_coreloop, &thread_config) != 0){
 		logprintf(log, LOG_ERROR, "Failed to start queue worker thread\n");
 		commandqueue_free(&command_queue);
+		close(thread_config.feedback_pipe[0]);
+		close(thread_config.feedback_pipe[1]);
 		return -1;
 	}
 
@@ -41,6 +55,12 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		//clear listen fds
 		FD_ZERO(&readfds);
 		maxfd = -1;
+
+		//add feedback pipe to the read set
+		FD_SET(thread_config.feedback_pipe[0], &readfds);
+		if(thread_config.feedback_pipe[0] > maxfd){
+			maxfd = thread_config.feedback_pipe[0];
+		}
 
 		//add listen fds
 		for(i = 0; i < listeners.count; i++){
@@ -104,7 +124,10 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 			}
 		}
 
-		//TODO run queue completion check here, including preemptive cross-connection notifications
+		if(FD_ISSET(thread_config.feedback_pipe[0], &readfds)){
+			//TODO read from pipefd
+			//TODO run queue completion check here, including preemptive cross-connection notifications
+		}
 	}
 
 	//close connected clients
@@ -123,6 +146,8 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	//TODO free connpool aux_data structures
 	connpool_free(&clients);
 	commandqueue_free(&command_queue);
+	close(thread_config.feedback_pipe[0]);
+	close(thread_config.feedback_pipe[1]);
 
 	return 0;
 }

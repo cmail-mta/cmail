@@ -50,7 +50,8 @@ typedef enum /*_IMAP_COMMAND_STATE*/ {
 typedef enum /*_QUEUED_COMMAND_STATE*/ {
 	COMMAND_NEW,
 	COMMAND_IN_PROGRESS,
-	COMMAND_REPLY
+	COMMAND_REPLY,
+	COMMAND_CANCELED
 } QUEUED_COMMAND_STATE;
 
 typedef struct _QUEUED_COMMAND {
@@ -166,6 +167,7 @@ typedef struct /*_CONF_META*/ {
 typedef struct /*_THREAD_PARAM*/ {
 	LOGGER log;
 	COMMAND_QUEUE* queue;
+	int feedback_pipe[2];
 } THREAD_CONFIG;
 
 //These need some defined types

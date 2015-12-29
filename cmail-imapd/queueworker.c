@@ -38,6 +38,9 @@ void* queueworker_coreloop(void* param){
 		}
 
 		logprintf(log, LOG_DEBUG, "Queue run handled %d items\n", entries_done);
+		if(entries_done > 0){
+			//TODO notify feedback pipe
+		}
 		entries_done = 0;
 		pthread_cond_wait(&(queue->queue_dirty), &(queue->queue_access));
 	}
