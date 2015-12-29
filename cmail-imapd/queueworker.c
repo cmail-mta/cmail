@@ -10,7 +10,7 @@ int queueworker_arbitrate_command(LOGGER log, QUEUED_COMMAND* entry){
 
 	if(!strcasecmp(entry->command, "noop")){
 		//TODO check for new mail
-		return NULL;
+		return 0;
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
