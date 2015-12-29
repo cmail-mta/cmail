@@ -340,7 +340,9 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	}
 
 	//AUTHENTICATED state commands, grouped by command signature
-	else if(!strcasecmp(sentence.command, "select") || !strcasecmp(sentence.command, "examine")){
+	else if(!strcasecmp(sentence.command, "select") || !strcasecmp(sentence.command, "examine")
+			|| !strcasecmp(sentence.command, "create") || !strcasecmp(sentence.command, "delete")
+			|| !strcasecmp(sentence.command, "subscribe") || !strcasecmp(sentence.command, "unsubscribe")){
 		//queued command, no direct reply
 		state = COMMAND_NOREPLY;
 
@@ -368,14 +370,8 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 			}
 		}
 	}
-	else if(!strcasecmp(sentence.command, "create") || !strcasecmp(sentence.command, "delete")){
-		//TODO params mboxname
-	}
 	else if(!strcasecmp(sentence.command, "rename")){
 		//TODO params from(astring) to(astring)
-	}
-	else if(!strcasecmp(sentence.command, "subscribe") || !strcasecmp(sentence.command, "unsubscribe")){
-		//TODO params mboxname
 	}
 	else if(!strcasecmp(sentence.command, "list") || !strcasecmp(sentence.command, "lsub")){
 		//TODO params refname(astring) mbxname(astring with %/* allowed)
