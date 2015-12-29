@@ -2,7 +2,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	fd_set readfds;
 	struct timeval select_timeout;
 	int maxfd;
-	int status;
+	int status, flags;
 	unsigned i;
 	pthread_t queue_worker;
 
@@ -40,7 +40,25 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		return -1;
 	}
 
-	//TODO set the pipefd nonblocking
+	//set the pipefd nonblocking
+	status = fcntl(thread_config.feedback_pipe[0], F_GETFL);
+	flags = fcntl(thread_config.feedback_pipe[1], F_GETFL);
+	if(status < 0 || flags < 0){
+		logprintf(log, LOG_ERROR, "Failed to fetch pipe descriptor flags\n");
+		commandqueue_free(&command_queue);
+		close(thread_config.feedback_pipe[0]);
+		close(thread_config.feedback_pipe[1]);
+		return -1;
+	}
+	status |= O_NONBLOCK;
+	flags |= O_NONBLOCK;
+	if(fcntl(thread_config.feedback_pipe[0], F_SETFL) < 0 || fcntl(thread_config.feedback_pipe[1], F_SETFL) < 0){
+		logprintf(log, LOG_ERROR, "Failed to set pipe descriptor flags\n");
+		commandqueue_free(&command_queue);
+		close(thread_config.feedback_pipe[0]);
+		close(thread_config.feedback_pipe[1]);
+		return -1;
+	}
 
 	//run the queue worker
 	if(pthread_create(&queue_worker, NULL, queueworker_coreloop, &thread_config) != 0){

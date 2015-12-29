@@ -318,10 +318,15 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
-		//FIXME do not discard return value here
-		commandqueue_enqueue(log, command_queue, sentence, NULL);
-		//FIXME maybe wait for queue round-trip instead of direct response here
-		state = COMMAND_OK;
+		if(commandqueue_enqueue(log, command_queue, sentence, NULL) < 0){
+			logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+			state = COMMAND_BAD;
+			state_reason = "Failed to enqueue command";
+		}
+		else{
+			//FIXME maybe wait for queue round-trip instead of direct response here
+			state = COMMAND_OK;
+		}
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
 		//this is kind of a hack as it bypasses the default command state responder
@@ -330,6 +335,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	else if(!strcasecmp(sentence.command, "xyzzy")){
 		state_reason = "Incantation performed";
 		state = imap_xyzzy(log, sentence, client, database);
+		commandqueue_enqueue(log, command_queue, sentence, NULL);
 	}
 
 	//AUTHENTICATED state commands, grouped by command signature
