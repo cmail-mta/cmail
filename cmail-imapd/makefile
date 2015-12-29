@@ -1,5 +1,5 @@
 .PHONY: clean run
-CFLAGS=-Wall -g
+CFLAGS?=-Wall -g
 LDLIBS=-lsqlite3 -lgnutls -lnettle -lpthread
 
 all: imapd
