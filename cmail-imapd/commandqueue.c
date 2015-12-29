@@ -133,9 +133,10 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* client, I
 	//update bookkeeping data
 	queue->entries[entry].active = true;
 	queue->entries[entry].last_enqueue = time(NULL);
-	queue->entries[entry].queue_state = COMMAND_NEW;
 
 	pthread_mutex_lock(&(queue->queue_access));
+
+	queue->entries[entry].queue_state = COMMAND_NEW;
 
 	//insert entry into queue
 	if(!queue->head && !queue->tail){
