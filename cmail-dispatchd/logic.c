@@ -4,7 +4,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 	int status, rv = 0;
 	unsigned bounces = 0, i;
 
-	unsigned bounce_allocated = 0;
+	size_t bounce_allocated = 0;
 	char* bounce_message = NULL;
 	time_t unix_time = time(NULL);
 
