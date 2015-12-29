@@ -5,6 +5,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	int status, flags;
 	unsigned i;
 	pthread_t queue_worker;
+	char feedback_pipe_buffer[FEEDBACK_PIPE_BUFFER];
 
 	THREAD_CONFIG thread_config = {
 		.log = log,
@@ -52,7 +53,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	}
 	status |= O_NONBLOCK;
 	flags |= O_NONBLOCK;
-	if(fcntl(thread_config.feedback_pipe[0], F_SETFL) < 0 || fcntl(thread_config.feedback_pipe[1], F_SETFL) < 0){
+	if(fcntl(thread_config.feedback_pipe[0], F_SETFL, status) < 0 || fcntl(thread_config.feedback_pipe[1], F_SETFL, flags) < 0){
 		logprintf(log, LOG_ERROR, "Failed to set pipe descriptor flags\n");
 		commandqueue_free(&command_queue);
 		close(thread_config.feedback_pipe[0]);
@@ -143,8 +144,15 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		if(FD_ISSET(thread_config.feedback_pipe[0], &readfds)){
-			//TODO read from pipefd
-			//TODO run queue completion check here, including preemptive cross-connection notifications
+			logprintf(log, LOG_DEBUG, "Queue worker initiated core loop queue run\n");
+
+			//read from pipefd
+			read(thread_config.feedback_pipe[0], feedback_pipe_buffer, sizeof(feedback_pipe_buffer));
+
+			//run queue completion checks
+			if(commandqueue_purge(log, &command_queue) < 0){
+				logprintf(log, LOG_ERROR, "Command queue purge operation reported an error\n");
+			}
 		}
 	}
 

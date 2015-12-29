@@ -144,13 +144,64 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 		queue->tail = queue->entries + entry;
 	}
 	else{
-		logprintf(log, LOG_ERROR, "Queue pointers in invalid state\n");
+		logprintf(log, LOG_ERROR, "Queue pointers in invalid state (head %s tail %s)\n", queue->head ? "active":"NULL", queue->tail ? "active":"NULL");
 		rv = -1;
 	}
 
 	pthread_cond_signal(&(queue->queue_dirty));
 	pthread_mutex_unlock(&(queue->queue_access));
 	return rv;
+}
+
+//This function needs to be called with the mutex held
+void commandqueue_dequeue(COMMAND_QUEUE* queue, QUEUED_COMMAND* entry){
+	if(entry->next){
+		entry->next->prev = entry->prev;
+	}
+	if(entry->prev){
+		entry->prev->next = entry->next;
+	}
+
+	if(queue->head == entry){
+		queue->head = entry->next;
+	}
+	if(queue->tail == entry){
+		queue->tail = entry->prev;
+	}
+}
+
+int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
+	QUEUED_COMMAND* head = NULL;
+	QUEUED_COMMAND* current = NULL;
+	unsigned entries_removed = 0;
+
+	pthread_mutex_lock(&(queue->queue_access));
+
+	//TODO run queue completion check here, including preemptive cross-connection notifications
+	if(queue->head){
+		head = queue->head;
+		while(head){
+			switch(head->queue_state){
+				case COMMAND_REPLY:
+					//send reply
+					//fall through
+				case COMMAND_CANCEL_ACK:
+					//remove command from queue
+					head->active = false;
+					current = head;
+					head = head->next;
+					commandqueue_dequeue(queue, current);
+					entries_removed++;
+					break;
+				default:
+					head = head->next;
+			}
+		}
+	}
+
+	pthread_mutex_unlock(&(queue->queue_access));
+	logprintf(log, LOG_DEBUG, "Purged %d entries from the command queue\n", entries_removed);
+	return 0;
 }
 
 void commandqueue_free(COMMAND_QUEUE* command_queue){

@@ -33,18 +33,25 @@ void* queueworker_coreloop(void* param){
 			head->queue_state = COMMAND_REPLY;
 
 			while(head && head->queue_state != COMMAND_NEW){
+				//canceled commands need to round-trip through the worker because the head pointer is thread-local
+				if(head->queue_state == COMMAND_CANCELED){
+					head->queue_state = COMMAND_CANCEL_ACK;
+				}
 				head = head->next;
 			}
 		}
 
 		logprintf(log, LOG_DEBUG, "Queue run handled %d items\n", entries_done);
 		if(entries_done > 0){
-			//TODO notify feedback pipe
+			//notify feedback pipe
+			//FIXME might want to check the return value here
+			write(thread_config->feedback_pipe[1], "c", 1);
 		}
 		entries_done = 0;
 		pthread_cond_wait(&(queue->queue_dirty), &(queue->queue_access));
 	}
 
+	logprintf(log, LOG_DEBUG, "Queue worker shutting down\n");
 	pthread_mutex_unlock(&(queue->queue_access));
 	return 0;
 }
