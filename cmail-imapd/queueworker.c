@@ -1,10 +1,38 @@
+int queueworker_arbitrate_command(LOGGER log, QUEUED_COMMAND* entry){
+	unsigned i;
+
+	logprintf(log, LOG_DEBUG, "Handling command [%s]: %s\n", entry->tag, entry->command);
+	if(entry->parameters){
+		for(i = 0; entry->parameters[i] > 0; i++){
+			logprintf(log, LOG_DEBUG, "Command parameter %d: %s\n", i, entry->backing_buffer + entry->parameters[i]);
+		}
+	}
+
+	if(!strcasecmp(entry->command, "noop")){
+		//TODO check for new mail
+		return NULL;
+	}
+	else if(!strcasecmp(entry->command, "xyzzy")){
+		//round-trip xyzzy
+		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+				"* XYZZY Round-trip completed\r\n%s OK Incantation completed\r\n", entry->tag);
+		if(!entry->replies){
+			//FIXME this is really bad and probably should be adressed by falling back to a static failure response buffer
+			logprintf(log, LOG_ERROR, "Failed to reallocate command reply\n");
+		}
+		return 0;
+	}
+
+	//FIXME need to be able to increase failscore here
+	return -1;
+}
+
 void* queueworker_coreloop(void* param){
 	THREAD_CONFIG* thread_config = (THREAD_CONFIG*) param;
 	LOGGER log = thread_config->log;
 	COMMAND_QUEUE* queue = thread_config->queue;
 	QUEUED_COMMAND* head = NULL;
 	unsigned entries_done = 0;
-	unsigned i;
 
 	logprintf(log, LOG_DEBUG, "Queue worker acquiring mutex\n");
 	pthread_mutex_lock(&(queue->queue_access));
@@ -26,16 +54,13 @@ void* queueworker_coreloop(void* param){
 			pthread_mutex_unlock(&(queue->queue_access));
 
 			//TODO do the actual work
-			logprintf(log, LOG_DEBUG, "Handling command [%s]: %s\n", head->backing_buffer + head->tag_offset, head->backing_buffer + head->command_offset);
-			if(head->parameters){
-				for(i = 0; head->parameters[i] > 0; i++){
-					logprintf(log, LOG_DEBUG, "Command parameter %d: %s\n", i, head->backing_buffer + head->parameters[i]);
-				}
+			if(queueworker_arbitrate_command(log, head) < 0){
+				logprintf(log, LOG_WARNING, "Command execution returned error in queue worker\n");
 			}
 
-			pthread_mutex_lock(&(queue->queue_access));
+
 			entries_done++;
-			//TODO copy back responses
+			pthread_mutex_lock(&(queue->queue_access));
 			head->queue_state = COMMAND_REPLY;
 
 			while(head && head->queue_state != COMMAND_NEW){

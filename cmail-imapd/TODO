@@ -6,3 +6,4 @@ Test literal strings without waiting for continuation -> Works, but probably sho
 Test all commands with NULL parameters
 Error check pthread_ calls
 Implement non-continuation literal strings
+Check failscore in queue purge

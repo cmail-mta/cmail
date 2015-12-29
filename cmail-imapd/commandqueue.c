@@ -5,14 +5,16 @@ void commandqueue_reset_entry(QUEUED_COMMAND* entry, bool keep_allocations){
 		.active = false,
 		.next = NULL,
 		.prev = NULL,
-		
+
+		.client = NULL,
+
 		.queue_state = COMMAND_NEW,
 		.last_enqueue = 0,
 		.backing_buffer = (keep_allocations) ? entry->backing_buffer:NULL,
 		.backing_buffer_length = (keep_allocations) ? entry->backing_buffer_length:0,
 		
-		.tag_offset = 0,
-		.command_offset = 0,
+		.tag = NULL,
+		.command = NULL,
 		.parameters = (keep_allocations) ? entry->parameters:NULL,
 		.parameters_length = (keep_allocations) ? entry->parameters_length:0,
 
@@ -50,7 +52,7 @@ int commandqueue_initialize(LOGGER log, COMMAND_QUEUE* command_queue){
 	return 0;
 }
 
-int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command, char** parameters){
+int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* client, IMAP_COMMAND command, char** parameters){
 	size_t entry;
 	int rv = 0;
 	unsigned i;
@@ -86,6 +88,8 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 	commandqueue_reset_entry(queue->entries + entry, true);
 
 	//store command data
+	queue->entries[entry].client = client;
+
 	//FIXME this allocation strategy might not be optimal and should probably be replaced
 	//by a zero-copy storage design passing around complete buffers.
 	//FIXME this could also be optimized by not relying on command.backing_buffer_length as command length
@@ -100,8 +104,8 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, IMAP_COMMAND command,
 	memcpy(queue->entries[entry].backing_buffer, command.backing_buffer, command.backing_buffer_length);
 
 	//copy tag / command info
-	queue->entries[entry].tag_offset = command.tag - command.backing_buffer;
-	queue->entries[entry].command_offset = command.command - command.backing_buffer;
+	queue->entries[entry].tag = queue->entries[entry].backing_buffer + (command.tag - command.backing_buffer);
+	queue->entries[entry].command = queue->entries[entry].backing_buffer + (command.command - command.backing_buffer);
 
 	//fix up parameter pointers
 	//this requires that all parameter pointers are offsets into command.backing_buffer, but that should always be the case...
@@ -184,6 +188,9 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 			switch(head->queue_state){
 				case COMMAND_REPLY:
 					//send reply
+					if(head->replies && head->replies[0]){
+						client_send_raw(log, head->client, head->replies, strlen(head->replies));
+					}
 					//fall through
 				case COMMAND_CANCEL_ACK:
 					//remove command from queue

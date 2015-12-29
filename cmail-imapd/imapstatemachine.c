@@ -319,7 +319,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
-		if(commandqueue_enqueue(log, command_queue, sentence, NULL) < 0){
+		if(commandqueue_enqueue(log, command_queue, client, sentence, NULL) < 0){
 			logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
 			state = COMMAND_BAD;
 			state_reason = "Failed to enqueue command";
@@ -334,18 +334,16 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		return imap_logout(log, sentence, client, database);
 	}
 	else if(!strcasecmp(sentence.command, "xyzzy")){
-		state_reason = "Incantation performed";
-		state = imap_xyzzy(log, sentence, client, database);
-		commandqueue_enqueue(log, command_queue, sentence, NULL);
+		//no error handling here, beware of the dragons
+		imap_xyzzy(log, sentence, client, database);
+		commandqueue_enqueue(log, command_queue, client, sentence, NULL);
+		state = COMMAND_NOREPLY;
 	}
 
 	//AUTHENTICATED state commands, grouped by command signature
 	else if(!strcasecmp(sentence.command, "select") || !strcasecmp(sentence.command, "examine")
 			|| !strcasecmp(sentence.command, "create") || !strcasecmp(sentence.command, "delete")
 			|| !strcasecmp(sentence.command, "subscribe") || !strcasecmp(sentence.command, "unsubscribe")){
-		//queued command, no direct reply
-		state = COMMAND_NOREPLY;
-
 		if(!sentence.parameters){
 			state = COMMAND_BAD;
 			state_reason = "Missing parameter";
@@ -362,10 +360,14 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 			}
 			else{
 				parameters[0][astring_length] = 0;
-				if(commandqueue_enqueue(log, command_queue, sentence, parameters) < 0){
+				if(commandqueue_enqueue(log, command_queue, client, sentence, parameters) < 0){
 					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
 					state = COMMAND_BAD;
 					state_reason = "Failed to enqueue command";
+				}
+				else{
+					//queued command, no direct reply
+					state = COMMAND_NOREPLY;
 				}
 			}
 		}
