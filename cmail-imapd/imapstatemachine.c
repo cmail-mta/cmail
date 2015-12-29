@@ -311,6 +311,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
 	char* state_reason = NULL;
 	int rv = 0;
+	int astring_length;
 
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
@@ -340,7 +341,32 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 
 	//AUTHENTICATED state commands, grouped by command signature
 	else if(!strcasecmp(sentence.command, "select") || !strcasecmp(sentence.command, "examine")){
-		//TODO params mboxname (= astring)
+		//queued command, no direct reply
+		state = COMMAND_NOREPLY;
+
+		if(!sentence.parameters){
+			state = COMMAND_BAD;
+			state_reason = "Missing parameter";
+			rv = -1;
+		}
+		else{
+			//params mboxname (= astring)
+			char* parameters[2] = {NULL, NULL};
+			astring_length = protocol_parse_astring(sentence.parameters, parameters, NULL);
+			if(astring_length < 0){
+				state = COMMAND_BAD;
+				state_reason = "Invalid parameter supplied";
+				rv = -1;
+			}
+			else{
+				parameters[0][astring_length] = 0;
+				if(commandqueue_enqueue(log, command_queue, sentence, parameters) < 0){
+					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+					state = COMMAND_BAD;
+					state_reason = "Failed to enqueue command";
+				}
+			}
+		}
 	}
 	else if(!strcasecmp(sentence.command, "create") || !strcasecmp(sentence.command, "delete")){
 		//TODO params mboxname

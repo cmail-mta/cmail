@@ -4,6 +4,7 @@ void* queueworker_coreloop(void* param){
 	COMMAND_QUEUE* queue = thread_config->queue;
 	QUEUED_COMMAND* head = NULL;
 	unsigned entries_done = 0;
+	unsigned i;
 
 	logprintf(log, LOG_DEBUG, "Queue worker acquiring mutex\n");
 	pthread_mutex_lock(&(queue->queue_access));
@@ -26,6 +27,11 @@ void* queueworker_coreloop(void* param){
 
 			//TODO do the actual work
 			logprintf(log, LOG_DEBUG, "Handling command [%s]: %s\n", head->backing_buffer + head->tag_offset, head->backing_buffer + head->command_offset);
+			if(head->parameters){
+				for(i = 0; head->parameters[i] > 0; i++){
+					logprintf(log, LOG_DEBUG, "Command parameter %d: %s\n", i, head->backing_buffer + head->parameters[i]);
+				}
+			}
 
 			pthread_mutex_lock(&(queue->queue_access));
 			entries_done++;

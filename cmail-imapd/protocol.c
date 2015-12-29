@@ -25,7 +25,9 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end
 		}
 
 		*string_begin = current_position + 2;
-		*data_end = current_position + length + 2;
+		if(data_end){
+			*data_end = current_position + length + 2;
+		}
 		return length;
 	}
 	else if(input[0] == '"'){
@@ -61,7 +63,9 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end
 
 		//FIXME assert that the end of the string is a DQUOTE
 		*string_begin = input + 1;
-		*data_end = input + i + 1;
+		if(data_end){
+			*data_end = input + i + 1;
+		}
 		return length - 1;
 	}
 	else if(input[0] > 32 && !index(astring_illegal, input[0])){
@@ -70,7 +74,9 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end
 		}
 
 		*string_begin = input;
-		*data_end = input + length;
+		if(data_end){
+			*data_end = input + length;
+		}
 		return length;
 	}
 

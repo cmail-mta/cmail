@@ -1,6 +1,11 @@
 int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 	unsigned i;
 
+	//reset structure before parsing
+	sentence->tag = NULL;
+	sentence->command = NULL;
+	sentence->parameters = NULL;
+
 	//parse into structure
 	sentence->backing_buffer = client_line;
 	sentence->backing_buffer_length = strlen(client_line) + 1;
@@ -135,6 +140,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 
 	if(listener_data->fixed_user){
 		actual_data->auth.user.authenticated = common_strdup(listener_data->fixed_user);
+		//FIXME this should probably respect aliases
 		actual_data->auth.user.authorized = common_strdup(listener_data->fixed_user);
 		if(!actual_data->auth.user.authenticated || !actual_data->auth.user.authorized){
 			logprintf(log, LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
@@ -194,6 +200,8 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	//reset client data
 	//TODO release allocated maildrop data
 	auth_reset(&(client_data->auth));
+
+	//TODO make sure all queued commands are canceled
 
 	//return the connpool slot
 	client->fd = -1;
