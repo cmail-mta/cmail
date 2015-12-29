@@ -415,7 +415,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 
 	switch(state){
 		case COMMAND_UNHANDLED:
-			logprintf(log, LOG_WARNING, "Unhandled command %s in state NEW\n", sentence.command);
+			logprintf(log, LOG_WARNING, "Unhandled command %s in state AUTHENTICATED\n", sentence.command);
 			client_send(log, client, "%s BAD Command not recognized\r\n", sentence.tag); //FIXME is this correct
 			return -1;
 		case COMMAND_OK:
@@ -431,6 +431,6 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 			return rv;
 	}
 
-	logprintf(log, LOG_ERROR, "Illegal branch reached in state NEW\n");
+	logprintf(log, LOG_ERROR, "Illegal branch reached in state AUTHENTICATED\n");
 	return -2;
 }
