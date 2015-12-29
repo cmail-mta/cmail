@@ -37,7 +37,8 @@ int main(int argc, char** argv){
 			.stream = stderr,
 			.verbosity = 0,
 			.log_secondary = false,
-			.print_timestamp = true
+			.print_timestamp = true,
+			.sync = NULL
 		},
 		.pid_file = NULL
 	};
@@ -55,6 +56,14 @@ int main(int argc, char** argv){
 		exit(EXIT_FAILURE);
 	}
 	#endif
+
+	config.log.sync = malloc(sizeof(pthread_mutex_t));
+	if(!config.log.sync){
+		arguments_free(&args);
+		fprintf(stderr, "Failed to allocate memory\n");
+		exit(EXIT_FAILURE);
+	}
+	pthread_mutex_init(config.log.sync, NULL);
 
 	//read config file
 	if(config_parse(config.log, &config, args.config_file) < 0){

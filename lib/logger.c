@@ -45,7 +45,7 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...){
 		vfprintf(log.stream, fmt, args);
 		fflush(log.stream);
 		#ifdef LOGGER_MT_SAFE
-		pthread_mutex_lock(log.sync);
+		pthread_mutex_unlock(log.sync);
 		#endif
 	}
 	va_end(args);

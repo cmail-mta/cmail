@@ -277,4 +277,10 @@ void config_free(CONFIGURATION* config){
 		fclose(config->log.stream);
 		config->log.stream = stderr;
 	}
+
+	if(config->log.sync){
+		pthread_mutex_destroy(config->log.sync);
+		free(config->log.sync);
+		config->log.sync = NULL;
+	}
 }
