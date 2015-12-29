@@ -1,7 +1,6 @@
 .PHONY: clean
 MKDIR?=mkdir -p
-CFLAGS=-Wall -g
-LDLIBS=-lsqlite3 -lnettle
+CFLAGS?=-Wall -g
 
 all:
 	$(MAKE) -C user
