@@ -34,11 +34,10 @@ void* queueworker_coreloop(void* param){
 	QUEUED_COMMAND* head = NULL;
 	unsigned entries_done = 0;
 
-	logprintf(log, LOG_DEBUG, "Queue worker acquiring mutex\n");
 	pthread_mutex_lock(&(queue->queue_access));
-
 	logprintf(log, LOG_INFO, "Queue worker entering main loop\n");
 	while(!abort_signaled){
+		head = NULL;
 		logprintf(log, LOG_DEBUG, "Queue worker running queue\n");
 
 		if(queue->head){

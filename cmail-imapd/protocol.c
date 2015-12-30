@@ -10,8 +10,12 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end
 		//RFC 3501 does not specify whether the literal length is guaranteed to be base 10, assuming it anyway
 		length = strtoul(input + 1, &current_position, 10);
 
+		if(current_position[0] == '+'){
+			current_position++;
+		}
+
 		//check the header inserted by the line parser
-		if(current_position[0] != '}' || current_position[1] != '+'){
+		if(strncmp(current_position, "}+", 2)){
 			//invalid length specified
 			return -1;
 		}

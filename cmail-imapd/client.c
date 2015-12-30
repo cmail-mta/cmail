@@ -343,10 +343,11 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 
 			//literal string continuation requested by line parser
 			//scan for literal length
-			for(i = client_data->recv_offset - 3; i >= 0 && (isdigit(client_data->recv_buffer[i])); i--){
+			for(i = client_data->recv_offset - 3; i >= 0 && (isdigit(client_data->recv_buffer[i]) || (i == client_data->recv_offset - 3 && client_data->recv_buffer[i] == '+')); i--){
 			}
 
-			if(client_data->recv_buffer[i] == '{' && client_data->recv_buffer[i + 1] != '}'){
+			if(client_data->recv_buffer[i] == '{' &&
+					client_data->recv_buffer[i + 1] != '}' && client_data->recv_buffer[i + 1] != '+'){
 				//mark connection for literal scanning
 				client_data->recv_literal_bytes = strtoul(client_data->recv_buffer + i + 1, NULL, 10);
 
@@ -355,6 +356,9 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 					client_send(log, client, "* BAD Literal too long\r\n"); //FIXME this should probably be a tagged response
 					client_data->recv_literal_bytes = 0;
 					client_data->recv_offset = 0; //FIXME is this enough to reset the read buffer?
+				}
+				else if(client_data->recv_buffer[client_data->recv_offset - 3] == '+'){
+					//RFC 2088 non-synchronizing literal
 				}
 				else{
 					//request continuation

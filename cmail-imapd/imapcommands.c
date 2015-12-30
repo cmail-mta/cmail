@@ -25,7 +25,7 @@ IMAP_COMMAND_STATE imap_capability(LOGGER log, IMAP_COMMAND sentence, CONNECTION
 	else{
 		client_send(log, client, " LOGINDISABLED");
 	}
-	client_send(log, client, " XYZZY\r\n");
+	client_send(log, client, " LITERAL+ XYZZY\r\n");
 
 	return COMMAND_OK;
 }

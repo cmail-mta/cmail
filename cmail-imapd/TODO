@@ -5,5 +5,5 @@ Enable main makefile sections
 Test literal strings without waiting for continuation -> Works, but probably should not
 Test all commands with NULL parameters
 Error check pthread_ calls
-Implement non-continuation literal strings
 Check failscore in queue purge
+Implement queue worker storage in CLIENT structure
