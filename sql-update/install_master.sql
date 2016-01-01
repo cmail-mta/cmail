@@ -2,6 +2,13 @@
 .echo on
 
 BEGIN TRANSACTION;
+	CREATE TABLE meta (
+		[key]	TEXT	PRIMARY KEY
+				NOT NULL
+				UNIQUE,
+		value	TEXT
+	);
+
 	CREATE TABLE users (
 		user_name	TEXT NOT NULL UNIQUE,
 		user_authdata	TEXT,
@@ -42,11 +49,16 @@ BEGIN TRANSACTION;
 		mail_data		BLOB
 	);
 
-	CREATE TABLE meta (
-		[key]	TEXT	PRIMARY KEY
-				NOT NULL
-				UNIQUE,
-		value	TEXT
+	CREATE TABLE mailbox_names (
+		mailbox_id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
+		mailbox_name		TEXT NOT NULL,
+		mailbox_parent		INTEGER REFERENCES mailbox_names (mailbox_id) ON DELETE CASCADE ON UPDATE CASCADE
+	);
+
+	CREATE TABLE mailbox_mapping (
+		mail_id			INTEGER NOT NULL REFERENCES mailbox (mail_id) ON DELETE CASCADE ON UPDATE CASCADE,
+		mailbox_id		INTEGER NOT NULL REFERENCES mailbox_names (mailbox_id) ON DELETE CASCADE ON UPDATE CASCADE,
+		CONSTRAINT map_unique UNIQUE (mail_id, mailbox_id) ON CONFLICT IGNORE
 	);
 
 	CREATE TABLE smtpd (
@@ -127,5 +139,5 @@ BEGIN TRANSACTION;
 	LEFT JOIN faillog ON mail_id = fail_mail
 	GROUP BY mail_id;
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '9');
+	INSERT INTO meta (key, value) VALUES ('schema_version', '10');
 COMMIT;
