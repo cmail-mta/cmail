@@ -182,8 +182,28 @@ bool client_timeout(LOGGER log, CONNECTION* client){
 	return delta > IMAP_CLIENT_TIMEOUT;
 }
 
-int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
+int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
+	QUEUED_COMMAND* queue_entry = NULL;
+
+	//make sure all queued commands are canceled
+	if(command_queue){
+		pthread_mutex_lock(&(command_queue->queue_access));
+		for(queue_entry = command_queue->head; queue_entry; queue_entry = queue_entry->next){
+			if(queue_entry->client == client){
+				if(queue_entry->queue_state != COMMAND_IN_PROGRESS){
+					queue_entry->queue_state = COMMAND_CANCELED;
+				}
+				else{
+					logprintf(log, LOG_INFO, "Closed client has active command queue entry\n");
+					//probably should wait until command completion here, but that would open up a DoS vector
+					//instead, signaling discard to queue responder
+					queue_entry->discard = true;
+				}
+			}
+		}
+		pthread_mutex_unlock(&(command_queue->queue_access));
+	}
 
 	#ifndef CMAIL_NO_TLS
 	//shut down the tls session
@@ -200,8 +220,6 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database){
 	//reset client data
 	//TODO release allocated maildrop data
 	auth_reset(&(client_data->auth));
-
-	//TODO make sure all queued commands are canceled
 
 	//return the connpool slot
 	client->fd = -1;
@@ -225,7 +243,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 		//if we're changing this, need to reset recv_*
 		logprintf(log, LOG_WARNING, "Line too long, closing client connection\n");
 		client_send(log, client, "* BYE Command line too long\r\n");
-		client_close(log, client, database);
+		client_close(log, client, database, command_queue);
 		return 0;
 	}
 
@@ -243,7 +261,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 				return 0;
 			default:
 				logprintf(log, LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
-				client_close(log, client, database);
+				client_close(log, client, database, command_queue);
 				return -1;
 		}
 		#ifndef CMAIL_NO_TLS
@@ -251,7 +269,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 			case TLS_NEGOTIATE:
 				//errors during TLS negotiation
 				if(bytes == -2){
-					client_close(log, client, database);
+					client_close(log, client, database, command_queue);
 				}
 				return 0;
 			case TLS_ONLY:
@@ -262,7 +280,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 						return 0;
 					default:
 						logprintf(log, LOG_ERROR, "GnuTLS reported an error while reading: %s\n", gnutls_strerror(bytes));
-						client_close(log, client, database);
+						client_close(log, client, database, command_queue);
 						return -1;
 				}
 		}
@@ -289,7 +307,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 			default:
 		#endif
 		logprintf(log, LOG_INFO, "Client has disconnected\n");
-		client_close(log, client, database);
+		client_close(log, client, database, command_queue);
 		#ifndef CMAIL_NO_TLS
 		}
 		#endif
@@ -331,7 +349,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 				if(client_data->connection_score < CMAIL_FAILSCORE_LIMIT){
 					logprintf(log, LOG_WARNING, "Disconnecting client because of bad connection score\n");
 					client_send(log, client, "* BYE Too many failed commands\r\n");
-					client_close(log, client, database);
+					client_close(log, client, database, command_queue);
 					return 0;
 				}
 			}

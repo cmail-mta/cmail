@@ -9,6 +9,7 @@ void commandqueue_reset_entry(QUEUED_COMMAND* entry, bool keep_allocations){
 		.client = NULL,
 
 		.queue_state = COMMAND_NEW,
+		.discard = false,
 		.last_enqueue = 0,
 		.backing_buffer = (keep_allocations) ? entry->backing_buffer:NULL,
 		.backing_buffer_length = (keep_allocations) ? entry->backing_buffer_length:0,
@@ -189,7 +190,7 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 			switch(head->queue_state){
 				case COMMAND_REPLY:
 					//send reply
-					if(head->replies && head->replies[0]){
+					if(head->replies && head->replies[0] && !head->discard){
 						client_send_raw(log, head->client, head->replies, strlen(head->replies));
 					}
 					//fall through

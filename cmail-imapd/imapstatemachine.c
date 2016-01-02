@@ -124,7 +124,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
 		//this is kind of a hack as it bypasses the default command state responder
-		return imap_logout(log, sentence, client, database);
+		return imap_logout(log, sentence, client, database, NULL);
 	}
 	else if(!strcasecmp(sentence.command, "xyzzy")){
 		state_reason = "Incantation performed";
@@ -331,7 +331,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
 		//this is kind of a hack as it bypasses the default command state responder
-		return imap_logout(log, sentence, client, database);
+		return imap_logout(log, sentence, client, database, command_queue);
 	}
 	else if(!strcasecmp(sentence.command, "xyzzy")){
 		//no error handling here, beware of the dragons

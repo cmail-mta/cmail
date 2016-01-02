@@ -66,6 +66,7 @@ typedef struct _QUEUED_COMMAND {
 	CONNECTION* client;
 
 	QUEUED_COMMAND_STATE queue_state;
+	bool discard;
 	char* backing_buffer;
 	size_t backing_buffer_length;
 
@@ -182,7 +183,7 @@ typedef struct /*_THREAD_PARAM*/ {
 #endif
 
 //PROTOTYPES
-int client_close(LOGGER log, CONNECTION* client, DATABASE* database);
+int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue);
 int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
 #ifndef CMAIL_NO_TLS
 int client_starttls(LOGGER log, CONNECTION* client);

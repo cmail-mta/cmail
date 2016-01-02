@@ -1,9 +1,9 @@
-int imap_logout(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+int imap_logout(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* queue){
 	client_send(log, client, "* BYE for now\r\n");
 	client_send(log, client, "%s OK LOGOUT completed\r\n", sentence.tag);
 	//FIXME this needs the command queue mutex in order to ensure that the queue does not contain any more commands
 	//for this connection
-	return client_close(log, client, database);
+	return client_close(log, client, database, queue);
 }
 
 IMAP_COMMAND_STATE imap_capability(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){

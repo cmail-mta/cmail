@@ -129,7 +129,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 				else if(client_timeout(log, &(clients.conns[i]))){
 					logprintf(log, LOG_WARNING, "Client timed out, disconnecting\n");
 					client_send(log, &(clients.conns[i]), "* BYE Client connection timed out due to inactivity\r\n");
-					client_close(log, &(clients.conns[i]), database);
+					client_close(log, &(clients.conns[i]), database, &command_queue);
 				}
 			}
 		}
@@ -159,7 +159,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	//close connected clients
 	for(i = 0; i < clients.count; i++){
 		if(clients.conns[i].fd >= 0){
-			client_close(log, &(clients.conns[i]), database);
+			client_close(log, &(clients.conns[i]), database, &command_queue);
 		}
 	}
 
