@@ -9,7 +9,9 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 	THREAD_CONFIG thread_config = {
 		.log = log,
-		.feedback_pipe = {-1, -1}
+		.feedback_pipe = {-1, -1},
+		.queue = NULL,
+		.database = NULL
 	};
 
 	CONNPOOL clients = {
@@ -33,11 +35,18 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	}
 
 	thread_config.queue = &command_queue;
+	thread_config.database = database_open(log, sqlite3_db_filename(database->conn, "main"), SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX);
+	if(!thread_config.database){
+		logprintf(log, LOG_ERROR, "Failed to open database handle for queue worker\n");
+		commandqueue_free(&command_queue);
+		return -1;
+	}
 
 	//create feedback pipe to trigger command queue processing
 	if(pipe(thread_config.feedback_pipe) < 0){
 		logprintf(log, LOG_ERROR, "Failed to create queue worker feedback pipe: %s\n", strerror(errno));
 		commandqueue_free(&command_queue);
+		sqlite3_close(thread_config.database);
 		return -1;
 	}
 
@@ -49,6 +58,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		commandqueue_free(&command_queue);
 		close(thread_config.feedback_pipe[0]);
 		close(thread_config.feedback_pipe[1]);
+		sqlite3_close(thread_config.database);
 		return -1;
 	}
 	status |= O_NONBLOCK;
@@ -58,6 +68,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		commandqueue_free(&command_queue);
 		close(thread_config.feedback_pipe[0]);
 		close(thread_config.feedback_pipe[1]);
+		sqlite3_close(thread_config.database);
 		return -1;
 	}
 
@@ -67,6 +78,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		commandqueue_free(&command_queue);
 		close(thread_config.feedback_pipe[0]);
 		close(thread_config.feedback_pipe[1]);
+		sqlite3_close(thread_config.database);
 		return -1;
 	}
 
@@ -174,6 +186,6 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	commandqueue_free(&command_queue);
 	close(thread_config.feedback_pipe[0]);
 	close(thread_config.feedback_pipe[1]);
-
+	sqlite3_close(thread_config.database);
 	return 0;
 }

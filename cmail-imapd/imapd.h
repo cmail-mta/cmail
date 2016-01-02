@@ -80,6 +80,14 @@ typedef struct _QUEUED_COMMAND {
 	size_t replies_length;
 } QUEUED_COMMAND;
 
+typedef struct /*_WORKER_CLIENT_DATA*/ {
+	CONNECTION* client;
+	sqlite3* user_database;
+	unsigned selection_master;
+	unsigned selection_user;
+	bool select_readwrite;
+} WORKER_CLIENT;
+
 typedef struct /*_COMMAND_QUEUE*/ {
 	QUEUED_COMMAND* entries;
 	size_t entries_length;
@@ -173,6 +181,7 @@ typedef struct /*_THREAD_PARAM*/ {
 	LOGGER log;
 	COMMAND_QUEUE* queue;
 	int feedback_pipe[2];
+	sqlite3* database;
 } THREAD_CONFIG;
 
 //These need some defined types

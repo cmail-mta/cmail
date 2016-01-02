@@ -164,7 +164,7 @@ int config_database(CONFIGURATION* config, char* directive, char* params){
 		return -1;
 	}
 
-	config->database.conn = database_open(config->log, params, SQLITE_OPEN_READWRITE);
+	config->database.conn = database_open(config->log, params, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX);
 
 	return (config->database.conn) ? 0:-1;
 }

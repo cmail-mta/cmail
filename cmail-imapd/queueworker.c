@@ -32,7 +32,19 @@ void* queueworker_coreloop(void* param){
 	LOGGER log = thread_config->log;
 	COMMAND_QUEUE* queue = thread_config->queue;
 	QUEUED_COMMAND* head = NULL;
-	unsigned entries_done = 0;
+	unsigned entries_done = 0, i;
+	WORKER_CLIENT client_data[CMAIL_MAX_CONCURRENT_CLIENTS];
+
+	//initialize per-client data
+	for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
+		WORKER_CLIENT empty = {
+			.client = NULL,
+			.user_database = NULL,
+			.selected_mailbox = 0,
+			.select_readwrite = false
+		};
+		client_data[i] = empty;
+	}
 
 	pthread_mutex_lock(&(queue->queue_access));
 	logprintf(log, LOG_INFO, "Queue worker entering main loop\n");
@@ -79,7 +91,10 @@ void* queueworker_coreloop(void* param){
 		pthread_cond_wait(&(queue->queue_dirty), &(queue->queue_access));
 	}
 
-	logprintf(log, LOG_DEBUG, "Queue worker shutting down\n");
 	pthread_mutex_unlock(&(queue->queue_access));
+
+	logprintf(log, LOG_DEBUG, "Queue worker shutting down\n");
+	//TODO release all sqlite instances, etc
+
 	return 0;
 }
