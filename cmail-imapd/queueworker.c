@@ -40,7 +40,8 @@ void* queueworker_coreloop(void* param){
 		WORKER_CLIENT empty = {
 			.client = NULL,
 			.user_database = NULL,
-			.selected_mailbox = 0,
+			.selection_master = 0,
+			.selection_user = 0,
 			.select_readwrite = false
 		};
 		client_data[i] = empty;
@@ -94,7 +95,8 @@ void* queueworker_coreloop(void* param){
 	pthread_mutex_unlock(&(queue->queue_access));
 
 	logprintf(log, LOG_DEBUG, "Queue worker shutting down\n");
-	//TODO release all sqlite instances, etc
+	//TODO release all allocated data
 
+	//sqlite instance is released after thread join
 	return 0;
 }
