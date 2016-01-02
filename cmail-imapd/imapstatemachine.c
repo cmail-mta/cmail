@@ -319,7 +319,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
-		if(commandqueue_enqueue(log, command_queue, client, sentence, NULL) < 0){
+		if(commandqueue_enqueue_command(log, command_queue, client, sentence, NULL) < 0){
 			logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
 			state = COMMAND_BAD;
 			state_reason = "Failed to enqueue command";
@@ -336,7 +336,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	else if(!strcasecmp(sentence.command, "xyzzy")){
 		//no error handling here, beware of the dragons
 		imap_xyzzy(log, sentence, client, database);
-		commandqueue_enqueue(log, command_queue, client, sentence, NULL);
+		commandqueue_enqueue_command(log, command_queue, client, sentence, NULL);
 		state = COMMAND_NOREPLY;
 	}
 
@@ -360,7 +360,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 			}
 			else{
 				parameters[0][astring_length] = 0;
-				if(commandqueue_enqueue(log, command_queue, client, sentence, parameters) < 0){
+				if(commandqueue_enqueue_command(log, command_queue, client, sentence, parameters) < 0){
 					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
 					state = COMMAND_BAD;
 					state_reason = "Failed to enqueue command";

@@ -37,37 +37,35 @@ void* queueworker_coreloop(void* param){
 	pthread_mutex_lock(&(queue->queue_access));
 	logprintf(log, LOG_INFO, "Queue worker entering main loop\n");
 	while(!abort_signaled){
-		head = NULL;
 		logprintf(log, LOG_DEBUG, "Queue worker running queue\n");
 
-		if(queue->head){
-			head = queue->head;
-			while(head && head->queue_state != COMMAND_NEW){
-				head = head->next;
-			}
-		}
+		for(head = queue->head; head; head = head->next){
+			switch(head->queue_state){
+				case COMMAND_NEW:
+					//process queued command
+					head->queue_state = COMMAND_IN_PROGRESS;
+					pthread_mutex_unlock(&(queue->queue_access));
 
-		while(head){
-			//process queue head
-			head->queue_state = COMMAND_IN_PROGRESS;
-			pthread_mutex_unlock(&(queue->queue_access));
+					//do the actual work
+					if(queueworker_arbitrate_command(log, head) < 0){
+						logprintf(log, LOG_WARNING, "Command execution returned error in queue worker\n");
+					}
 
-			//TODO do the actual work
-			if(queueworker_arbitrate_command(log, head) < 0){
-				logprintf(log, LOG_WARNING, "Command execution returned error in queue worker\n");
-			}
-
-
-			entries_done++;
-			pthread_mutex_lock(&(queue->queue_access));
-			head->queue_state = COMMAND_REPLY;
-
-			while(head && head->queue_state != COMMAND_NEW){
-				//canceled commands need to round-trip through the worker because the head pointer is thread-local
-				if(head->queue_state == COMMAND_CANCELED){
+					entries_done++;
+					pthread_mutex_lock(&(queue->queue_access));
+					head->queue_state = COMMAND_REPLY;
+					break;
+				case COMMAND_SYSTEM:
+					logprintf(log, LOG_DEBUG, "Queue worker handled system message\n");
+					entries_done++;
+					head->queue_state = COMMAND_REPLY;
+					break;
+				case COMMAND_CANCELED:
+					//canceled commands need to round-trip through the worker because the head pointer is thread-local
 					head->queue_state = COMMAND_CANCEL_ACK;
-				}
-				head = head->next;
+					break;
+				default:
+					break;
 			}
 		}
 

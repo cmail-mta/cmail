@@ -50,10 +50,49 @@ int commandqueue_initialize(LOGGER log, COMMAND_QUEUE* command_queue){
 	for(i = 0; i < command_queue->entries_length; i++){
 		commandqueue_reset_entry(command_queue->entries + i, false);
 	}
+
+	for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
+		commandqueue_reset_entry(command_queue->system_entries + i, false);
+	}
 	return 0;
 }
 
-int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* client, IMAP_COMMAND command, char** parameters){
+//The next 2 functions require the queue_access mutex to be held by the calling thread
+int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, QUEUED_COMMAND* entry){
+	//insert entry into queue
+	if(!queue->head && !queue->tail){
+		queue->head = entry;
+		queue->tail = queue->head;
+	}
+	else if(queue->head && queue->tail){
+		queue->tail->next = entry;
+		entry->prev = queue->tail;
+		queue->tail = entry;
+	}
+	else{
+		logprintf(log, LOG_ERROR, "Queue pointers in invalid state (head %s tail %s)\n", queue->head ? "active":"NULL", queue->tail ? "active":"NULL");
+		return -1;
+	}
+	return 0;
+}
+
+void commandqueue_dequeue(COMMAND_QUEUE* queue, QUEUED_COMMAND* entry){
+	if(entry->next){
+		entry->next->prev = entry->prev;
+	}
+	if(entry->prev){
+		entry->prev->next = entry->next;
+	}
+
+	if(queue->head == entry){
+		queue->head = entry->next;
+	}
+	if(queue->tail == entry){
+		queue->tail = entry->prev;
+	}
+}
+
+int commandqueue_enqueue_command(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* client, IMAP_COMMAND command, char** parameters){
 	size_t entry;
 	int rv = 0;
 	unsigned i;
@@ -139,41 +178,12 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* client, I
 
 	queue->entries[entry].queue_state = COMMAND_NEW;
 
-	//insert entry into queue
-	if(!queue->head && !queue->tail){
-		queue->head = queue->entries + entry;
-		queue->tail = queue->head;
-	}
-	else if(queue->head && queue->tail){
-		queue->tail->next = queue->entries + entry;
-		queue->entries[entry].prev = queue->tail;
-		queue->tail = queue->entries + entry;
-	}
-	else{
-		logprintf(log, LOG_ERROR, "Queue pointers in invalid state (head %s tail %s)\n", queue->head ? "active":"NULL", queue->tail ? "active":"NULL");
-		rv = -1;
-	}
+	//FIXME might want to errorcheck this
+	commandqueue_enqueue(log, queue, queue->entries + entry);
 
 	pthread_cond_signal(&(queue->queue_dirty));
 	pthread_mutex_unlock(&(queue->queue_access));
 	return rv;
-}
-
-//This function needs to be called with the mutex held
-void commandqueue_dequeue(COMMAND_QUEUE* queue, QUEUED_COMMAND* entry){
-	if(entry->next){
-		entry->next->prev = entry->prev;
-	}
-	if(entry->prev){
-		entry->prev->next = entry->next;
-	}
-
-	if(queue->head == entry){
-		queue->head = entry->next;
-	}
-	if(queue->tail == entry){
-		queue->tail = entry->prev;
-	}
 }
 
 int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){

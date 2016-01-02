@@ -54,7 +54,8 @@ typedef enum /*_QUEUED_COMMAND_STATE*/ {
 	COMMAND_IN_PROGRESS,
 	COMMAND_REPLY,
 	COMMAND_CANCELED,
-	COMMAND_CANCEL_ACK
+	COMMAND_CANCEL_ACK,
+	COMMAND_SYSTEM
 } QUEUED_COMMAND_STATE;
 
 typedef struct _QUEUED_COMMAND {
@@ -82,6 +83,7 @@ typedef struct _QUEUED_COMMAND {
 typedef struct /*_COMMAND_QUEUE*/ {
 	QUEUED_COMMAND* entries;
 	size_t entries_length;
+	QUEUED_COMMAND system_entries[CMAIL_MAX_CONCURRENT_CLIENTS];
 
 	pthread_mutex_t queue_access;
 	pthread_cond_t queue_dirty;

@@ -185,6 +185,7 @@ bool client_timeout(LOGGER log, CONNECTION* client){
 int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	QUEUED_COMMAND* queue_entry = NULL;
+	unsigned i;
 
 	//make sure all queued commands are canceled
 	if(command_queue){
@@ -197,11 +198,25 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUE
 				else{
 					logprintf(log, LOG_INFO, "Closed client has active command queue entry\n");
 					//probably should wait until command completion here, but that would open up a DoS vector
-					//instead, signaling discard to queue responder
+					//instead, discard this entry at queue responder
 					queue_entry->discard = true;
 				}
 			}
 		}
+
+		//transmit client close to queue worker
+		for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
+			if(!command_queue->system_entries[i].active){
+				command_queue->system_entries[i].active = true;
+				command_queue->system_entries[i].discard = true;
+				command_queue->system_entries[i].client = client;
+				command_queue->system_entries[i].queue_state = COMMAND_SYSTEM;
+				commandqueue_enqueue(log, command_queue, command_queue->system_entries + i);
+				break;
+			}
+		}
+		//signal queue run
+		pthread_cond_signal(&(command_queue->queue_dirty));
 		pthread_mutex_unlock(&(command_queue->queue_access));
 	}
 
