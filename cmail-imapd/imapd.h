@@ -55,7 +55,8 @@ typedef enum /*_QUEUED_COMMAND_STATE*/ {
 	COMMAND_REPLY,
 	COMMAND_CANCELED,
 	COMMAND_CANCEL_ACK,
-	COMMAND_SYSTEM
+	COMMAND_SYSTEM,
+	COMMAND_INTERNAL_FAILURE
 } QUEUED_COMMAND_STATE;
 
 typedef struct _QUEUED_COMMAND {
@@ -169,6 +170,14 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3_stmt* fetch_master; 
 } DATABASE;
 
+typedef struct /*_WORKER_DB_CONN*/ {
+	sqlite3* conn;
+	sqlite3_stmt* mailbox_find;
+	sqlite3_stmt* mailbox_info;
+	sqlite3_stmt* mailbox_create;
+	sqlite3_stmt* mailbox_delete;
+} WORKER_DATABASE;
+
 typedef struct /*_CONF_META*/ {
 	CONNPOOL listeners;
 	USER_PRIVS privileges;
@@ -181,7 +190,7 @@ typedef struct /*_THREAD_PARAM*/ {
 	LOGGER log;
 	COMMAND_QUEUE* queue;
 	int feedback_pipe[2];
-	sqlite3* database;
+	const char* master_db;
 } THREAD_CONFIG;
 
 //These need some defined types

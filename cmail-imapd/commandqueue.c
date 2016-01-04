@@ -205,6 +205,7 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 					}
 					//fall through
 				case COMMAND_CANCEL_ACK:
+				case COMMAND_INTERNAL_FAILURE:
 					//remove command from queue
 					head->active = false;
 					current = head;

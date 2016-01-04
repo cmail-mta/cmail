@@ -26,6 +26,27 @@ int database_initialize(LOGGER log, DATABASE* database){
 	return 0;
 }
 
+int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db){
+	db->conn = database_open(log, filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX);
+
+	if(!db->conn){
+		logprintf(log, LOG_ERROR, "Failed to open database file %s\n", filename);
+		return -1;
+	}
+
+	return 0;
+}
+
+void database_free_worker(WORKER_DATABASE* db){
+	if(db->conn){
+		sqlite3_finalize(db->mailbox_find);
+		sqlite3_finalize(db->mailbox_info);
+		sqlite3_finalize(db->mailbox_create);
+		sqlite3_finalize(db->mailbox_delete);
+		sqlite3_close(db->conn);
+	}
+}
+
 void database_free(LOGGER log, DATABASE* database){
 	//FIXME check for SQLITE_BUSY here
 
