@@ -81,14 +81,6 @@ typedef struct _QUEUED_COMMAND {
 	size_t replies_length;
 } QUEUED_COMMAND;
 
-typedef struct /*_WORKER_CLIENT_DATA*/ {
-	CONNECTION* client;
-	sqlite3* user_database;
-	unsigned selection_master;
-	unsigned selection_user;
-	bool select_readwrite;
-} WORKER_CLIENT;
-
 typedef struct /*_COMMAND_QUEUE*/ {
 	QUEUED_COMMAND* entries;
 	size_t entries_length;
@@ -166,8 +158,6 @@ typedef struct /*_ARGS*/ {
 typedef struct /*_DATABASE_CONNECTION*/ {
 	sqlite3* conn;
 	sqlite3_stmt* query_authdata;
-	sqlite3_stmt* query_userdatabase;
-	sqlite3_stmt* fetch_master; 
 } DATABASE;
 
 typedef struct /*_WORKER_DB_CONN*/ {
@@ -176,7 +166,18 @@ typedef struct /*_WORKER_DB_CONN*/ {
 	sqlite3_stmt* mailbox_info;
 	sqlite3_stmt* mailbox_create;
 	sqlite3_stmt* mailbox_delete;
+	sqlite3_stmt* query_userdatabase;
+	sqlite3_stmt* fetch;
 } WORKER_DATABASE;
+
+typedef struct /*_WORKER_CLIENT_DATA*/ {
+	CONNECTION* client;
+	WORKER_DATABASE user_database;
+	char* authorized_user;
+	unsigned selection_master;
+	unsigned selection_user;
+	bool select_readwrite;
+} WORKER_CLIENT;
 
 typedef struct /*_CONF_META*/ {
 	CONNPOOL listeners;

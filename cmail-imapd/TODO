@@ -7,3 +7,4 @@ Test all commands with NULL parameters
 Error check pthread_ calls
 Check failscore in queue purge
 Implement queue worker storage in CLIENT structure
+AUTHENTICATE should round-trip in order to ensure proper user database handling

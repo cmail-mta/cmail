@@ -21,9 +21,7 @@ int main(int argc, char** argv){
 	CONFIGURATION config = {
 		.database = {
 			.conn = NULL,
-			.query_authdata = NULL,
-			.query_userdatabase = NULL,
-			.fetch_master = NULL,
+			.query_authdata = NULL
 		},
 		.listeners = {
 			.count = 0,
