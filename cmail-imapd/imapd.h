@@ -215,6 +215,7 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "config.c"
 #include "auth.c"
 #include "protocol.c"
+#include "workerdata.c"
 #include "commandqueue.c"
 #include "imapcommands.c"
 #include "imapstatemachine.c"
