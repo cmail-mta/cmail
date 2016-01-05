@@ -65,6 +65,16 @@ int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool i
 }
 
 void database_free_worker(WORKER_DATABASE* db){
+	WORKER_DATABASE empty = {
+		.conn = NULL,
+		.mailbox_find = NULL,
+		.mailbox_info = NULL,
+		.mailbox_create = NULL,
+		.mailbox_delete = NULL,
+		.fetch = NULL,
+		.query_userdatabase = NULL
+	};
+
 	if(db->conn){
 		sqlite3_finalize(db->mailbox_find);
 		sqlite3_finalize(db->mailbox_info);
@@ -75,6 +85,8 @@ void database_free_worker(WORKER_DATABASE* db){
 
 		sqlite3_close(db->conn);
 	}
+
+	*db = empty;
 }
 
 void database_free(LOGGER log, DATABASE* database){

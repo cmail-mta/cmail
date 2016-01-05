@@ -198,14 +198,27 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 		head = queue->head;
 		while(head){
 			switch(head->queue_state){
+				case COMMAND_INTERNAL_FAILURE:
+					client_send(log, head->client, "%s BAD Internal failure\r\n", head->tag);
+					head->discard = true;
 				case COMMAND_REPLY:
 					//send reply
 					if(head->replies && head->replies[0] && !head->discard){
 						client_send_raw(log, head->client, head->replies, strlen(head->replies));
 					}
+					if(head->command && (!strcasecmp(head->command, "authenticate") || !strcasecmp(head->command, "login"))){
+						//this relies on the fallthrough from COMMAND_INTERNAL_FAILURE
+						//head->command is NULL when this is the reply to a SYSTEM message
+						if(head->discard){
+							auth_reset(&(((CLIENT*)head->client->aux_data)->auth));
+							((CLIENT*)head->client->aux_data)->state = STATE_NEW;
+						}
+						else{
+							((CLIENT*)head->client->aux_data)->state = STATE_AUTHENTICATED;
+						}
+					}
 					//fall through
 				case COMMAND_CANCEL_ACK:
-				case COMMAND_INTERNAL_FAILURE:
 					//remove command from queue
 					head->active = false;
 					current = head;

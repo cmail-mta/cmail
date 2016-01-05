@@ -1,8 +1,9 @@
-int imapstate_sasl(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+int imapstate_sasl(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int sasl_status = SASL_OK;
 	char* sasl_challenge = NULL;
 	char* sasl_ir = NULL;
+	IMAP_COMMAND temporary_command;
 	unsigned i;
 
 	if(!strcmp(client_data->recv_buffer, "*")){
@@ -95,10 +96,26 @@ int imapstate_sasl(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABA
 			}
 
 			logprintf(log, LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
-			//TODO acquire connection specific data
 
-			client_data->state = STATE_AUTHENTICATED;
-			client_send(log, client, "%s OK Access granted\r\n", client_data->auth.auth_tag);
+			//enqueue command to acquire connection specific data
+			//as the command sentence may be split in this case, re-build a sentence that is valid in any case
+			temporary_command.backing_buffer_length = (strlen(client_data->auth.auth_tag) + strlen("AUTHENTICATE") + 2) * sizeof(char);
+			temporary_command.backing_buffer = calloc(temporary_command.backing_buffer_length, sizeof(char));
+			if(!temporary_command.backing_buffer){
+				logprintf(log, LOG_ERROR, "Failed to allocate memory for temporary command\n");
+				client_send(log, client, "%s BAD Internal allocation error\r\n", client_data->auth.auth_tag);
+				auth_reset(&(client_data->auth));
+				return 0;
+			}
+			snprintf(temporary_command.backing_buffer, temporary_command.backing_buffer_length, "%s", client_data->auth.auth_tag);
+			snprintf(temporary_command.backing_buffer + strlen(client_data->auth.auth_tag) + 1, temporary_command.backing_buffer_length - strlen(client_data->auth.auth_tag) - 1, "AUTHENTICATE");
+			temporary_command.tag = temporary_command.backing_buffer;
+			temporary_command.command = temporary_command.backing_buffer + strlen(client_data->auth.auth_tag) + 1;
+			temporary_command.parameters = NULL;
+			//enqueue it
+			commandqueue_enqueue_command(log, command_queue, client, temporary_command, NULL);
+			//clean it up again
+			free(temporary_command.backing_buffer);
 			return 1;
 	}
 
@@ -106,7 +123,7 @@ int imapstate_sasl(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABA
 	return -1;
 }
 
-int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
 	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
@@ -124,7 +141,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
 		//this is kind of a hack as it bypasses the default command state responder
-		return imap_logout(log, sentence, client, database, NULL);
+		return imap_logout(log, sentence, client, database, command_queue);
 	}
 	else if(!strcasecmp(sentence.command, "xyzzy")){
 		state_reason = "Incantation performed";
@@ -185,7 +202,7 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 			}
 			else{
 				//call out to state_sasl for actual negotiation
-				return imapstate_sasl(log, sentence, client, database);
+				return imapstate_sasl(log, command_queue, sentence, client, database);
 			}
 		}
 		else{
@@ -261,14 +278,13 @@ int imapstate_new(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABAS
 						state = COMMAND_BAD;
 					}
 					else{
-						client_data->state = STATE_AUTHENTICATED;
 						client_data->auth.method = IMAP_LOGIN;
 						logprintf(log, LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
-						//TODO acquire connection specific data
 
-						state_reason = "Authentication successful";
-						state = COMMAND_OK;
+						state = COMMAND_NOREPLY;
 						rv = 1;
+						//enqueue command to acquire connection specific data
+						commandqueue_enqueue_command(log, command_queue, client, sentence, NULL);
 					}
 				}
 			}

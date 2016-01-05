@@ -8,7 +8,12 @@ int queueworker_arbitrate_command(LOGGER log, QUEUED_COMMAND* entry, WORKER_CLIE
 		}
 	}
 
-	if(!strcasecmp(entry->command, "noop")){
+	if(!strcasecmp(entry->command, "authenticate") || !strcasecmp(entry->command, "login")){
+		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+				"%s OK Access granted\r\n", entry->tag);
+		return 0;
+	}
+	else if(!strcasecmp(entry->command, "noop")){
 		//TODO check for new mail
 		return 0;
 	}
@@ -37,16 +42,13 @@ void* queueworker_coreloop(void* param){
 	WORKER_CLIENT client_data[CMAIL_MAX_CONCURRENT_CLIENTS];
 	WORKER_CLIENT* current_client = NULL;
 
-	WORKER_DATABASE master = {
-		.conn = NULL,
-		.mailbox_find = NULL,
-		.mailbox_info = NULL,
-		.mailbox_create = NULL,
-		.mailbox_delete = NULL,
-		.query_userdatabase = NULL,
-		.fetch = NULL
-	};
+	WORKER_DATABASE master;
 
+	//reset entries
+	master.conn = NULL;
+ 	database_free_worker(&master);	
+
+	//attach master
 	if(database_init_worker(log, (char*)thread_config->master_db, &master, true) < 0){
 		logprintf(log, LOG_ERROR, "Failed to open master database in queue worker\n");
 		database_free_worker(&master);
@@ -55,6 +57,7 @@ void* queueworker_coreloop(void* param){
 
 	//initialize per-client data
 	for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
+		client_data[i].user_database.conn = NULL;
 		workerdata_release(log, client_data + i, false);
 	}
 
@@ -69,11 +72,11 @@ void* queueworker_coreloop(void* param){
 				case COMMAND_NEW:
 					//process queued command
 					head->queue_state = COMMAND_IN_PROGRESS;
+					entries_done++;
 
 					//check for local client data
 					current_client = workerdata_get(log, client_data, &master, head->client);
 					if(!current_client){
-						//FIXME return static error buffer
 						head->queue_state = COMMAND_INTERNAL_FAILURE;
 						break;
 					}
@@ -85,7 +88,6 @@ void* queueworker_coreloop(void* param){
 						logprintf(log, LOG_WARNING, "Command execution returned error in queue worker\n");
 					}
 
-					entries_done++;
 					pthread_mutex_lock(&(queue->queue_access));
 					head->queue_state = COMMAND_REPLY;
 					break;

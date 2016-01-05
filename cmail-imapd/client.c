@@ -62,9 +62,9 @@ int client_line(LOGGER log, COMMAND_QUEUE* command_queue, CONNECTION* client, DA
 	logprintf(log, LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command ? client_data->sentence.command:"-none-", client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
 	switch(client_data->state){
 		case STATE_NEW:
-			return imapstate_new(log, client_data->sentence, client, database);
+			return imapstate_new(log, command_queue, client_data->sentence, client, database);
 		case STATE_SASL:
-			return imapstate_sasl(log, client_data->sentence, client, database);
+			return imapstate_sasl(log, command_queue, client_data->sentence, client, database);
 		case STATE_AUTHENTICATED:
 			return imapstate_authenticated(log, command_queue, client_data->sentence, client, database);
 	}
@@ -188,37 +188,35 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUE
 	unsigned i;
 
 	//make sure all queued commands are canceled
-	if(command_queue){
-		pthread_mutex_lock(&(command_queue->queue_access));
-		for(queue_entry = command_queue->head; queue_entry; queue_entry = queue_entry->next){
-			if(queue_entry->client == client){
-				if(queue_entry->queue_state != COMMAND_IN_PROGRESS){
-					queue_entry->queue_state = COMMAND_CANCELED;
-				}
-				else{
-					logprintf(log, LOG_INFO, "Closed client has active command queue entry\n");
-					//probably should wait until command completion here, but that would open up a DoS vector
-					//instead, discard this entry at queue responder
-					queue_entry->discard = true;
-				}
+	pthread_mutex_lock(&(command_queue->queue_access));
+	for(queue_entry = command_queue->head; queue_entry; queue_entry = queue_entry->next){
+		if(queue_entry->client == client){
+			if(queue_entry->queue_state != COMMAND_IN_PROGRESS){
+				queue_entry->queue_state = COMMAND_CANCELED;
+			}
+			else{
+				logprintf(log, LOG_INFO, "Closed client has active command queue entry\n");
+				//probably should wait until command completion here, but that would open up a DoS vector
+				//instead, discard this entry at queue responder
+				queue_entry->discard = true;
 			}
 		}
-
-		//transmit client close to queue worker
-		for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
-			if(!command_queue->system_entries[i].active){
-				command_queue->system_entries[i].active = true;
-				command_queue->system_entries[i].discard = true;
-				command_queue->system_entries[i].client = client;
-				command_queue->system_entries[i].queue_state = COMMAND_SYSTEM;
-				commandqueue_enqueue(log, command_queue, command_queue->system_entries + i);
-				break;
-			}
-		}
-		//signal queue run
-		pthread_cond_signal(&(command_queue->queue_dirty));
-		pthread_mutex_unlock(&(command_queue->queue_access));
 	}
+
+	//transmit client close to queue worker
+	for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
+		if(!command_queue->system_entries[i].active){
+			command_queue->system_entries[i].active = true;
+			command_queue->system_entries[i].discard = true;
+			command_queue->system_entries[i].client = client;
+			command_queue->system_entries[i].queue_state = COMMAND_SYSTEM;
+			commandqueue_enqueue(log, command_queue, command_queue->system_entries + i);
+			break;
+		}
+	}
+	//signal queue run
+	pthread_cond_signal(&(command_queue->queue_dirty));
+	pthread_mutex_unlock(&(command_queue->queue_access));
 
 	#ifndef CMAIL_NO_TLS
 	//shut down the tls session

@@ -2,13 +2,7 @@ int workerdata_release(LOGGER log, WORKER_CLIENT* client, bool data_valid){
 	WORKER_CLIENT empty = {
 		.client = NULL,
 		.user_database = {
-			.conn = NULL,
-			.mailbox_find = NULL,
-			.mailbox_info = NULL,
-			.mailbox_create = NULL,
-			.mailbox_delete = NULL,
-			.query_userdatabase = NULL,
-			.fetch = NULL
+			.conn = NULL
 		},
 		.authorized_user = NULL,
 		.selection_master = 0,
@@ -18,8 +12,9 @@ int workerdata_release(LOGGER log, WORKER_CLIENT* client, bool data_valid){
 
 	if(data_valid){
 		free(client->authorized_user);
-		database_free_worker(&(client->user_database));
 	}
+	//do this in any case to reset the database entries
+	database_free_worker(&(client->user_database));
 
 	*client = empty;
 	return 0;
@@ -96,7 +91,6 @@ WORKER_CLIENT* workerdata_get(LOGGER log, WORKER_CLIENT* clients, WORKER_DATABAS
 		if(last_slot >= 0){
 			if(workerdata_acquire(log, master, client, clients + last_slot) < 0){
 				logprintf(log, LOG_ERROR, "Failed to gather client data for background processing\n");
-				
 				return NULL;
 			}
 			i = last_slot;
@@ -104,8 +98,6 @@ WORKER_CLIENT* workerdata_get(LOGGER log, WORKER_CLIENT* clients, WORKER_DATABAS
 		else{
 			//should never happen
 			logprintf(log, LOG_ERROR, "Ran out of worker client slots\n");
-			//FIXME return static error buffer as response
-			//head->queue_state = COMMAND_INTERNAL_FAILURE;
 			return NULL;
 		}
 	}
