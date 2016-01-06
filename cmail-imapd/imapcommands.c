@@ -31,6 +31,15 @@ IMAP_COMMAND_STATE imap_capability(LOGGER log, IMAP_COMMAND sentence, CONNECTION
 }
 
 IMAP_COMMAND_STATE imap_xyzzy(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+	CLIENT* client_data = (CLIENT*)client->aux_data;
+	logprintf(log, LOG_INFO, "Client performs incantation\n");
+	#ifndef CMAIL_NO_TLS
+	logprintf(log, LOG_DEBUG, "Client TLS status: %s\n", tls_modestring(client->tls_mode));
+	#endif
+	logprintf(log, LOG_DEBUG, "Auth state: %s, Method: %s\n", client_data->auth.user.authenticated ? "true":"false", client_data->auth.method == IMAP_LOGIN ? "LOGIN":"AUTHENTICATE");
+	logprintf(log, LOG_DEBUG, "Authentication: %s, Authorization: %s\n", client_data->auth.user.authenticated ? client_data->auth.user.authenticated:"null", client_data->auth.user.authorized ? client_data->auth.user.authorized:"null");
+	logprintf(log, LOG_DEBUG, "Current state: %s\n", client_data->state == STATE_NEW ? "NEW" : "AUTHENTICATED");
+	logprintf(log, LOG_DEBUG, "Connection score: %d\n", client_data->connection_score);
 	client_send(log, client, "* XYZZY Nothing happens\r\n");
 	return COMMAND_OK;
 }

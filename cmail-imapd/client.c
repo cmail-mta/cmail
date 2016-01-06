@@ -208,6 +208,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUE
 		if(!command_queue->system_entries[i].active){
 			command_queue->system_entries[i].active = true;
 			command_queue->system_entries[i].discard = true;
+			command_queue->system_entries[i].last_enqueue = time(NULL);
 			command_queue->system_entries[i].client = client;
 			command_queue->system_entries[i].queue_state = COMMAND_SYSTEM;
 			commandqueue_enqueue(log, command_queue, command_queue->system_entries + i);

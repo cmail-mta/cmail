@@ -219,6 +219,7 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 					}
 					//fall through
 				case COMMAND_CANCEL_ACK:
+					logprintf(log, LOG_DEBUG, "Current entry has RTT %d\n", time(NULL) - head->last_enqueue);
 					//remove command from queue
 					head->active = false;
 					current = head;

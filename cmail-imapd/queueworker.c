@@ -1,5 +1,6 @@
 int queueworker_arbitrate_command(LOGGER log, QUEUED_COMMAND* entry, WORKER_CLIENT* client){
 	unsigned i;
+	int rv = 0;
 
 	logprintf(log, LOG_DEBUG, "Handling command [%s]: %s\n", entry->tag, entry->command);
 	if(entry->parameters){
@@ -11,25 +12,33 @@ int queueworker_arbitrate_command(LOGGER log, QUEUED_COMMAND* entry, WORKER_CLIE
 	if(!strcasecmp(entry->command, "authenticate") || !strcasecmp(entry->command, "login")){
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"%s OK Access granted\r\n", entry->tag);
-		return 0;
+		if(!entry->replies){
+			logprintf(log, LOG_ERROR, "Failed to allocate command reply\n");
+			rv = -1;
+		}
 	}
 	else if(!strcasecmp(entry->command, "noop")){
 		//TODO check for new mail
-		return 0;
+		rv = -1;
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
+		logprintf(log, LOG_DEBUG, "User database: %s\n", client->user_database.conn ? "attached":"none");
+		logprintf(log, LOG_DEBUG, "Selection: master %d, user %d, readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"* XYZZY Round-trip completed\r\n%s OK Incantation completed\r\n", entry->tag);
 		if(!entry->replies){
-			//FIXME this is really bad and probably should be adressed by falling back to a static failure response buffer
-			logprintf(log, LOG_ERROR, "Failed to reallocate command reply\n");
+			logprintf(log, LOG_ERROR, "Failed to allocate command reply\n");
+			rv = -1;
 		}
-		return 0;
+	}
+	else{
+		//default branch, command not known but enqueued
+		rv = -1;
 	}
 
-	//FIXME need to be able to increase failscore here
-	return -1;
+	//returning -1 here automatically generates a COMMAND_INTERNAL_ERROR
+	return rv;
 }
 
 
@@ -43,6 +52,7 @@ void* queueworker_coreloop(void* param){
 	WORKER_CLIENT* current_client = NULL;
 
 	WORKER_DATABASE master;
+	IMAP_STATE current_state;
 
 	//reset entries
 	master.conn = NULL;
@@ -84,12 +94,14 @@ void* queueworker_coreloop(void* param){
 					pthread_mutex_unlock(&(queue->queue_access));
 
 					//do the actual work
+					current_state = COMMAND_REPLY;
 					if(queueworker_arbitrate_command(log, head, current_client) < 0){
 						logprintf(log, LOG_WARNING, "Command execution returned error in queue worker\n");
+						current_state = COMMAND_INTERNAL_FAILURE;
 					}
 
 					pthread_mutex_lock(&(queue->queue_access));
-					head->queue_state = COMMAND_REPLY;
+					head->queue_state = current_state;
 					break;
 				case COMMAND_SYSTEM:
 					logprintf(log, LOG_DEBUG, "Queue worker handled system message\n");
