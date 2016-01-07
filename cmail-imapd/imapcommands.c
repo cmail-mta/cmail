@@ -1,3 +1,11 @@
+int imap_create(LOGGER log, WORKER_DATABASE* db, char* mailbox){
+	//decode mailbox name from UTF-7
+
+	//create mailbox path iteratively
+
+	return -1;
+}
+
 int imap_logout(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* queue){
 	client_send(log, client, "* BYE for now\r\n");
 	client_send(log, client, "%s OK LOGOUT completed\r\n", sentence.tag);

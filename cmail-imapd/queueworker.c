@@ -1,4 +1,4 @@
-int queueworker_arbitrate_command(LOGGER log, QUEUED_COMMAND* entry, WORKER_CLIENT* client){
+int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_COMMAND* entry, WORKER_CLIENT* client){
 	unsigned i;
 	int rv = 0;
 
@@ -20,6 +20,17 @@ int queueworker_arbitrate_command(LOGGER log, QUEUED_COMMAND* entry, WORKER_CLIE
 	else if(!strcasecmp(entry->command, "noop")){
 		//TODO check for new mail
 		rv = -1;
+	}
+	else if(!strcasecmp(entry->command, "create")){
+		rv = imap_create(log, master, entry->backing_buffer + entry->parameters[0]);
+		if(rv >= 0 && client->user_database.conn){
+			rv = imap_create(log, &(client->user_database), entry->backing_buffer + entry->parameters[0]);
+			if(rv < 0){
+				//FIXME roll back changes to master database
+			}
+		}
+	}
+	else if(!strcasecmp(entry->command, "delete")){
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
@@ -95,7 +106,7 @@ void* queueworker_coreloop(void* param){
 
 					//do the actual work
 					current_state = COMMAND_REPLY;
-					if(queueworker_arbitrate_command(log, head, current_client) < 0){
+					if(queueworker_arbitrate_command(log, &master, head, current_client) < 0){
 						logprintf(log, LOG_WARNING, "Command execution returned error in queue worker\n");
 						current_state = COMMAND_INTERNAL_FAILURE;
 					}
