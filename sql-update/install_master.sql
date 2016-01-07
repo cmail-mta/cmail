@@ -50,10 +50,12 @@ BEGIN TRANSACTION;
 	);
 
 	CREATE TABLE mailbox_names (
-		mailbox_id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
+		mailbox_id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE CHECK(mailbox_id >= 0),
 		mailbox_name		TEXT NOT NULL,
 		mailbox_parent		INTEGER REFERENCES mailbox_names (mailbox_id) ON DELETE CASCADE ON UPDATE CASCADE
 	);
+
+	INSERT INTO mailbox_names (mailbox_id, mailbox_name) VALUES (0, 'INBOX');
 
 	CREATE TABLE mailbox_mapping (
 		mail_id			INTEGER NOT NULL REFERENCES mailbox (mail_id) ON DELETE CASCADE ON UPDATE CASCADE,
