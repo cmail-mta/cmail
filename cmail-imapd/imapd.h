@@ -174,8 +174,8 @@ typedef struct /*_WORKER_CLIENT_DATA*/ {
 	CONNECTION* client;
 	WORKER_DATABASE user_database;
 	char* authorized_user;
-	unsigned selection_master;
-	unsigned selection_user;
+	long selection_master;
+	long selection_user;
 	bool select_readwrite;
 } WORKER_CLIENT;
 

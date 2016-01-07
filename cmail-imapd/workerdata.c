@@ -5,8 +5,8 @@ int workerdata_release(LOGGER log, WORKER_CLIENT* client, bool data_valid){
 			.conn = NULL
 		},
 		.authorized_user = NULL,
-		.selection_master = 0,
-		.selection_user = 0,
+		.selection_master = -1,
+		.selection_user = -1,
 		.select_readwrite = false
 	};
 
