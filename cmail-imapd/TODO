@@ -7,3 +7,4 @@ Test all commands with NULL parameters
 Error check pthread_ calls
 Check failscore in queue purge
 Queue worker needs to be able to modify client connection score
+Sync mailbox UIDVALIDITY drift between user/master databases

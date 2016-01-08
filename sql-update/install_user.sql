@@ -31,9 +31,13 @@ BEGIN TRANSACTION;
 	);
 
 	CREATE TABLE mailbox_names (
-		mailbox_id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE CHECK (mailbox_id >= 0),
+		mailbox_id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE CHECK(mailbox_id >= 0),
+		mailbox_user		TEXT,
 		mailbox_name		TEXT NOT NULL,
-		mailbox_parent		INTEGER REFERENCES mailbox_names (mailbox_id) ON DELETE CASCADE ON UPDATE CASCADE
+		mailbox_parent		INTEGER REFERENCES mailbox_names (mailbox_id) ON DELETE CASCADE ON UPDATE CASCADE,
+		mailbox_uid_validity	INTEGER NOT NULL DEFAULT (strftime( '%s', 'now' )), 
+		mailbox_uid_next	INTEGER NOT NULL DEFAULT (1),
+		CONSTRAINT mbx_unique_per_user UNIQUE (mailbox_user, mailbox_name) ON CONFLICT FAIL
 	);
 
 	INSERT INTO mailbox_names (mailbox_id, mailbox_name) VALUES (0, 'INBOX');
