@@ -75,7 +75,7 @@ int sasl_continue(LOGGER log, SASL_CONTEXT* ctx, char* data, char** response){
 				return SASL_ERROR_DATA;
 			}
 
-			length = auth_base64decode(log, data);
+			length = common_base64decode(log, data, true);
 
 			if(length < 4){ //2x NUL, 2x min 1 byte
 				logprintf(log, LOG_ERROR, "Failed to decode PLAIN authentication parameter\n");

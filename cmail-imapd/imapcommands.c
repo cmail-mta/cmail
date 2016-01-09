@@ -1,5 +1,15 @@
-int imap_create(LOGGER log, WORKER_DATABASE* db, char* mailbox){
+int imap_create(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox){
+	ssize_t path_len;
+
 	//decode mailbox name from UTF-7
+	path_len = protocol_utf7_decode(log, mailbox);
+	if(path_len < 0){
+		logprintf(log, LOG_ERROR, "Failed to decode mailbox path\n");
+		//TODO send appropriate response
+		return -1;
+	}
+
+	logprintf(log, LOG_DEBUG, "Trying to create mailbox path %s\n", mailbox);
 
 	//create mailbox path iteratively
 

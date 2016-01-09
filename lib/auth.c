@@ -4,61 +4,6 @@
  * For further information, consult LICENSE.txt
  */
 
-int auth_base64decode(LOGGER log, char* in){
-	uint32_t decode_buffer;
-	int group, len, i;
-	char* idx;
-
-	char* base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	len = strlen(in);
-
-	if(len % 4){
-		logprintf(log, LOG_WARNING, "Input has invalid length for base64\n");
-		return -1;
-	}
-
-	//decode to code point indices
-	for(i = 0; i < len; i++){
-		if(in[i] == '='){
-			//'=' is only allowed as trailing character, so fail if it is within valid base64
-			//this is marked MUST by some rfcs (5034)
-			for(; i < len; i++){
-				if(in[i] != '='){
-					logprintf(log, LOG_WARNING, "Input string contains = as non-trailing character\n");
-					return -1;
-				}
-
-				//need to decode all groups
-				in[i] = 0;
-			}
-			break;
-		}
-
-		idx = index(base64_alphabet, in[i]);
-		if(!idx){
-			logprintf(log, LOG_WARNING, "Input string contains invalid characters\n");
-			return -1;
-		}
-		in[i] = idx - base64_alphabet;
-	}
-
-	for(group = 0; group < (len / 4); group++){
-		//stuff the buffer
-		decode_buffer = 0 | (in[group * 4] << 18);
-		decode_buffer |= (in[(group * 4) + 1] << 12);
-		decode_buffer |= (in[(group * 4) + 2] << 6);
-		decode_buffer |= (in[(group * 4) + 3]);
-
-		//read back decoded characters
-		in[(group * 3)] = (decode_buffer & 0xFF0000) >> 16;
-		in[(group * 3) + 1] = (decode_buffer & 0xFF00) >> 8;
-		in[(group * 3) + 2] = (decode_buffer & 0xFF);
-		in[(group * 3) + 3] = 0;
-	}
-
-	return (group * 3) + 3;
-}
-
 int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, char* pass, unsigned pass_bytes){
 	struct sha256_ctx hash_context;
 	uint8_t digest[SHA256_DIGEST_SIZE];

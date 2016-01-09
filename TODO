@@ -1,2 +1,3 @@
 Implement sendmail interface
 When the connection limit is reached, new clients are still accepted but never terminated
+One userdb, multiple users?

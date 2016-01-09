@@ -22,9 +22,9 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		rv = -1;
 	}
 	else if(!strcasecmp(entry->command, "create")){
-		rv = imap_create(log, master, entry->backing_buffer + entry->parameters[0]);
+		rv = imap_create(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(rv >= 0 && client->user_database.conn){
-			rv = imap_create(log, &(client->user_database), entry->backing_buffer + entry->parameters[0]);
+			rv = imap_create(log, &(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 			if(rv < 0){
 				//FIXME roll back changes to master database
 			}

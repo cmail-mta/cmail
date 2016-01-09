@@ -1,3 +1,83 @@
+//this function _will_ modify the input buffer
+ssize_t protocol_utf7_decode(LOGGER log, char* input){
+	size_t decode_pos, b64end, b64len;
+	size_t output_pos = 0;
+
+	for(decode_pos = 0; input[decode_pos]; decode_pos++){
+		if((input[decode_pos] >= 0x20 && input[decode_pos] <= 0x25)
+				|| (input[decode_pos] >= 0x27 && input[decode_pos] <= 0x7e)){
+			//literal representation
+			input[output_pos++] = input[decode_pos];
+		}
+		else if(input[decode_pos] == '&'){
+			if(input[decode_pos + 1] == '-'){
+				//literal ampersand
+				input[output_pos++] = '&';
+				decode_pos++;
+			}
+			else{
+				//shift into modified base64
+
+				//scan for base64 end and transform to sane base64
+				for(b64end = decode_pos + 1; input[b64end]; b64end++){
+					if(input[b64end] == '-'){
+						break;
+					}
+					else if(input[b64end] == ','){
+						input[b64end] = '/';
+					}
+				}
+
+				if(!input[b64end]){
+					logprintf(log, LOG_ERROR, "Unterminated base64 in UTF7\n");
+					return -1;
+				}
+
+				input[b64end] = 0;
+				decode_pos++;
+
+				logprintf(log, LOG_DEBUG, "Base64 to decode: %s\n", input + decode_pos);
+
+				//run through base64 decoder
+				b64len = common_base64decode(log, input + decode_pos, false);
+				if(b64len < 0){
+					return -1;
+				}
+				log_dump_buffer(log, LOG_DEBUG, input + decode_pos, b64len);
+				//logprintf(log, LOG_DEBUG, "Base64 after decode: %s\n", input + decode_pos);
+
+				//copy result back to output pointer and check that no invalid
+				//characters were encoded
+				for(b64len = 0; input[decode_pos + b64len]; b64len++){
+					//if((input[decode_pos + b64len] >= 0x20 && input[decode_pos + b64len] <= 0x25)
+					//		|| (input[decode_pos + b64len] >= 0x27 && input[decode_pos + b64len] <= 0x7e)){
+					//	logprintf(log, LOG_ERROR, "UTF-7 contained escaped literal characters (%c @ %d)\n", input[decode_pos + b64len], decode_pos + b64len);
+					//	return -1;
+					//}
+					//else{
+						//FIXME this needs to operate on 16-bit characters
+						input[output_pos++] = input[decode_pos + b64len];
+					//}
+				}
+
+				logprintf(log, LOG_DEBUG, "Decoded %d bytes of base64-encoded UTF-16\n", b64len);
+				if(b64len % 2){
+					logprintf(log, LOG_ERROR, "Decoded data has odd length\n");
+					return -1;
+				}
+				decode_pos = b64end + 1;
+			}
+		}
+
+		//terminate the string
+		if(decode_pos > output_pos){
+			input[output_pos] = 0;
+		}
+	}
+
+	return 0;
+}
+
 //this function may destructively modify the input buffer (in the case of a quoted string)
 ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end){
 	//non-ASTRING chars: anything <= 32, (){%*\" 
@@ -36,7 +116,6 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end
 	}
 	else if(input[0] == '"'){
 		//quoted string
-		//TODO test empty quoted strings
 		length = 1;
 		for(i = 1; input[i]; i++){
 			if(input[i] == '\\'){
