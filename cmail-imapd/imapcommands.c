@@ -1,19 +1,70 @@
-int imap_create(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox){
-	ssize_t path_len;
+int imap_create(LOGGER log, WORKER_DATABASE* db, QUEUED_COMMAND* command, char* user, char* mailbox){
+	int rv = 0;
+	size_t mailbox_len = strlen(mailbox), i;
+	char* next_mailbox = NULL;
+	char* tokenize_mailbox = NULL;
+	int mailbox_id = -1, parent;
+
+	//TODO this should modfy the connection score
 
 	//decode mailbox name from UTF-7
-	path_len = protocol_utf7_decode(log, mailbox);
-	if(path_len < 0){
-		logprintf(log, LOG_ERROR, "Failed to decode mailbox path\n");
-		//TODO send appropriate response
+	//path_len = protocol_utf7_decode(log, mailbox);
+	//if(path_len < 0){
+	//	logprintf(log, LOG_ERROR, "Failed to decode mailbox path\n");
+	//	//TODO send appropriate response
+	//	return -1;
+	//}
+
+	//FIXME report error when entire path is already created
+
+	logprintf(log, LOG_DEBUG, "Trying to create mailbox path %s\n", mailbox);
+	//test for leading slash
+	if(mailbox[0] == '/'){
+		logprintf(log, LOG_WARNING, "Leading slash in mailbox path\n");
+		command->replies = common_strappf(command->replies, &(command->replies_length),
+				"%s NO Invalid path specified\r\n", command->tag);
 		return -1;
 	}
 
-	logprintf(log, LOG_DEBUG, "Trying to create mailbox path %s\n", mailbox);
+	//TODO remove trailing slashes
+
+	//TODO test for double slashes
 
 	//create mailbox path iteratively
+	for(next_mailbox = strtok_r(mailbox, "/", &tokenize_mailbox); next_mailbox; next_mailbox = strtok_r(NULL, "/", &tokenize_mailbox)){
+		parent = mailbox_id;
+		logprintf(log, LOG_DEBUG, "Checking for mailbox %s parent %d existence\n", next_mailbox, parent);
+		mailbox_id = database_query_mailbox(log, db, user, next_mailbox, parent);
 
-	return -1;
+		if(mailbox_id == -2){
+			logprintf(log, LOG_ERROR, "Failed to query mailbox info\n");
+			//return internal error
+			return -1;
+		}
+
+		//if the mailbox does not yet exist, create it
+		if(mailbox_id < 0){
+			logprintf(log, LOG_DEBUG, "Creating mailbox %s with parent %d\n", next_mailbox, parent);
+			mailbox_id = database_create_mailbox(log, db, user, next_mailbox, parent);
+			if(mailbox_id < 0){
+				//FIXME might want to rollback changes
+				logprintf(log, LOG_ERROR, "Failed to create mailbox\n");
+				command->replies = common_strappf(command->replies, &(command->replies_length),
+						"%s NO Failed to create mailbox\r\n", command->tag);
+				rv = -1;
+				break;
+			}
+		}
+	}
+
+	//reset all terminators in the mailbox path
+	for(i = 0; i < mailbox_len; i++){
+		if(mailbox[i] == 0){
+			mailbox[i] = '/';
+		}
+	}
+
+	return rv;
 }
 
 int imap_logout(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* queue){

@@ -12,22 +12,26 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 	if(!strcasecmp(entry->command, "authenticate") || !strcasecmp(entry->command, "login")){
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"%s OK Access granted\r\n", entry->tag);
-		if(!entry->replies){
-			logprintf(log, LOG_ERROR, "Failed to allocate command reply\n");
-			rv = -1;
-		}
 	}
 	else if(!strcasecmp(entry->command, "noop")){
 		//TODO check for new mail
 		rv = -1;
 	}
 	else if(!strcasecmp(entry->command, "create")){
-		rv = imap_create(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		rv = imap_create(log, master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(rv >= 0 && client->user_database.conn){
-			rv = imap_create(log, &(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+			rv = imap_create(log, &(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 			if(rv < 0){
 				//FIXME roll back changes to master database
 			}
+		}
+
+		if(rv == 0){
+			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+					"%s OK Mailbox created\r\n", entry->tag);
+		}
+		else if(entry->replies && entry->replies[0]){
+			rv = 0;
 		}
 	}
 	else if(!strcasecmp(entry->command, "delete")){
@@ -38,13 +42,14 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		logprintf(log, LOG_DEBUG, "Selection: master %d, user %d, readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"* XYZZY Round-trip completed\r\n%s OK Incantation completed\r\n", entry->tag);
-		if(!entry->replies){
-			logprintf(log, LOG_ERROR, "Failed to allocate command reply\n");
-			rv = -1;
-		}
 	}
 	else{
 		//default branch, command not known but enqueued
+		rv = -1;
+	}
+
+	if(!entry->replies){
+		logprintf(log, LOG_ERROR, "Failed to allocate command reply or no reply generated\n");
 		rv = -1;
 	}
 

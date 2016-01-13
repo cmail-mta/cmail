@@ -1,5 +1,5 @@
 //this function _will_ modify the input buffer
-ssize_t protocol_utf7_decode(LOGGER log, char* input){
+/*ssize_t protocol_utf7_decode(LOGGER log, char* input){
 	size_t decode_pos, b64end, b64len;
 	size_t output_pos = 0;
 
@@ -76,7 +76,7 @@ ssize_t protocol_utf7_decode(LOGGER log, char* input){
 	}
 
 	return 0;
-}
+}*/
 
 //this function may destructively modify the input buffer (in the case of a quoted string)
 ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end){
