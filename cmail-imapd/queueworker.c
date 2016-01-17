@@ -35,6 +35,44 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		}
 	}
 	else if(!strcasecmp(entry->command, "delete")){
+		//TODO implement mailbox deletion
+	}
+	else if(!strcasecmp(entry->command, "examine") || !strcasecmp(entry->command, "select")){
+		client->selection_master = database_resolve_path(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0], NULL);
+		if(client->selection_master < 0){
+			//FIXME this should probably detect internal errors
+			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+					"%s NO Failed to select mailbox\r\n", entry->tag);
+			rv = 0;
+		}
+		else{
+			if(client->user_database.conn){
+				client->selection_user = database_resolve_path(log, &(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0], NULL);
+				rv = (client->selection_user < 0) ? -1:0;
+			}
+
+			if(rv == 0){
+				//select implies readwrite access
+				client->select_readwrite = (entry->command[0] == 's') ? true:false;
+
+				logprintf(log, LOG_DEBUG, "Client selected mailbox %d @ master, %d @ user for readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
+				//TODO actually send required data back to client
+				entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+						"%s OK Selection now active\r\n", entry->tag);
+				rv = 0;
+			}
+			else{
+				client->selection_master = -1;
+				client->selection_user = -1;
+				entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+						"%s NO Failed to select mailbox\r\n", entry->tag);
+				rv = 0;
+			}
+		}
+	}
+	else if(!strcasecmp(entry->command, "subscribe")){
+	}
+	else if(!strcasecmp(entry->command, "unsubscribe")){
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy

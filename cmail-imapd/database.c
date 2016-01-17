@@ -63,6 +63,62 @@ int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* ma
 	return rv;
 }
 
+int database_resolve_path(LOGGER log, WORKER_DATABASE* db, char* user, char* path, char** unresolved){
+	char* next_mailbox = NULL;
+	char* tokenize_path;
+	size_t path_len = strlen(path);
+	int mailbox_id = -1, parent;
+	int rv = 0, i;
+
+	//check for leading slashes
+	if(path[0] == '/'){
+		logprintf(log, LOG_ERROR, "Leading slash in mailbox path\n");
+		return -1;
+	}
+
+	//TODO check for double slashes
+	//TODO strip trailing slashes
+
+	//scan mailbox path iteratively
+	for(next_mailbox = strtok_r(path, "/", &tokenize_path); next_mailbox; next_mailbox = strtok_r(NULL, "/", &tokenize_path)){
+		parent = mailbox_id;
+		logprintf(log, LOG_DEBUG, "Checking for mailbox %s parent %d existence\n", next_mailbox, parent);
+		mailbox_id = database_query_mailbox(log, db, user, next_mailbox, parent);
+
+		if(mailbox_id == -2){
+			logprintf(log, LOG_ERROR, "Failed to query mailbox info\n");
+			//return internal error
+			rv = -1;
+			break;
+		}
+
+		//if the mailbox does not exist (and the info is requested), return offset & parent
+		if(mailbox_id < 0){
+			logprintf(log, LOG_INFO, "Mailbox path incomplete at %s parent %d\n", next_mailbox, parent);
+			if(unresolved){
+				*unresolved = next_mailbox;
+				rv = parent;
+			}
+			else{
+				rv = -1;
+			}
+			break;
+		}
+		else{
+			rv = mailbox_id;
+		}
+	}
+
+	//reset all terminators in the mailbox path
+	for(i = 0; i < path_len; i++){
+		if(path[i] == 0){
+			path[i] = '/';
+		}
+	}
+
+	return rv;
+}
+
 int database_create_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox, int parent){
 	int rv = -1;
 
