@@ -17,7 +17,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		//TODO check for new mail
 		rv = -1;
 	}
-	else if(!strcasecmp(entry->command, "create")){
+	else if(entry->parameters && !strcasecmp(entry->command, "create")){
 		rv = imap_create(log, master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(rv >= 0 && client->user_database.conn){
 			rv = imap_create(log, &(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
@@ -34,10 +34,10 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 			rv = 0;
 		}
 	}
-	else if(!strcasecmp(entry->command, "delete")){
+	else if(entry->parameters && !strcasecmp(entry->command, "delete")){
 		//TODO implement mailbox deletion
 	}
-	else if(!strcasecmp(entry->command, "examine") || !strcasecmp(entry->command, "select")){
+	else if(entry->parameters && (!strcasecmp(entry->command, "examine") || !strcasecmp(entry->command, "select"))){
 		client->selection_master = database_resolve_path(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0], NULL);
 		if(client->selection_master < 0){
 			//FIXME this should probably detect internal errors
@@ -70,9 +70,9 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 			}
 		}
 	}
-	else if(!strcasecmp(entry->command, "subscribe")){
+	else if(entry->parameters && !strcasecmp(entry->command, "subscribe")){
 	}
-	else if(!strcasecmp(entry->command, "unsubscribe")){
+	else if(entry->parameters && !strcasecmp(entry->command, "unsubscribe")){
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
