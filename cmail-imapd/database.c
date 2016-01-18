@@ -71,13 +71,21 @@ int database_resolve_path(LOGGER log, WORKER_DATABASE* db, char* user, char* pat
 	int rv = 0, i;
 
 	//check for leading slashes
-	if(path[0] == '/'){
+	if(path_len <= 0 || path[0] == '/'){
 		logprintf(log, LOG_ERROR, "Leading slash in mailbox path\n");
 		return -1;
 	}
 
-	//TODO check for double slashes
-	//TODO strip trailing slashes
+	//check for double slashes
+	if(strstr(path, "//")){
+		logprintf(log, LOG_ERROR, "Double slashes in mailbox path\n");
+		return -1;
+	}
+
+	//strip trailing slash
+	if(path[path_len - 1] == '/'){
+		path[path_len - 1] = 0;
+	}
 
 	//scan mailbox path iteratively
 	for(next_mailbox = strtok_r(path, "/", &tokenize_path); next_mailbox; next_mailbox = strtok_r(NULL, "/", &tokenize_path)){
