@@ -106,7 +106,7 @@ void* queueworker_coreloop(void* param){
 	WORKER_CLIENT* current_client = NULL;
 
 	WORKER_DATABASE master;
-	IMAP_STATE current_state;
+	QUEUED_COMMAND_STATE current_state;
 
 	//reset entries
 	master.conn = NULL;
