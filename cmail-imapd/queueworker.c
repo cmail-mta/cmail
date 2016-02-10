@@ -71,8 +71,10 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		}
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "subscribe")){
+		//TODO implement subscribe
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "unsubscribe")){
+		//TODO implement unsubscribe
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy

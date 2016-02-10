@@ -15,8 +15,6 @@ int imap_create(LOGGER log, WORKER_DATABASE* db, QUEUED_COMMAND* command, char* 
 	//	return -1;
 	//}
 
-	//FIXME report error when entire path is already created
-
 	logprintf(log, LOG_DEBUG, "Trying to create mailbox path %s\n", mailbox);
 
 	parent = database_resolve_path(log, db, user, mailbox, &next_mailbox);
