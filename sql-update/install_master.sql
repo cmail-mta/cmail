@@ -67,6 +67,12 @@ BEGIN TRANSACTION;
 		CONSTRAINT map_unique UNIQUE (mail_id, mailbox_id) ON CONFLICT IGNORE
 	);
 
+	CREATE TABLE flags (
+		mail_id			INTEGER NOT NULL REFERENCES mailbox (mail_id) ON DELETE CASCADE ON UPDATE CASCADE,
+		flag			TEXT NOT NULL,
+		CONSTRAINT flag_unique_per_mail UNIQUE (mail_id, flag) ON CONFLICT FAIL
+	);
+
 	CREATE TABLE smtpd (
 		smtpd_user		TEXT PRIMARY KEY NOT NULL REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE,
 		smtpd_router		TEXT NOT NULL DEFAULT ('drop'),
@@ -145,5 +151,5 @@ BEGIN TRANSACTION;
 	LEFT JOIN faillog ON mail_id = fail_mail
 	GROUP BY mail_id;
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '10');
+	INSERT INTO meta (key, value) VALUES ('schema_version', '11');
 COMMIT;

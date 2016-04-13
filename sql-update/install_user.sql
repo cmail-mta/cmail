@@ -48,5 +48,11 @@ BEGIN TRANSACTION;
 		CONSTRAINT map_unique UNIQUE (mail_id, mailbox_id) ON CONFLICT IGNORE
 	);
 
-	INSERT INTO meta (key, value) VALUES ('schema_version', '10');
+	CREATE TABLE flags (
+		mail_id			INTEGER NOT NULL REFERENCES mailbox (mail_id) ON DELETE CASCADE ON UPDATE CASCADE,
+		flag			TEXT NOT NULL,
+		CONSTRAINT flag_unique_per_mail UNIQUE (mail_id, flag) ON CONFLICT FAIL
+	);
+
+	INSERT INTO meta (key, value) VALUES ('schema_version', '11');
 COMMIT;
