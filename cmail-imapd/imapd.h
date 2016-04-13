@@ -41,6 +41,11 @@
 #include "../lib/daemonize.c"
 #include "../lib/database.c"
 
+enum {
+	ARG_INTEGER,
+	ARG_STRING
+} AGGREGATE_ARGUMENT;
+
 typedef enum /*_IMAP_COMMAND_STATE*/ {
 	COMMAND_UNHANDLED = 9001,
 	COMMAND_NO = 2,
@@ -163,11 +168,15 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 typedef struct /*_WORKER_DB_CONN*/ {
 	sqlite3* conn;
 	sqlite3_stmt* mailbox_find;
-	sqlite3_stmt* mailbox_info;
 	sqlite3_stmt* mailbox_create;
 	sqlite3_stmt* mailbox_delete;
 	sqlite3_stmt* query_userdatabase;
 	sqlite3_stmt* fetch;
+
+	sqlite3_stmt* selection_exists;
+	sqlite3_stmt* inbox_exists;
+	sqlite3_stmt* selection_recent;
+	sqlite3_stmt* inbox_recent;
 } WORKER_DATABASE;
 
 typedef struct /*_WORKER_CLIENT_DATA*/ {
@@ -216,6 +225,7 @@ int client_starttls(LOGGER log, CONNECTION* client);
 #include "auth.c"
 #include "protocol.c"
 #include "workerdata.c"
+#include "imapfunctions.c"
 #include "imapcommands.c"
 #include "commandqueue.c"
 #include "imapstatemachine.c"

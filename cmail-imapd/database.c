@@ -17,6 +17,55 @@ int database_initialize(LOGGER log, DATABASE* database){
 	return 0;
 }
 
+int database_aggregate_query(LOGGER log, int* result, sqlite3_stmt* stmt, unsigned params, ...){
+	va_list args;
+	unsigned u;
+
+	if(!stmt || !result){
+		return -1;
+	}
+
+	va_start(args, params);
+
+	for(u = 0; u < params; u++){
+		switch(va_arg(args, int)){
+			case ARG_INTEGER:
+				if(sqlite3_bind_int(stmt, u + 1, va_arg(args, int)) != SQLITE_OK){
+					logprintf(log, LOG_ERROR, "Failed to bind integer argument to aggregate query in position %d\n", u + 1);
+					va_end(args);
+					return -1;
+				}
+				break;
+			case ARG_STRING:
+				if(sqlite3_bind_text(stmt, u + 1, va_arg(args, char*), -1, SQLITE_STATIC) != SQLITE_OK){
+					logprintf(log, LOG_ERROR, "Failed to bind string argument to aggregate query in position %d\n", u + 1);
+					va_end(args);
+					return -1;
+				}
+				break;
+			default:
+				logprintf(log, LOG_ERROR, "Invalid argument type to database_aggregate_query\n");
+				va_end(args);
+				return -1;
+		}
+	}
+
+	va_end(args);
+
+	if(sqlite3_step(stmt) != SQLITE_ROW){
+		logprintf(log, LOG_ERROR, "Failed to execute aggregate query\n");
+		return -1;
+	}
+
+	*result = sqlite3_column_int(stmt, 0);
+
+	sqlite3_clear_bindings(stmt);
+	sqlite3_reset(stmt);
+
+	logprintf(log, LOG_DEBUG, "Aggregate result is %d\n", *result);
+	return 0;
+}
+
 int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox, int parent){
 	int rv = -1;
 	int result;
@@ -162,11 +211,15 @@ int database_create_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* m
 
 int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool is_master){
 	char* FIND_MAILBOX = "SELECT mailbox_id, mailbox_parent FROM mailbox_names WHERE mailbox_name = ? AND mailbox_user = ?;";
-	char* MAILBOX_INFO = "SELECT COUNT(*) FROM mailbox_mapping WHERE mailbox_id = ?;";
 	char* CREATE_MAILBOX = "INSERT INTO mailbox_names (mailbox_name, mailbox_parent, mailbox_user) VALUES (?, ?, ?);";
 	char* DELETE_MAILBOX = "DELETE FROM mailbox_names WHERE mailbox_name = ? AND mailbox_parent = ?;";
 	char* QUERY_USER_DATABASE = "SELECT user_database FROM main.users WHERE user_name = ? AND user_database NOT NULL;";
 	char* FETCH_MAIL = "SELECT mail_data FROM main.mailbox WHERE mail_id = ?;";
+
+	char* SELECTION_EXISTS = "SELECT COUNT(*) FROM mailbox_mapping WHERE mailbox_id = ?;";
+	char* INBOX_EXISTS = "SELECT COUNT(*) FROM mailbox WHERE mail_user = ? AND mail_id NOT IN (SELECT (mail_id) FROM mailbox_mapping);";
+	char* SELECTION_RECENT = "SELECT COUNT(*) FROM mailbox_mapping WHERE mailbox_id = ? AND mail_id NOT IN (SELECT (mail_id) FROM flags);";
+	char* INBOX_RECENT = "SELECT COUNT(*) FROM mailbox WHERE mail_user = ? AND mail_id NOT IN (SELECT (mail_id) FROM flags) AND mail_id NOT IN (SELECT (mail_id) FROM mailbox_mapping);";
 
 	db->conn = database_open(log, filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX);
 
@@ -176,10 +229,14 @@ int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool i
 	}
 
 	db->mailbox_find = database_prepare(log, db->conn, FIND_MAILBOX);
-	db->mailbox_info = database_prepare(log, db->conn, MAILBOX_INFO);
 	db->mailbox_create = database_prepare(log, db->conn, CREATE_MAILBOX);
 	db->mailbox_delete = database_prepare(log, db->conn, DELETE_MAILBOX);
 	db->fetch = database_prepare(log, db->conn, FETCH_MAIL);
+
+	db->selection_exists = database_prepare(log, db->conn, SELECTION_EXISTS);
+	db->inbox_exists = database_prepare(log, db->conn, INBOX_EXISTS);
+	db->selection_recent = database_prepare(log, db->conn, SELECTION_RECENT);
+	db->inbox_recent = database_prepare(log, db->conn, INBOX_RECENT);
 
 	if(is_master){
 		db->query_userdatabase = database_prepare(log, db->conn, QUERY_USER_DATABASE);
@@ -190,8 +247,8 @@ int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool i
 		}
 	}
 
-	if(!db->mailbox_find || !db->mailbox_info){
-		logprintf(log, LOG_ERROR, "Failed to prepare mailbox info queries\n");
+	if(!db->mailbox_find){
+		logprintf(log, LOG_ERROR, "Failed to prepare mailbox search query\n");
 		return -1;
 	}
 
@@ -211,20 +268,28 @@ void database_free_worker(WORKER_DATABASE* db){
 	WORKER_DATABASE empty = {
 		.conn = NULL,
 		.mailbox_find = NULL,
-		.mailbox_info = NULL,
 		.mailbox_create = NULL,
 		.mailbox_delete = NULL,
 		.fetch = NULL,
-		.query_userdatabase = NULL
+		.query_userdatabase = NULL,
+
+		.selection_exists = NULL,
+		.inbox_exists = NULL,
+		.selection_recent = NULL,
+		.inbox_recent = NULL
 	};
 
 	if(db->conn){
 		sqlite3_finalize(db->mailbox_find);
-		sqlite3_finalize(db->mailbox_info);
 		sqlite3_finalize(db->mailbox_create);
 		sqlite3_finalize(db->mailbox_delete);
 		sqlite3_finalize(db->fetch);
 		sqlite3_finalize(db->query_userdatabase);
+
+		sqlite3_finalize(db->selection_exists);
+		sqlite3_finalize(db->inbox_exists);
+		sqlite3_finalize(db->selection_recent);
+		sqlite3_finalize(db->inbox_recent);
 
 		sqlite3_close(db->conn);
 	}

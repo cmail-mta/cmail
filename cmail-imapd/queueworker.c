@@ -57,8 +57,17 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 
 				logprintf(log, LOG_DEBUG, "Client selected mailbox %d @ master, %d @ user for readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
 				//TODO actually send required data back to client
+				//OK [UNSEEN]
+				//UIDVALIDITY
 				entry->replies = common_strappf(entry->replies, &(entry->replies_length),
-						"%s OK Selection now active\r\n", entry->tag);
+						"* FLAGS (\\Answered \\Flagged \\Deleted \\Seen \\Draft)\r\n" //FIXME is this OK to hardcode? why is recent not here
+						"* %d EXISTS\r\n"
+						"* %d RECENT\r\n"
+						"* OK [PERMANENTFLAGS (\\Seen \\Answered \\Flagged \\Draft)] Done here\r\n" //is \Deleted a permanent flag?
+						"%s OK [%s] Selection now active\r\n",
+						imap_selection_count(log, master, client, NULL),
+						imap_selection_count(log, master, client, "\\Recent"),
+						entry->tag, client->select_readwrite ? "READ-WRITE":"READ-ONLY");
 				rv = 0;
 			}
 			else{
