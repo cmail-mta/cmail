@@ -21,7 +21,9 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...){
 		if(log.verbosity >= level){
 			va_copy(copy, args);
 			#ifdef LOGGER_MT_SAFE
-			pthread_mutex_lock(log.sync);
+			if(log.sync){
+				pthread_mutex_lock(log.sync);
+			}
 			#endif
 			if(log.print_timestamp){
 				fprintf(stderr, "%s ", timestring);
@@ -29,7 +31,9 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...){
 			vfprintf(stderr, fmt, copy);
 			fflush(stderr);
 			#ifdef LOGGER_MT_SAFE
-			pthread_mutex_unlock(log.sync);
+			if(log.sync){
+				pthread_mutex_unlock(log.sync);
+			}
 			#endif
 			va_end(copy);
 		}
@@ -37,7 +41,9 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...){
 
 	if(log.verbosity >= level){
 		#ifdef LOGGER_MT_SAFE
-		pthread_mutex_lock(log.sync);
+		if(log.sync){
+			pthread_mutex_lock(log.sync);
+		}
 		#endif
 		if(log.print_timestamp){
 			fprintf(log.stream, "%s ", timestring);
@@ -45,7 +51,9 @@ void logprintf(LOGGER log, unsigned level, char* fmt, ...){
 		vfprintf(log.stream, fmt, args);
 		fflush(log.stream);
 		#ifdef LOGGER_MT_SAFE
-		pthread_mutex_lock(log.sync);
+		if(log.sync){
+			pthread_mutex_unlock(log.sync);
+		}
 		#endif
 	}
 	va_end(args);
