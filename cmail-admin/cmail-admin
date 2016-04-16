@@ -4,7 +4,7 @@
 
 case $1 in
 
-	help)
+	help|--help|-h)
 		echo "cmail-admin usage"
 		echo ""
 		echo "available modules:"
