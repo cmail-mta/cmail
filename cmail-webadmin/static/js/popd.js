@@ -25,7 +25,7 @@ cmail.pop = {
 
 				var lock = gui.create("td");
 				var checkbox = gui.createCheckbox("popLock", function() {
-					if(confirm("Do you really unlock this user?")) {
+					if(confirm("Really unlock the POP mutex for this user?\nMultiple concurrent accesses to a POP3 account may have undesired consequences.")) {
 						ajax.asyncPost(cmail.api_url + "pop/?unlock", JSON.stringify({
 							pop_user: p.pop_user
 						}), function(xhr) {
@@ -64,7 +64,7 @@ cmail.pop = {
 	delete: function(p) {
 		var self = this;
 
-		if (confirm("Do you really want to revoke access to this user?")) {
+		if (confirm("Really revoke POP3 access from this user?\nPlease note that this will not remove any mail and the user will still be able to receive mail.")) {
 
 			ajax.asyncPost(cmail.api_url + "pop/?delete", JSON.stringify(p), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);

@@ -45,16 +45,16 @@ cmail.address = {
 
 				var options = gui.create("td");
 				if (last_address) {
-					options.appendChild(gui.createButton("/\\", self.switch_order, [last_address, address], self));
+					options.appendChild(gui.createButton("▲", self.switch_order, [last_address, address], self));
 				} else {
-					button = gui.createButton("/\\", function() {}, [], self);
+					button = gui.createButton("▲", function() {}, [], self);
 					button.style.visibility = "hidden";
 					options.appendChild(button);
 				}
 				if (next_address) {
-					options.appendChild(gui.createButton("\\/", self.switch_order, [next_address, address], self));
+					options.appendChild(gui.createButton("▼", self.switch_order, [next_address, address], self));
 				} else {
-					button = gui.createButton("\\/", function() {}, [], self);
+					button = gui.createButton("▼", function() {}, [], self);
 					button.style.visibility = "hidden";
 					options.appendChild(button);
 				}
@@ -99,7 +99,7 @@ cmail.address = {
 	},
 	delete: function(obj) {
 		var self = this;
-		if (confirm("Do you really delete the item with order: " + obj.address_order + " (" + obj.address_expression + ")?") == true) {
+		if (confirm("Really delete the address expression " + obj.address_expression + " (Order " + obj.address_order + ")?") == true) {
 			ajax.asyncPost(cmail.api_url + "addresses/?delete", JSON.stringify(obj), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
