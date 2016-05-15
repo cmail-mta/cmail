@@ -17,4 +17,6 @@ cmail-webadmin		Web-based administration panel
 
 Setup
 -----
-See SETUP.txt (or the website)
+Please visit [the setup guide on cmail.rocks](http://cmail.rocks/stepbystep.htm) for
+information on how to install cmail in a productive environment or check
+[SETUP.txt] for information on a development setup.
