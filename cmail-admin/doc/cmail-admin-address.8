@@ -51,6 +51,10 @@ environment variable or by supplying the
 List all address entries contained in the database. Optionally, filter the list for entries matching
 .IR expression "."
 .TP
+.BI "test " mailpath
+Test which address expressions would match an incoming 
+.IR mailpath "."
+.TP
 .BI "add " "expression router [router-argument [order]]"
 Add an inbound path entry for the provided
 .IR "expression" ", to be handled by the specified " router ". Some routers may require a " router-argument "."

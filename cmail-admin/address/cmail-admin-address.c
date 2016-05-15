@@ -24,6 +24,7 @@ int usage(char* fn) {
 	printf("\tdelete <order>\t\t\t\t\t\t\tDelete a path expression\n");
 	printf("\tupdate <order> <router> [<route argument>]\t\t\tUpdate routing information for a path\n");
 	printf("\tswap <first> <second>\t\t\t\t\t\tSwap order of two expressions (given by their orders)\n");
+	printf("\ttest <mailpath>\t\t\t\t\t\tTest <mailpath> against the address expression database\n");
 	printf("\tlist [<expression>]\t\t\t\t\t\tList all currently configured paths, optionally filtered by <expression>\n");
 	return 1;
 }
@@ -102,7 +103,17 @@ int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
 		filter = argv[1];
 	}
 
-	return sqlite_get_address(log, db, filter);
+	return sqlite_get_address(log, db, filter, false);
+}
+
+int mode_test(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+	char* filter = "%";
+
+	if (argc > 1) {
+		filter = argv[1];
+	}
+
+	return sqlite_get_address(log, db, filter, true);
 }
 
 int main(int argc, char* argv[]) {
@@ -164,6 +175,8 @@ int main(int argc, char* argv[]) {
 		status = mode_update(log, db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "list")) {
 		status = mode_list(log, db, cmdsc, cmds);
+	}  else if (!strcmp(cmds[0], "test")) {
+		status = mode_test(log, db, cmdsc, cmds);
 	} else {
 		logprintf(log, LOG_ERROR, "Unkown command %s\n\n", cmds[0]);
 		exit(usage(argv[0]));
