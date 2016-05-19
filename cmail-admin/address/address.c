@@ -11,8 +11,9 @@ bool router_valid(char* router){
 	return false;
 }
 
-int sqlite_get_address(LOGGER log, sqlite3* db, const char* expression) {
-	char* sql = "SELECT address_expression, address_order, address_router, address_route FROM addresses WHERE address_expression LIKE ?";
+int sqlite_get_address(LOGGER log, sqlite3* db, const char* expression, bool reverse_test) {
+	char* sql = reverse_test ? 	"SELECT address_expression, address_order, address_router, address_route FROM addresses WHERE ? LIKE address_expression ORDER BY address_order DESC" :
+					"SELECT address_expression, address_order, address_router, address_route FROM addresses WHERE address_expression LIKE ? ORDER BY address_order DESC";
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
 	if (!stmt) {

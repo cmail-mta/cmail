@@ -174,7 +174,7 @@ cmail.user = {
 	delete: function(name) {
 
 		var self = this;
-		if (confirm("Do you really delete this user?") == true) {
+		if (confirm("Do you really want to delete this user?\nThis step cannot be undone.\nAll mail stored for this user will be deleted.") == true) {
 			var xhr = ajax.asyncPost(cmail.api_url + "users/?delete", JSON.stringify({ user_name: name }), function(xhr){
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();

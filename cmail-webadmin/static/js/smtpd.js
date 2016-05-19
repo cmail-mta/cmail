@@ -60,7 +60,7 @@ cmail.smtpd = {
 	},
 	delete: function(username) {
 		var self = this;
-		if (confirm("Do you really delete the address " + username + "?") == true) {
+		if (confirm("Really remove " + username + " from the SMTPD ACL?\nThe user will no longer be able to originate mail.\nPlease note that the user will still be able to receive mail.") == true) {
 			ajax.asyncPost(cmail.api_url + "smtpd/?delete", JSON.stringify({ smtpd_user: username }), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();

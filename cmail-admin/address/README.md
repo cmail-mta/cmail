@@ -1,4 +1,5 @@
-This tool gives control over the addressses cmail will accept and assign them to users.
+This tool is used to configure the inbound path expressions (recipient mail addresses) cmail will 
+allow as well as which router to apply to inbound mail.
 
 Arguments
 =========
@@ -27,16 +28,22 @@ delete
 ------
 Syntax: ``` delete <order> ```
 
-Deletes an expression from database.
+Delete an address expression from database by its order value.
 
 swap
 ------
 Syntax: ``` swap <first> <second> ```
 
-This switches the order of two expressions.
+Swap the order/priority value of two expressions given their current values.
+
+test
+----
+Syntax: ``` test <mailpath> ```
+
+Test which expressions would match a given incoming mail path.
 
 list
 ----
 Syntax: ``` list [<expression>] ```
 
-Lists all addresses in database. If an expression is provided it only shows matching addresses.
+Lists all addresses in database. Optionally filter the output for addresses matching an expression.

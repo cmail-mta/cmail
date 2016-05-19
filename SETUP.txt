@@ -1,16 +1,8 @@
 # Prerequisite: Install the required libraries
 
 USER SETUP
-1. Clone the repo
-2. Run make
-3. Run make install
-4. Run make tls-init
-4a. (Optional) Run make install-doc to install the documentation man pages
-5. Edit the installed sample configuration files (default is /etc/cmail)
-6. Configure your firewall
-7. Run the modules
-8. Configure the system via the cmail-admin tools
-9. Test the setup
+Please consult the step-by-step setup guide on the website:
+	http://cmail.rocks/stepbystep.htm
 
 DEVELOPMENT SETUP
 (root)	adduser cmail		#create new user

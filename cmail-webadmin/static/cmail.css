@@ -31,13 +31,31 @@ h1, h2, h3{
 }
 
 #headmenu{
-	text-align:center;
 	background-color:#d7d7d7;
 	padding:0.3em;
 }
 
+#headmenu-right{
+	float:right;
+}
+
+#status-wrapper {
+	font-style:italic;
+	color:#666;
+	border-right:1px solid grey;
+	margin-right:0.5em;
+}
+
 #headmenu .item{
 	padding:0.7em;
+}
+
+#auth_user {
+	font-weight:bold;
+}
+
+.panel-title{
+	text-align:center;
 }
 
 #headmenu .item:hover{
@@ -54,7 +72,7 @@ tbody tr:nth-child(odd){
 }
 
 .editPanel {
-
+	padding-top:2em;
 	display: none;
 	position: fixed;
 	width: 100%;
@@ -63,7 +81,6 @@ tbody tr:nth-child(odd){
 }
 
 .editPanel form {
-
 	top: 10%;
 	width: 50%;
 	margin: 0 auto;
@@ -75,19 +92,15 @@ tbody tr:nth-child(odd){
 .tab {
 	width: 80%;
 	margin: 0 auto;
+	display:none;
 }
 
 label {
-	display: block;
-	float: left;
+	display: inline-block;
 }
 
 .separator {
 	clear: both;
+	margin-bottom:2em;
 }
 
-.left_corner {
-	position: absolute;
-	left: 0;
-	top: 0;
-}
