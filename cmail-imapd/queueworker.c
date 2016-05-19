@@ -63,7 +63,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 						"* FLAGS (\\Answered \\Flagged \\Deleted \\Seen \\Draft)\r\n" //FIXME is this OK to hardcode? why is recent not here
 						"* %d EXISTS\r\n"
 						"* %d RECENT\r\n"
-						"* OK [PERMANENTFLAGS (\\Seen \\Answered \\Flagged \\Draft)] Done here\r\n" //is \Deleted a permanent flag?
+						"* OK [PERMANENTFLAGS (\\Seen \\Answered \\Flagged \\Draft \\Deleted)] Done here\r\n" //is \Deleted a permanent flag?
 						"%s OK [%s] Selection now active\r\n",
 						imap_selection_count(log, master, client, NULL),
 						imap_selection_count(log, master, client, "\\Recent"),
@@ -79,11 +79,10 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 			}
 		}
 	}
-	else if(entry->parameters && !strcasecmp(entry->command, "subscribe")){
-		//TODO implement subscribe
-	}
-	else if(entry->parameters && !strcasecmp(entry->command, "unsubscribe")){
-		//TODO implement unsubscribe
+	else if(entry->parameters && (!strcasecmp(entry->command, "subscribe") || !strcasecmp(entry->command, "unsubscribe"))){
+		//since SUBSCRIBE/UNSUBSCRIBE only seem to change the output of LSUB, we non-implement them for the time being
+		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+				"%s NO Command use-case not supported\r\n", entry->tag);
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
