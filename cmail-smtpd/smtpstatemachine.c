@@ -161,7 +161,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			client_data->state = STATE_IDLE;
 
 			//check auth data
-			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
+			if(!challenge || auth_validate(log, database->query_authdata, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
 				//login failed
 				sasl_reset_user(&(client_data->sasl_user), true);
 				logprintf(log, LOG_INFO, "Client failed to authenticate\n");

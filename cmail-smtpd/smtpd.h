@@ -17,7 +17,6 @@
 #define CMAIL_MEMORY_TIMEOUT		600
 
 #define CMAIL_HAVE_LISTENER_TYPE
-#define CMAIL_HAVE_DATABASE_TYPE
 
 #include "smtplimits.h"
 

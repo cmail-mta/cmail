@@ -77,8 +77,7 @@ int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, 
 	return BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE);
 }
 
-#ifdef CMAIL_HAVE_DATABASE_TYPE
-int auth_validate(LOGGER log, DATABASE* database, char* user, char* password, char** authorized_identity){
+int auth_validate(LOGGER log, sqlite3_stmt* auth_data, char* user, char* password, char** authorized_identity){
 	int status, rv = -1;
 	char* user_salt;
 	char* stored_hash;
@@ -92,17 +91,17 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password, ch
 	memset(digest_b16, 0, sizeof(digest_b16));
 	logprintf(log, LOG_DEBUG, "Trying to authenticate %s\n", user);
 
-	if(sqlite3_bind_text(database->query_authdata, 1, user, -1, SQLITE_STATIC) != SQLITE_OK){
+	if(sqlite3_bind_text(auth_data, 1, user, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind auth data query parameter\n");
-		sqlite3_reset(database->query_authdata);
-		sqlite3_clear_bindings(database->query_authdata);
+		sqlite3_reset(auth_data);
+		sqlite3_clear_bindings(auth_data);
 		return -1;
 	}
 
-	status = sqlite3_step(database->query_authdata);
+	status = sqlite3_step(auth_data);
 	switch(status){
 		case SQLITE_ROW:
-			user_salt = (char*)sqlite3_column_text(database->query_authdata, 0);
+			user_salt = (char*)sqlite3_column_text(auth_data, 0);
 			if(user_salt){
 				stored_hash = index(user_salt, ':');
 				if(!stored_hash){
@@ -114,7 +113,7 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password, ch
 				auth_hash(digest_b16, sizeof(digest_b16), user_salt, stored_hash - user_salt, password, strlen(password));
 
 				if(!strcmp(stored_hash + 1, digest_b16)){
-					auth_id = (char*)sqlite3_column_text(database->query_authdata, 1);
+					auth_id = (char*)sqlite3_column_text(auth_data, 1);
 					logprintf(log, LOG_INFO, "Credentials for user %s OK, authorized identity: %s\n", user, auth_id ? auth_id:user);
 
 					//handle aliasing
@@ -140,13 +139,12 @@ int auth_validate(LOGGER log, DATABASE* database, char* user, char* password, ch
 			logprintf(log, LOG_INFO, "Unknown user %s\n", user);
 			break;
 		default:
-			logprintf(log, LOG_INFO, "Unhandled return value from auth data query: %d (%s)\n", status, sqlite3_errmsg(database->conn));
+			logprintf(log, LOG_INFO, "Unhandled return value from auth data query: %d\n", status);
 			break;
 	}
 
-	sqlite3_reset(database->query_authdata);
-	sqlite3_clear_bindings(database->query_authdata);
+	sqlite3_reset(auth_data);
+	sqlite3_clear_bindings(auth_data);
 
 	return rv;
 }
-#endif
