@@ -80,7 +80,7 @@ int imapstate_sasl(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND senten
 			sasl_reset_ctx(&(client_data->auth.ctx), true);
 
 			//check provided authentication data
-			if(!sasl_challenge || auth_validate(log, database, client_data->auth.user.authenticated, sasl_challenge, &(client_data->auth.user.authorized)) < 0){
+			if(!sasl_challenge || auth_validate(log, database->query_authdata, client_data->auth.user.authenticated, sasl_challenge, &(client_data->auth.user.authorized)) < 0){
 				//login failed
 				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
 				client_send(log, client, "%s NO Authentication failed\r\n", client_data->auth.auth_tag);
@@ -257,7 +257,7 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 			}
 
 			if(login_user && login_password){
-				if(auth_validate(log, database, login_user, login_password, &(client_data->auth.user.authorized)) < 0){
+				if(auth_validate(log, database->query_authdata, login_user, login_password, &(client_data->auth.user.authorized)) < 0){
 					//failed to authenticate
 					logprintf(log, LOG_INFO, "Failed to authenticate client\n");
 					auth_reset(&(client_data->auth));
@@ -327,7 +327,6 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
 	char* state_reason = NULL;
 	int rv = 0;
-	int astring_length;
 
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
@@ -366,16 +365,14 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 			rv = -1;
 		}
 		else{
-			//params mboxname (= astring)
+			//params astring mboxname
 			char* parameters[2] = {NULL, NULL};
-			astring_length = protocol_parse_astring(sentence.parameters, parameters, NULL);
-			if(astring_length < 0){
+			if(protocol_split_parameters(log, "a", sentence.parameters, 1, parameters) < 0){
 				state = COMMAND_BAD;
-				state_reason = "Invalid parameter supplied";
+				state_reason = "Failed to parse parameters";
 				rv = -1;
 			}
 			else{
-				parameters[0][astring_length] = 0;
 				if(commandqueue_enqueue_command(log, command_queue, client, sentence, parameters) < 0){
 					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
 					state = COMMAND_BAD;
@@ -389,7 +386,31 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		}
 	}
 	else if(!strcasecmp(sentence.command, "rename")){
-		//TODO params from(astring) to(astring)
+		if(!sentence.parameters){
+			state = COMMAND_BAD;
+			state_reason = "Missing parameters";
+			rv = -1;
+		}
+		else{
+			//params astring from, astring to
+			char* parameters[3] = {NULL, NULL, NULL};
+			if(protocol_split_parameters(log, "a a", sentence.parameters, 2, parameters) < 0){
+				state = COMMAND_BAD;
+				state_reason = "Failed to parse parameters";
+				rv = -1;
+			}
+			else{
+				if(commandqueue_enqueue_command(log, command_queue, client, sentence, parameters) < 0){
+					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+					state = COMMAND_BAD;
+					state_reason = "Failed to enqueue command";
+				}
+				else{
+					//queued command, no direct reply
+					state = COMMAND_NOREPLY;
+				}
+			}
+		}
 	}
 	else if(!strcasecmp(sentence.command, "list") || !strcasecmp(sentence.command, "lsub")){
 		//TODO params refname(astring) mbxname(astring with %/* allowed)

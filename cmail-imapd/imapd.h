@@ -19,7 +19,6 @@
 #define FEEDBACK_PIPE_BUFFER		20
 
 #define CMAIL_HAVE_LISTENER_TYPE
-#define CMAIL_HAVE_DATABASE_TYPE
 #define LOGGER_MT_SAFE
 
 #include "../lib/logger.h"

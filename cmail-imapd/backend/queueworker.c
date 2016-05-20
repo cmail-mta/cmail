@@ -92,6 +92,10 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"* XYZZY Round-trip completed\r\n%s OK Incantation completed\r\n", entry->tag);
 	}
+	else if(entry->parameters && !strcasecmp(entry->command, "rename")){
+		//TODO implement rename
+		logprintf(log, LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
+	}
 	else{
 		//default branch, command not known but enqueued
 		rv = -1;

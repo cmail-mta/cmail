@@ -239,3 +239,51 @@ ssize_t protocol_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ss
 	logprintf(log, LOG_DEBUG, "Incomplete line buffer contains %d bytes\n", *append_offset_p);
 	return -1;
 }
+
+int protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigned maxparam, char** parameters){
+	unsigned param = 0, offset = 0;
+	int astring_length = 0;
+	char* data_offset = input;
+
+	for(; inputfmt[offset] && param < maxparam; offset++){
+		switch(inputfmt[offset]){
+			case 'a':
+				//parse an astring
+				logprintf(log, LOG_DEBUG, "Parsing astring at offset %d: %s\n", data_offset - input, data_offset);
+				astring_length = protocol_parse_astring(data_offset, parameters + param, &data_offset);
+				if(astring_length < 0){
+					//failed to parse astring
+					logprintf(log, LOG_ERROR, "Failed to parse astring in command parameter\n");
+					return -1;
+				}
+				else{
+					//terminate parameter
+					if(inputfmt[offset + 1] == ' ' || inputfmt[offset + 1] == 0){
+						//parameter trailed by SP
+						parameters[param][astring_length] = 0;
+						data_offset++;
+					}
+					else{
+						//this is a bit harder
+						//FIXME terminate parameter strings when not separated with space
+						logprintf(log, LOG_ERROR, "Implementation dead end hit: need to terminate parameters after parsing\n");
+						return -1;
+					}
+				}
+				param++;
+				break;
+			case 'l':
+				//TODO parse list-mailbox string
+				param++;
+				break;
+			case ' ':
+				//skip this
+				break;
+			default:
+				logprintf(log, LOG_WARNING, "Unknown parameter format specifier %c\n", inputfmt[offset]);
+				break;
+		}
+	}
+
+	return 0;
+}
