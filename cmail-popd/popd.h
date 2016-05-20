@@ -11,7 +11,6 @@
 #define CMAIL_FAILSCORE_LIMIT -5
 
 #define CMAIL_HAVE_LISTENER_TYPE
-#define CMAIL_HAVE_DATABASE_TYPE
 
 #include "../lib/logger.h"
 #include "../lib/signal.h"

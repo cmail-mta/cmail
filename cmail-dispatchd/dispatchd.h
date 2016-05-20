@@ -9,7 +9,6 @@
 #include "../cmail-smtpd/smtplimits.h"
 
 #define VERSION "cmail-dispatchd 0.1"
-#define CMAIL_HAVE_DATABASE_TYPE
 #define CMAIL_REALLOC_CHUNK 10
 
 #include "../lib/logger.h"
