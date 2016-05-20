@@ -83,6 +83,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		//since SUBSCRIBE/UNSUBSCRIBE only seem to change the output of LSUB, we non-implement them for the time being
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"%s NO Command use-case not supported\r\n", entry->tag);
+		logprintf(log, LOG_DEBUG, "Non-implemented [UN]SUBSCRIBE logic invoked\n");
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
