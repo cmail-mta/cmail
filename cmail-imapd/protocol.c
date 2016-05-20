@@ -79,9 +79,9 @@
 }*/
 
 //this function may destructively modify the input buffer (in the case of a quoted string)
-ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end){
+ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end, char* illegal_chars){
 	//non-ASTRING chars: anything <= 32, (){%*\" 
-	char* astring_illegal = "(){%*\\\"";
+	char* astring_illegal = illegal_chars ? illegal_chars:"(){%*\\\"";
 	size_t length = 0, i;
 	char* current_position = NULL;
 
@@ -155,6 +155,8 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end
 		//sequence of ASTRING-CHARS
 		for(length = 0; input[length] > 32 && !index(astring_illegal, input[length]); length++){
 		}
+
+		//FIXME if within ASTRING-CHARS sequence and encountering illegal character, return failure
 
 		*string_begin = input;
 		if(data_end){
@@ -240,7 +242,7 @@ ssize_t protocol_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ss
 	return -1;
 }
 
-int protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigned maxparam, char** parameters){
+char* protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigned maxparam, char** parameters){
 	unsigned param = 0, offset = 0;
 	int astring_length = 0;
 	char* data_offset = input;
@@ -248,17 +250,24 @@ int protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigned 
 	for(; inputfmt[offset] && param < maxparam; offset++){
 		switch(inputfmt[offset]){
 			case 'a':
-				//parse an astring
-				logprintf(log, LOG_DEBUG, "Parsing astring at offset %d: %s\n", data_offset - input, data_offset);
-				astring_length = protocol_parse_astring(data_offset, parameters + param, &data_offset);
+			case 'l':
+				//parse astring / list-mailbox string
+				logprintf(log, LOG_DEBUG, "Parsing %cstring at offset %d: %s\n", inputfmt[offset], data_offset - input, data_offset);
+				astring_length = protocol_parse_astring(data_offset, parameters + param, &data_offset, (inputfmt[offset] == 'a') ? NULL:"(){\\\"");
 				if(astring_length < 0){
 					//failed to parse astring
 					logprintf(log, LOG_ERROR, "Failed to parse astring in command parameter\n");
-					return -1;
+					return NULL;
 				}
 				else{
 					//terminate parameter
 					if(inputfmt[offset + 1] == ' ' || inputfmt[offset + 1] == 0){
+						if(*data_offset != ' ' && *data_offset != 0){
+							//astring-char sequence contained illegal character, return failure
+							//this hack-fixes a similar problem in protocol_parse_astring
+							logprintf(log, LOG_WARNING, "Failing parameter decode because parameters were not space-separated\n");
+							return NULL;
+						}
 						//parameter trailed by SP
 						parameters[param][astring_length] = 0;
 						data_offset++;
@@ -267,13 +276,9 @@ int protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigned 
 						//this is a bit harder
 						//FIXME terminate parameter strings when not separated with space
 						logprintf(log, LOG_ERROR, "Implementation dead end hit: need to terminate parameters after parsing\n");
-						return -1;
+						return NULL;
 					}
 				}
-				param++;
-				break;
-			case 'l':
-				//TODO parse list-mailbox string
 				param++;
 				break;
 			case ' ':
@@ -285,5 +290,5 @@ int protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigned 
 		}
 	}
 
-	return 0;
+	return data_offset;
 }

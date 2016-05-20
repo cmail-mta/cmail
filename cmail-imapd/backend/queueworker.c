@@ -37,6 +37,10 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 	else if(entry->parameters && !strcasecmp(entry->command, "delete")){
 		//TODO implement mailbox deletion
 	}
+	else if(entry->parameters && !strcasecmp(entry->command, "rename")){
+		//TODO implement rename
+		logprintf(log, LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
+	}
 	else if(entry->parameters && (!strcasecmp(entry->command, "examine") || !strcasecmp(entry->command, "select"))){
 		client->selection_master = database_resolve_path(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0], NULL);
 		if(client->selection_master < 0){
@@ -85,6 +89,12 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 				"%s NO Command use-case not supported\r\n", entry->tag);
 		logprintf(log, LOG_DEBUG, "Non-implemented [UN]SUBSCRIBE logic invoked\n");
 	}
+	else if(entry->parameters && !strcasecmp(entry->command, "lsub")){
+		//since we did not implement SUBSCRIBE/UNSUBSCRIBE, LSUB always returns an empty set
+		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+				"%s OK LSUB empty list\r\n", entry->tag);
+		logprintf(log, LOG_DEBUG, "Client listed subscriptions\n");
+	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
 		logprintf(log, LOG_DEBUG, "User database: %s\n", client->user_database.conn ? "attached":"none");
@@ -92,10 +102,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"* XYZZY Round-trip completed\r\n%s OK Incantation completed\r\n", entry->tag);
 	}
-	else if(entry->parameters && !strcasecmp(entry->command, "rename")){
-		//TODO implement rename
-		logprintf(log, LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
-	}
+	//TODO check for CHECK, CLOSE, EXPUNGE
 	else{
 		//default branch, command not known but enqueued
 		rv = -1;

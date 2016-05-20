@@ -232,14 +232,14 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 			char* login_password = NULL;
 			char* astring_data_end = NULL;
 
-			i = protocol_parse_astring(sentence.parameters, &login_user, &astring_data_end);
+			i = protocol_parse_astring(sentence.parameters, &login_user, &astring_data_end, NULL);
 			if(i >= 0 && login_user[i]){
 				//ensure space between arguments
 				if(astring_data_end[0] == ' '){
 					//terminate user
 					login_user[i] = 0; //this needs to be past the previous condition
 
-					i = protocol_parse_astring(astring_data_end + 1, &login_password, &astring_data_end);
+					i = protocol_parse_astring(astring_data_end + 1, &login_password, &astring_data_end, NULL);
 					if(i >= 0){
 						//terminate password
 						login_password[i] = 0;
@@ -367,7 +367,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		else{
 			//params astring mboxname
 			char* parameters[2] = {NULL, NULL};
-			if(protocol_split_parameters(log, "a", sentence.parameters, 1, parameters) < 0){
+			if(!protocol_split_parameters(log, "a", sentence.parameters, 1, parameters)){
 				state = COMMAND_BAD;
 				state_reason = "Failed to parse parameters";
 				rv = -1;
@@ -394,7 +394,7 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		else{
 			//params astring from, astring to
 			char* parameters[3] = {NULL, NULL, NULL};
-			if(protocol_split_parameters(log, "a a", sentence.parameters, 2, parameters) < 0){
+			if(!protocol_split_parameters(log, "a a", sentence.parameters, 2, parameters)){
 				state = COMMAND_BAD;
 				state_reason = "Failed to parse parameters";
 				rv = -1;
@@ -413,7 +413,31 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		}
 	}
 	else if(!strcasecmp(sentence.command, "list") || !strcasecmp(sentence.command, "lsub")){
-		//TODO params refname(astring) mbxname(astring with %/* allowed)
+		if(!sentence.parameters){
+			state = COMMAND_BAD;
+			state_reason = "Missing parameters";
+			rv = -1;
+		}
+		else{
+			//params astring refname, list-mbx mbxname
+			char* parameters[3] = {NULL, NULL, NULL};
+			if(!protocol_split_parameters(log, "a l", sentence.parameters, 2, parameters)){
+				state = COMMAND_BAD;
+				state_reason = "Failed to parse parameters";
+				rv = -1;
+			}
+			else{
+				if(commandqueue_enqueue_command(log, command_queue, client, sentence, parameters) < 0){
+					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+					state = COMMAND_BAD;
+					state_reason = "Failed to enqueue command";
+				}
+				else{
+					//queued command, no direct reply
+					state = COMMAND_NOREPLY;
+				}
+			}
+		}
 	}
 	else if(!strcasecmp(sentence.command, "status")){
 		//TODO params mboxname status-attribs(= paren-list of status-attribs)
@@ -424,14 +448,16 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 
 	//SELECTED state commands, grouped by command signature
 	//else if(MBX_SELECTED){
-		if(!strcasecmp(sentence.command, "check")){
-			//TODO checkpoint the database - fsync?
-		}
-		else if(!strcasecmp(sentence.command, "close")){
-			//TODO close a mailbox
-		}
-		else if(!strcasecmp(sentence.command, "expunge")){
-			//TODO delete flagged messages
+		if(!strcasecmp(sentence.command, "check") || !strcasecmp(sentence.command, "close")
+				|| !strcasecmp(sentence.command, "expunge")){
+			if(commandqueue_enqueue_command(log, command_queue, client, sentence, NULL) < 0){
+				logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+				state = COMMAND_BAD;
+				state_reason = "Failed to enqueue command";
+			}
+			else{
+				state = COMMAND_NOREPLY;
+			}
 		}
 		else if(!strcasecmp(sentence.command, "search")){
 			//TODO params ["CHARSET" cset(astring)] 1*(search-key)
