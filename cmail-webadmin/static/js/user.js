@@ -45,9 +45,7 @@ cmail.user = {
 			var tr = gui.create("tr");
 			tr.appendChild(gui.createColumn(user.user_name));
 			tr.appendChild(gui.createColumn(user.user_alias));
-
-			//can login?
-			var checkbox_col = gui.create("td");
+			tr.appendChild(gui.createColumn(user.link_count));
 
 			cmail.modules.forEach(function(module) {
 				var col = gui.create("td");
