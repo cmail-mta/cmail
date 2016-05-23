@@ -20,6 +20,12 @@
 			"test" => "testRouting"
 		);
 
+		private $routersWithArgs = [
+			"store",
+			"redirect",
+			"handoff"
+		];
+
 		/**
 		 * Constructor for the address class.
 		 * @param $c controller class
@@ -317,11 +323,14 @@
 				$this->output->addDebugMessage("addresses", "We cannot insert an address without an address expression");
 				return -3;
 			}
-			if (!isset($address["address_user"])) {
-				$this->output->addDebugMessage("addresses", "We cannot insert an address without an username");
+			if (!isset($address["address_router"])) {
+				$this->output->addDebugMessage("addresses", "We cannot insert an address without an router");
 				return -2;
 			}
-
+			if (in_array($address["address_router"], $this->routersWithArgs) && !isset($address["address_router"])) {
+				$this->output->addDebugMessage("addresses", "The address router needs an argument (address_route)");
+				return -2;
+			}
 			$auth = $this->c->getAuth();
 			if (!$auth->hasPermission("admin") && !$auth->hasPermission("delegate")) {
 				$this->add("status", "No permission to add an address.");
@@ -337,15 +346,16 @@
 
 			$params = array(
 				":address_exp" => $address["address_expression"],
-				":username" => $address["address_user"]
+				":address_router" => $address["address_router"],
+				":address_route" => isset($address["address_route"]) ? $address["address_route"] : null
 			);
 
 			if (!isset($address["address_order"]) || $address["address_order"] == "") {
 
-				$sql = "INSERT INTO addresses(address_expression, address_user) VALUES (:address_exp, :username)";
+				$sql = "INSERT INTO addresses(address_expression, address_router, address_route) VALUES (:address_exp, :address_router, :address_route)";
 			} else {
 				$params[":order"] = $address["address_order"];
-				$sql = "INSERT INTO addresses(address_expression, address_order, address_user) VALUES (:address_exp, :order, :username)";
+				$sql = "INSERT INTO addresses(address_expression, address_order, address_router, address_route) VALUES (:address_exp, :order, :address_router, :address_route)";
 			}
 
 			$id = $this->c->getDB()->insert($sql, array($params));
@@ -387,8 +397,8 @@
 				return false;
 			}
 
-			if (!isset($address["address_route"])) {
-				$this->output->add("status", "No address route defined.");
+			if (in_array($address["address_router"], $this->routersWithArgs) && !isset($address["address_route"])) {
+				$this->output->add("status", "Address router needs an argument (address_route).");
 				return false;
 			}
 
@@ -398,7 +408,7 @@
 				":address_exp" => $address["address_expression"],
 				":order" => $address["address_order"],
 				":router" => $address["address_router"],
-				":route" => $address["address_route"]
+				":route" => isset($address["address_route"]) ? $address["address_route"] : null
 			);
 
 			$status = $this->c->getDB()->insert($sql, array($params));
