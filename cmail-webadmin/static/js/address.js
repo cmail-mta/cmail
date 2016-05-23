@@ -7,10 +7,21 @@ cmail.address = {
 
 		return addresses[0];
 	},
-	get_all: function() {
+	test: function() {
+		var test = document.getElementById("address_test").value;
+
+		this.get_all(test);
+	},
+	get_all: function(test) {
 		var self = this;
 
-		ajax.asyncGet(cmail.api_url + "addresses/?get", function(xhr) {
+		var url = cmail.api_url + "addresses/?get";
+
+		if (test) {
+			url += "&test=" + test;
+		}
+
+		ajax.asyncGet(url, function(xhr) {
 
 			var obj  = JSON.parse(xhr.response);
 
@@ -65,6 +76,7 @@ cmail.address = {
 				addresslist.appendChild(tr);
 			};
 		});
+
 	},
 	show_form: function(obj) {
 		if (obj) {
