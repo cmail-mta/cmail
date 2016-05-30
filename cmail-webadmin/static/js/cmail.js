@@ -39,6 +39,9 @@ var cmail = {
 				cmail.modules.forEach(function(module) {
 					tr.appendChild(gui.createColumn(module));
 				});
+
+				tr.appendChild(gui.createColumn("Mail count"));
+
 				tr.appendChild(gui.createColumn("Options"));
 				head.appendChild(tr);
 			});
