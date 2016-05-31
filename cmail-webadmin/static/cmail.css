@@ -104,3 +104,6 @@ label {
 	margin-bottom:2em;
 }
 
+#filter {
+	float: right;
+}

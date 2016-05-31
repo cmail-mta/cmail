@@ -218,12 +218,17 @@
 		public function get($obj, $write = true) {
 
 			if (isset($obj["address_order"]) && !empty($obj["address_order"])) {
-				return $this->getByOrder($obj["address_order"]);
+				return $this->getByOrder($obj["address_order"], $filter);
 			}
 
 			if (isset($obj["address_expression"]) && !empty($obj["address_expression"])) {
 				return $this->getByExpression($obj["address_expression"], $write);
 			}
+
+			if (isset($_GET["test"])) {
+				return $this->getLikeExpression($_GET["test"], $write);
+			}
+
 			if (isset($obj["address_user"]) && !empty($obj["address_user"])) {
 				return $this->getByUser($obj);
 			}
@@ -240,6 +245,45 @@
 
 			return $this->getAll();
 
+		}
+
+		public function getLikeExpression($expression, $write = true) {
+
+			$auth = $this->c->getAuth();
+			if ($auth->hasPermission("delegate")) {
+				$sql = "SELECT * FROM addresses
+					WHERE (address_expression LIKE
+					(SELECT api_expression FROM api_address_delegates
+					WHERE api_address_delegates.api_user = :api_user)
+					OR (address_router = 'store' AND address_route IN
+					(SELECT api_delegate FROM api_user_delegates
+					WHERE api_user_delegates.api_user = :api_user)))
+						AND :address_expression LIKE address_expression ORDER BY address_order DESC";
+
+
+				$params = array(
+					":address_expression" => $expression,
+					":api_user" => $auth->getUser()
+				);
+			} else if ($auth->hasPermission("admin")) {
+				$sql = "SELECT * FROM addresses WHERE :address LIKE address_expression ORDER BY address_order DESC";
+				$params = array(
+					":address" => $expression
+				);
+			} else {
+				$sql = "SELECT * FROM addresses WHERE :address LIKE address_expression AND address_route = 'store' AND address_route = :user ORDER BY address_order DESC";
+				$params = array(
+					":address" => $expression,
+					":user" => $auth->getUser()
+				);
+			}
+			$addresses = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
+
+			if ($write) {
+				$this->output->add("addresses", $addresses);
+			}
+
+			return $addresses;
 		}
 
 		public function getByExpression($expression, $write = true) {

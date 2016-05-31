@@ -210,9 +210,15 @@
 			<h2>Address management</h2>
 			<br />
 			<div id="address_action_bar">
+				<div id="filter">
+					<label for="address_test">Test:
+						<input id="address_test" type="text" placeholder="address" onchange="cmail.address.test()" />
+					</label>
+				</div>
 				<span class="button" onclick="cmail.address.show_form()">Add</span>
 			</div>
-			<table>
+
+						<table>
 				<thead>
 					<th>Address Expression</th><th>Order</th><th>Inrouter</th><th>Inroute</th><th>Options</th>
 				</thead>
