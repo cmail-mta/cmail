@@ -58,6 +58,8 @@ cmail.user = {
 				tr.appendChild(col);
 			});
 
+			tr.appendChild(gui.createColumn(user.mails));
+
 			// option buttons
 			var options = gui.create("td");
 			options.appendChild(gui.createButton("edit", self.show_form, [user.user_name], self));
