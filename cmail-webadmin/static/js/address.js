@@ -7,15 +7,11 @@ cmail.address = {
 
 		return addresses[0];
 	},
-	test: function() {
-		var test = document.getElementById("address_test").value;
-
-		this.get_all(test);
-	},
-	get_all: function(test) {
+	get_all: function() {
 		var self = this;
 
 		var url = cmail.api_url + "addresses/?get";
+		var test = document.getElementById("address_test").value;
 
 		if (test) {
 			url += "&test=" + test;
