@@ -14,7 +14,6 @@
 			<a class="item" href="#smtpd">SMTP</a>
 			<a class="item" href="#pop">POP</a>
 			<a class="item" href="#delegates">Delegates</a>
-			<a class="item" href="#test">Test</a>
 
 
 			<span id="headmenu-right">
@@ -270,37 +269,6 @@
 				<tbody id="pop_user_list">
 				</tbody>
 			</table>
-		</div>
-
-		<div id="test" class="tab">
-
-			<h2>Test Routing</h2>
-
-			<br />
-
-			<form action="javascript:cmail.smtpd.test()">
-				<label>Mail address: <br />
-					<input type="text" id="smtpd_test_input" value="" />
-					<select id="smtpd_test_router">
-						<option value="inrouter">Inrouter</option>
-						<option value="outrouter">Outrouter</option>
-					</select>
-					<span class="button" onclick="cmail.smtpd.test()">Test</span>
-				</label>
-
-				<br />
-
-				<table>
-					<thead>
-						<tr>
-							<th>#</th><th>Action</th>
-						</tr>
-					</thead>
-
-					<tbody id="smtpd_test_steps">
-					</tbody>
-				</table>
-			</form>
 		</div>
 
 		<datalist id="usernamelist">
