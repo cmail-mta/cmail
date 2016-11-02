@@ -52,8 +52,7 @@ var cmail = {
 		"delegates",
 		"address",
 		"smtpd",
-		"pop",
-		"test"
+		"pop"
 	],
 	init: function() {
 		this.login();
