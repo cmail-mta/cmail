@@ -30,14 +30,14 @@
 		</div>
 
 		<div id="login_prompt" class="editPanel">
-			<form>
+			<form onsubmit="cmail.login();return false;">
 				<label>Username: <br />
 					<input id="login_name" type="text"/>
 				</label>
 				<label>Password: <br />
 					<input id="login_password" type="password" />
 				</label>
-				<span class="button" onclick="cmail.login()">Login</span>
+				<button class="button" type="submit">Login</button>
 			</form>
 		</div>
 

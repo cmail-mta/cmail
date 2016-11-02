@@ -18,6 +18,7 @@ h1, h2, h3{
 }
 
 .button{
+	border: 0;
 	padding:0.3em;
 	border-radius:0.2em;
 	background-color:#ccc;
