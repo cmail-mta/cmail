@@ -57,7 +57,7 @@ int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool f
 
 	if(sqlite3_bind_int(database->insert_bounce_reason, 1, dbid) != SQLITE_OK
 		|| sqlite3_bind_text(database->insert_bounce_reason, 2, message, -1, SQLITE_STATIC) != SQLITE_OK
-		|| sqlite3_bind_int(database->insert_bounce_reason, 3, fatal?1:0)){
+		|| sqlite3_bind_int(database->insert_bounce_reason, 3, fatal ? 1:0)){
 		logprintf(log, LOG_ERROR, "Failed to bind bounce reason parameter: %s\n", sqlite3_errmsg(database->conn));
 		rv = -1;
 	}
@@ -97,7 +97,7 @@ int mail_delete(LOGGER log, DATABASE* database, int dbid){
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 	unsigned i;
-	bool continue_data=false;
+	bool continue_data = false;
 
 	if(smtp_initiate(log, conn, mail)){
 		logprintf(log, LOG_WARNING, "Failed to initiate mail transaction\n");

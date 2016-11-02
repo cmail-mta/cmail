@@ -157,7 +157,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 		free(bounce_message);
 	}
 
-	return (rv<0) ? rv:bounces;
+	return (rv < 0) ? rv:bounces;
 }
 
 int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, MAIL* transaction){
@@ -249,7 +249,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
 
-		if(resolver_answer->nrrs <= 0){
+		if(resolver_answer->status == adns_s_ok && resolver_answer->nrrs <= 0){
 			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to HANDOFF strategy\n", remote.host);
 
 			//free resolver data
@@ -257,25 +257,47 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			adns_finish(resolver);
 
 			remote.mode = DELIVER_HANDOFF;
+			mx_count = 1;
 			//TODO report error type
 		}
-		else{
+		else if(resolver_answer->status == adns_s_ok){
 			for(c = 0; c < resolver_answer->nrrs; c++){
 				logprintf(log, LOG_DEBUG, "MX %d: %s\n", c, resolver_answer->rrs.inthostaddr[c].ha.host);
 			}
 
 			mx_count = resolver_answer->nrrs;
 		}
+		else{
+			//recoverable failures should be retried, permanent errors should fail all mails
+			//in the transaction
+			//fail
+			//	adns_s_nxdomain
+			//	adns_s_nodata(?)
+			//this is checked again below
+			if(resolver_answer->status == adns_s_nxdomain){
+				logprintf(log, LOG_ERROR, "DNS query returned an irrecoverable error, failing this remote permanently\n");
+			}
+			//retry
+			//	the rest
+			else{
+				logprintf(log, LOG_ERROR, "DNS query returned a recoverable error, retrying this remote in the next interval\n");
+				free(resolver_answer);
+				adns_finish(resolver);
+				return -1;
+			}
+		}
 	}
 
 	//prepare mail data query
 	if(sqlite3_bind_int(tx_statement, 1, settings.retry_interval) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
+		//FIXME returning -1 here retries in the next interval, leaking adns_*
 		return -1;
 	}
 
 	if(sqlite3_bind_text(tx_statement, 2, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
+		//FIXME returning -1 here retries in the next interval, leaking adns_*
 		return -1;
 	}
 
@@ -286,9 +308,10 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			case SQLITE_ROW:
 				if(tx_active >= tx_allocated){
 					//reallocate transaction array
-					mails = realloc(mails, (tx_allocated+CMAIL_REALLOC_CHUNK) * sizeof(MAIL));
+					mails = realloc(mails, (tx_allocated + CMAIL_REALLOC_CHUNK) * sizeof(MAIL));
 					if(!mails){
 						logprintf(log, LOG_ERROR, "Failed to allocate memory for mail transaction array\n");
+						//FIXME returning -1 here retries in the next interval, leaking adns_*
 						return -1;
 					}
 
@@ -320,8 +343,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	sqlite3_clear_bindings(tx_statement);
 
 	//connect to remote
-	current_mx = 0;
-	do{
+	for(current_mx = 0; current_mx < mx_count; current_mx++){
 		if(remote.mode == DELIVER_DOMAIN){
 			resolver_remote = resolver_answer->rrs.inthostaddr[current_mx].ha.host;
 		}
@@ -366,17 +388,28 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			}
 		}
 
-		current_mx++;
 	}
-	while(current_mx < mx_count);
 	logprintf(log, LOG_INFO, "Finished delivery handling of host %s\n", remote.host);
 
-
 	if(delivered_mails < 0){
-		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", remote.host);
-		for(i = 0; i < tx_active; i++){
-			for(c = 0; c < mails[i].recipients; c++){
-				mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to reach any MX", false);
+		//FIXME this does not account for partial delivery by some mailservers - or does it?
+		//TODO check who actually deletes completed mails - are all nondeleted mails retried?
+		if(remote.mode == DELIVER_DOMAIN && 
+				(resolver_answer->status == adns_s_nxdomain)){
+			//permanently fail the mails
+			logprintf(log, LOG_WARNING, "Invalid remotespec %s, permanently failing\n", remote.host);
+			for(i = 0; i < tx_active; i++){
+				for(c = 0; c < mails[i].recipients; c++){
+					mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to resolve recipient domain", true);
+				}
+			}
+		}
+		else{
+			logprintf(log, LOG_WARNING, "Could not reach any MX for %s, failing temporarily\n", remote.host);
+			for(i = 0; i < tx_active; i++){
+				for(c = 0; c < mails[i].recipients; c++){
+					mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to reach any MX", false);
+				}
 			}
 		}
 	}
