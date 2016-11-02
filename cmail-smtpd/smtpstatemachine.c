@@ -449,7 +449,13 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		}
 
 		if(!current_path->route.router){
-			//path not local, accept only if authenticated
+			//path not local, check for domain part
+			if(current_path->path[current_path->delimiter_position] != '@'){
+				client_send(log, client, "551 Non-local paths need domain part\r\n");
+				pathpool_return(current_path);
+				return -1;
+			}
+			//accept only if authenticated
 			if(!client_data->sasl_user.authenticated){
 				client_send(log, client, "551 Unknown user\r\n");
 				pathpool_return(current_path);
