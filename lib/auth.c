@@ -59,6 +59,39 @@ int auth_base64decode(LOGGER log, char* in){
 	return (group * 3) + 3;
 }
 
+//CAVEAT: this reallocs the data buffer
+int auth_base64encode(LOGGER log, uint8_t** input, size_t data_len){
+	//doing this myself because i want it to be mostly in-place
+	//libnettle's API does not specify whether overlapping input/output regions are okay, so i guess not
+	uint32_t encode_buffer;
+	char* base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	size_t encode_triplets = (data_len / 3) + ((data_len % 3) ? 1:0);
+	size_t current_triplet = 0;
+
+	//reallocate buffer to encoded length
+	*input = realloc(*input, (encode_triplets * 4 + 1) * sizeof(uint8_t));
+	if(!(*input)){
+		logprintf(log, LOG_ERROR, "Failed to allocate memory for base64 encoding\n");
+		return -1;
+	}
+	memset((*input) + data_len, 0, (encode_triplets * 4 + 1) - data_len);
+
+	//iterate over triplets (from end)
+	for(current_triplet = 0; current_triplet < encode_triplets; current_triplet++){
+		//encode
+		encode_buffer = *((*input) + (encode_triplets - current_triplet - 1) * 3) << 16;
+		encode_buffer |= *((*input) + (encode_triplets - current_triplet - 1) * 3 + 1) << 8;
+		encode_buffer |= *((*input) + (encode_triplets - current_triplet - 1) * 3 + 2);
+
+		*((*input) + (encode_triplets - current_triplet - 1) * 4) = base64_alphabet[(encode_buffer & 0xFC0000) >> 18];
+		*((*input) + (encode_triplets - current_triplet - 1) * 4 + 1) = base64_alphabet[(encode_buffer & 0x03F000) >> 12];
+		*((*input) + (encode_triplets - current_triplet - 1) * 4 + 2) = base64_alphabet[(encode_buffer & 0x0FC0) >> 6];
+		*((*input) + (encode_triplets - current_triplet - 1) * 4 + 3) = base64_alphabet[(encode_buffer & 0x3F)];
+	}
+
+	return 0;
+}
+
 int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, char* pass, unsigned pass_bytes){
 	struct sha256_ctx hash_context;
 	uint8_t digest[SHA256_DIGEST_SIZE];
