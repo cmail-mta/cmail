@@ -432,13 +432,14 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	int status;
-	unsigned i;
+	unsigned u;
 	unsigned mails_delivered = 0;
 	int bounces_generated = 0;
 
 	unsigned remotes_allocated = 0;
 	unsigned remotes_active = 0;
 	REMOTE* remotes = NULL;
+	char* remote_separator;
 
 	logprintf(log, LOG_INFO, "Entering core loop\n");
 
@@ -469,14 +470,73 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 						remotes_allocated += CMAIL_REALLOC_CHUNK;
 					}
 
+					//reset entry
 					if(remotes[remotes_active].host){
 						free(remotes[remotes_active].host);
 					}
-
+					if(remotes[remotes_active].remote_auth){
+						free(remotes[remotes_active].remote_auth);
+						remotes[remotes_active].remote_auth = NULL;
+					}
+					remotes[remotes_active].remote_port = 0;
 					remotes[remotes_active].mode = DELIVER_HANDOFF;
+					remotes[remotes_active].tls_mode = 0;
 
 					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
 						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
+						//parse additional handoff remote parameters
+						//check for remote authentication
+						if(index(remotes[remotes_active].host, '@')){
+							//copy remote authentication raw
+							remote_separator = index(remotes[remotes_active].host, '@');
+							*remote_separator = 0;
+							remotes[remotes_active].remote_auth = strdup(remotes[remotes_active].host);
+							//FIXME error checking
+
+							//move host part back to .host
+							memmove(remotes[remotes_active].host, remote_separator + 1, strlen(remote_separator + 1) + 1);
+
+							//preprocess SASL response
+							u = strlen(remotes[remotes_active].remote_auth);
+							remotes[remotes_active].remote_auth = realloc(remotes[remotes_active].remote_auth, (u + 2) * sizeof(char));
+							memmove(remotes[remotes_active].remote_auth + 1, remotes[remotes_active].remote_auth, u + 1);
+							remote_separator = index(remotes[remotes_active].remote_auth, ':');
+							if(!remote_separator){
+								//TODO fail here
+							}
+							else{
+								*remote_separator = 0;
+							}
+							*remotes[remotes_active].remote_auth = 0;
+							if(auth_base64encode(log, (uint8_t**)&(remotes[remotes_active].remote_auth), u + 2) < 0){
+								//TODO fail here
+							}
+						}
+						//check for port specification (and tls mode)
+						if(index(remotes[remotes_active].host, ':')){
+							remote_separator = index(remotes[remotes_active].host, ':');
+							*remote_separator = 0;
+
+							//parse remote port
+							remotes[remotes_active].remote_port = strtoul(remote_separator + 1, &remote_separator, 0);
+							//check for tls modestring immediately following
+							if(*remote_separator == '/'){
+								if(!strcasecmp(remote_separator, "/starttls")){
+									remotes[remotes_active].tls_mode = TLS_NEGOTIATE;
+								}
+								else if(!strcasecmp(remote_separator, "/tls")){
+									remotes[remotes_active].tls_mode = TLS_ONLY;
+								}
+								else{
+									remotes[remotes_active].tls_mode = TLS_NONE;
+									//FIXME might want to fail the remote upon invalid TLSMODE
+								}
+							}
+							else if(*remote_separator != 0){
+								//invalid character
+								//TODO fail this remote?
+							}
+						}
 					}
 					else if(sqlite3_column_text(database->query_outbound_hosts, 1)){
 						remotes[remotes_active].mode = DELIVER_DOMAIN;
@@ -503,13 +563,20 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		sqlite3_clear_bindings(database->query_outbound_hosts);
 
 		//deliver all remotes
-		for(i = 0; i < remotes_active; i++){
-			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[i].host, (remotes[i].mode == DELIVER_DOMAIN) ? "domain":"handoff");
+		for(u = 0; u < remotes_active; u++){
+			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[u].host, (remotes[u].mode == DELIVER_DOMAIN) ? "domain":"handoff");
+			if(remotes[u].remote_port){
+				logprintf(log, LOG_INFO, "Remote uses forced port %d with TLS mode %s\n", remotes[u].remote_port, tls_modestring(remotes[u].tls_mode));
+			}
+			if(remotes[u].remote_auth){
+				logprintf(log, LOG_INFO, "Remote uses remote authentication\n");
+				logprintf(log, LOG_DEBUG, "Remote authentication data %s\n", remotes[u].remote_auth);
+			}
 
 			//TODO implement multi-threading here
-			status = logic_handle_remote(log, database, settings, remotes[i]);
+			status = logic_handle_remote(log, database, settings, remotes[u]);
 
-			if(status<0){
+			if(status < 0){
 				logprintf(log, LOG_WARNING, "Delivery procedure returned an error\n");
 			}
 			else{
@@ -530,9 +597,12 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	while(!abort_signaled);
 
 	//free allocated remotes
-	for(i = 0; i < remotes_allocated; i++){
-		if(remotes[i].host){
-			free(remotes[i].host);
+	for(u = 0; u < remotes_allocated; u++){
+		if(remotes[u].host){
+			free(remotes[u].host);
+		}
+		if(remotes[u].remote_auth){
+			free(remotes[u].remote_auth);
 		}
 	}
 	free(remotes);

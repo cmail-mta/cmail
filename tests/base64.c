@@ -12,9 +12,12 @@
 #include "../lib/logger.c"
 
 int main(int argc, char** argv){
-	if(argc < 2){
-		printf("Supply args\n");
-		return EXIT_FAILURE;
+	uint8_t* input;
+	if(argc >= 2){
+		input = (uint8_t*)common_strdup(argv[1]);
+	}
+	else{
+		input = calloc(20, sizeof(uint8_t));
 	}
 
 	LOGGER log = {
@@ -24,7 +27,6 @@ int main(int argc, char** argv){
 		.print_timestamp = false
 	};
 
-	uint8_t* input = (uint8_t*)common_strdup(argv[1]);
 	int status;
 
 	printf("Input: %s\n", input);

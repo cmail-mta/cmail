@@ -18,6 +18,7 @@
 #include "../lib/config.h"
 //#include "../lib/tls.h" //pulled in by network.h anyway
 #include "../lib/database.h"
+#include "../lib/auth.h"
 #include "../lib/network.h"
 
 #include "../lib/logger.c"
@@ -25,6 +26,7 @@
 #include "../lib/privileges.c"
 #include "../lib/config.c"
 #include "../lib/tls.c"
+#include "../lib/auth.c"
 #include "../lib/database.c"
 #include "../lib/daemonize.c"
 #include "../lib/network.c"
@@ -38,6 +40,11 @@ typedef enum /*_DELIVERY_MODE*/ {
 typedef struct /*_DELIVERY_REMOTE*/ {
 	char* host;
 	DELIVERY_MODE mode;
+	int remote_port;	//port 0 -> all configured
+	char* remote_auth;	//NULL -> no auth
+	#ifndef CMAIL_NO_TLS
+	TLSMODE tls_mode;	//0 -> TLS_NONE
+	#endif
 } REMOTE;
 
 typedef enum /*_MAIL_STATUS*/ {
