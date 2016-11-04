@@ -105,7 +105,10 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 	}
 
 	for(i = 0; i < mail->recipients; i++){
-		sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid); //FIXME error check this
+		if(sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid) != SQLITE_OK){
+			logprintf(log, LOG_ERROR, "Failed to bind database id to recipient query\n");
+			continue;
+		}
 		switch(sqlite3_step(database->query_rcpt)){
 			case SQLITE_DONE:
 				logprintf(log, LOG_WARNING, "dbid %d does not exist anymore\n", mail->rcpt[i].dbid);
