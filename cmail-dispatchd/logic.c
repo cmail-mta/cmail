@@ -350,18 +350,26 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", current_mx, resolver_remote);
 
 		for(port = 0; settings.port_list[port].port; port++){
+			REMOTE_PORT current_port = settings.port_list[port];
+
+			if(remote.mode == DELIVER_HANDOFF && remote.forced_port.port){
+				//need to break out of port iteration again at end
+				logprintf(log, LOG_INFO, "Using forced port for handoff remote\n");
+				current_port = remote.forced_port;
+			}
+
 			#ifndef CMAIL_NO_TLS
-			logprintf(log, LOG_INFO, "Trying port %d TLS mode %s\n", settings.port_list[port].port, tls_modestring(settings.port_list[port].tls_mode));
+			logprintf(log, LOG_INFO, "Trying port %d TLS mode %s\n", current_port.port, tls_modestring(current_port.tls_mode));
 			#else
-			logprintf(log, LOG_INFO, "Trying port %d\n", settings.port_list[port].port);
+			logprintf(log, LOG_INFO, "Trying port %d\n", current_port.port);
 			#endif
 
-			conn.fd = network_connect(log, resolver_remote, settings.port_list[port].port);
+			conn.fd = network_connect(log, resolver_remote, current_port.port);
 			//TODO only reconnect if port or remote have changed
 
 			if(conn.fd > 0){
 				//negotiate smtp
-				if(smtp_negotiate(log, settings, resolver_remote, &conn, settings.port_list[port]) < 0){
+				if(smtp_negotiate(log, settings, resolver_remote, &conn, current_port) < 0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(log, &conn, true);
@@ -386,8 +394,12 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 				current_mx = mx_count; //break the outer loop
 				break;
 			}
-		}
 
+			//if forced port, dont try any others
+			if(remote.mode == DELIVER_HANDOFF && remote.forced_port.port){
+				break;
+			}
+		}
 	}
 	logprintf(log, LOG_INFO, "Finished delivery handling of host %s\n", remote.host);
 
@@ -478,9 +490,9 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 						free(remotes[remotes_active].remote_auth);
 						remotes[remotes_active].remote_auth = NULL;
 					}
-					remotes[remotes_active].remote_port = 0;
+					remotes[remotes_active].forced_port.port = 0;
+					remotes[remotes_active].forced_port.tls_mode = TLS_NONE;
 					remotes[remotes_active].mode = DELIVER_HANDOFF;
-					remotes[remotes_active].tls_mode = 0;
 
 					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
 						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
@@ -518,17 +530,17 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 							*remote_separator = 0;
 
 							//parse remote port
-							remotes[remotes_active].remote_port = strtoul(remote_separator + 1, &remote_separator, 0);
+							remotes[remotes_active].forced_port.port = strtoul(remote_separator + 1, &remote_separator, 0);
 							//check for tls modestring immediately following
 							if(*remote_separator == '/'){
 								if(!strcasecmp(remote_separator, "/starttls")){
-									remotes[remotes_active].tls_mode = TLS_NEGOTIATE;
+									remotes[remotes_active].forced_port.tls_mode = TLS_NEGOTIATE;
 								}
 								else if(!strcasecmp(remote_separator, "/tls")){
-									remotes[remotes_active].tls_mode = TLS_ONLY;
+									remotes[remotes_active].forced_port.tls_mode = TLS_ONLY;
 								}
 								else{
-									remotes[remotes_active].tls_mode = TLS_NONE;
+									remotes[remotes_active].forced_port.tls_mode = TLS_NONE;
 									//FIXME might want to fail the remote upon invalid TLSMODE
 								}
 							}
@@ -565,8 +577,8 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		//deliver all remotes
 		for(u = 0; u < remotes_active; u++){
 			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[u].host, (remotes[u].mode == DELIVER_DOMAIN) ? "domain":"handoff");
-			if(remotes[u].remote_port){
-				logprintf(log, LOG_INFO, "Remote uses forced port %d with TLS mode %s\n", remotes[u].remote_port, tls_modestring(remotes[u].tls_mode));
+			if(remotes[u].forced_port.port){
+				logprintf(log, LOG_INFO, "Remote uses forced port %d with TLS mode %s\n", remotes[u].forced_port.port, tls_modestring(remotes[u].forced_port.tls_mode));
 			}
 			if(remotes[u].remote_auth){
 				logprintf(log, LOG_INFO, "Remote uses remote authentication\n");

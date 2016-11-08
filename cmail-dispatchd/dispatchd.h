@@ -37,14 +37,18 @@ typedef enum /*_DELIVERY_MODE*/ {
 	DELIVER_HANDOFF
 } DELIVERY_MODE;
 
+typedef struct /*_REMOTE_PORT*/ {
+	uint16_t port;
+	#ifndef CMAIL_NO_TLS
+	TLSMODE tls_mode;
+	#endif
+} REMOTE_PORT;
+
 typedef struct /*_DELIVERY_REMOTE*/ {
 	char* host;
 	DELIVERY_MODE mode;
-	int remote_port;	//port 0 -> all configured
 	char* remote_auth;	//NULL -> no auth
-	#ifndef CMAIL_NO_TLS
-	TLSMODE tls_mode;	//0 -> TLS_NONE
-	#endif
+	REMOTE_PORT forced_port;
 } REMOTE;
 
 typedef enum /*_MAIL_STATUS*/ {
@@ -88,13 +92,6 @@ typedef struct /*_ARGUMENT_COLLECTION*/ {
 	bool generate_bounces;
 	char* config_file;
 } ARGUMENTS;
-
-typedef struct /*_REMOTE_PORT*/ {
-	uint16_t port;
-	#ifndef CMAIL_NO_TLS
-	TLSMODE tls_mode;
-	#endif
-} REMOTE_PORT;
 
 typedef struct /*_MTA_SETTINGS*/ {
 	char* helo_announce;
