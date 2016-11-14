@@ -207,6 +207,8 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE remote){
 	int status, delivered_mails = -1;
 	unsigned current_mx = 0, mx_count = 0, port, i, c;
+	char* failure_reason = "Failed to reach any MX";
+	bool fail_permanently = false;
 	sqlite3_stmt* tx_statement = (remote.mode == DELIVER_DOMAIN) ? database->query_domain:database->query_remote;
 
 	CONNDATA conn_data = {
@@ -373,6 +375,10 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(log, &conn, true);
+					//if forced port, dont try any others
+					if(remote.mode == DELIVER_HANDOFF && remote.forced_port.port){
+						break;
+					}
 					continue;
 				}
 
@@ -410,18 +416,21 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 				(resolver_answer->status == adns_s_nxdomain)){
 			//permanently fail the mails
 			logprintf(log, LOG_WARNING, "Invalid remotespec %s, permanently failing\n", remote.host);
-			for(i = 0; i < tx_active; i++){
-				for(c = 0; c < mails[i].recipients; c++){
-					mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to resolve recipient domain", true);
-				}
-			}
+			failure_reason = "Failed to resolve recipient domain";
+			fail_permanently = true;
+		}
+		else if(remote.mode == DELIVER_HANDOFF){
+			logprintf(log, LOG_WARNING, "Connection or TLS negotiation failed with handoff remote %s\n", remote.host);
+			failure_reason = "Failed to connect or negotiate with handoff remote";
 		}
 		else{
 			logprintf(log, LOG_WARNING, "Could not reach any MX for %s, failing temporarily\n", remote.host);
-			for(i = 0; i < tx_active; i++){
-				for(c = 0; c < mails[i].recipients; c++){
-					mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to reach any MX", false);
-				}
+		}
+		
+		//insert failure reasons
+		for(i = 0; i < tx_active; i++){
+			for(c = 0; c < mails[i].recipients; c++){
+				mail_failure(log, database, mails[i].rcpt[c].dbid, failure_reason, fail_permanently);
 			}
 		}
 	}
