@@ -289,6 +289,9 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			}
 		}
 	}
+	else{
+		mx_count = 1;
+	}
 
 	//prepare mail data query
 	if(sqlite3_bind_int(tx_statement, 1, settings.retry_interval) != SQLITE_OK){
@@ -297,7 +300,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 		return -1;
 	}
 
-	if(sqlite3_bind_text(tx_statement, 2, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
+	if(sqlite3_bind_text(tx_statement, 2, remote.remotespec, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
 		//FIXME returning -1 here retries in the next interval, leaking adns_*
 		return -1;
@@ -371,7 +374,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 			if(conn.fd > 0){
 				//negotiate smtp
-				if(smtp_negotiate(log, settings, resolver_remote, &conn, current_port) < 0){
+				if(smtp_negotiate(log, settings, resolver_remote, &conn, current_port, remote.remote_auth) < 0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(log, &conn, true);
@@ -407,7 +410,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			}
 		}
 	}
-	logprintf(log, LOG_INFO, "Finished delivery handling of host %s\n", remote.host);
+	logprintf(log, LOG_INFO, "Finished delivery handling of host %s after trying %d of %d MXes\n", remote.host, current_mx, mx_count);
 
 	if(delivered_mails < 0){
 		//FIXME this does not account for partial delivery by some mailservers - or does it?
@@ -495,6 +498,9 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					if(remotes[remotes_active].host){
 						free(remotes[remotes_active].host);
 					}
+					if(remotes[remotes_active].remotespec){
+						free(remotes[remotes_active].remotespec);
+					}
 					if(remotes[remotes_active].remote_auth){
 						free(remotes[remotes_active].remote_auth);
 						remotes[remotes_active].remote_auth = NULL;
@@ -504,7 +510,8 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					remotes[remotes_active].mode = DELIVER_HANDOFF;
 
 					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
-						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
+						remotes[remotes_active].remotespec = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
+						remotes[remotes_active].host = common_strdup(remotes[remotes_active].remotespec);
 						//parse additional handoff remote parameters
 						//check for remote authentication
 						if(index(remotes[remotes_active].host, '@')){
@@ -562,6 +569,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 					else if(sqlite3_column_text(database->query_outbound_hosts, 1)){
 						remotes[remotes_active].mode = DELIVER_DOMAIN;
 						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 1));
+						remotes[remotes_active].remotespec = common_strdup(remotes[remotes_active].host);
 					}
 
 					if(!remotes[remotes_active].host){
@@ -621,6 +629,9 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	for(u = 0; u < remotes_allocated; u++){
 		if(remotes[u].host){
 			free(remotes[u].host);
+		}
+		if(remotes[u].remotespec){
+			free(remotes[u].remotespec);
 		}
 		if(remotes[u].remote_auth){
 			free(remotes[u].remote_auth);

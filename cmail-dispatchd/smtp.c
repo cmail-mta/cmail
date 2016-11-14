@@ -54,6 +54,33 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 	return 0;
 }
 
+int smtp_auth(LOGGER log, CONNECTION* conn, char* auth_data){
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
+
+	if(!conn_data->extensions_supported){
+		logprintf(log, LOG_WARNING, "Remote authentication requested, but server does not support extensions\n");
+		return -1;
+	}
+
+	client_send(log, conn, "AUTH PLAIN\r\n");
+
+	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 334)){
+		logprintf(log, LOG_WARNING, "Could not start remote authentication, response was %d\n", conn_data->reply.code);
+		return -1;
+	}
+
+	//send authentication data
+	client_send(log, conn, "%s\r\n", auth_data);
+	
+	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 235)){
+		logprintf(log, LOG_WARNING, "Remote authentication failed with status %d\n", conn_data->reply.code);
+		return -1;
+	}
+
+	logprintf(log, LOG_DEBUG, "Successfully authenticated with remote\n");
+	return 0;
+}
+
 int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
 	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
@@ -169,7 +196,7 @@ int smtp_noop(LOGGER log, CONNECTION* conn){
 	return 0;
 }
 
-int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port){
+int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port, char* auth_data){
 	unsigned i;
 	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
@@ -240,6 +267,12 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 				smtp_rset(log, conn);
 			}
 		}
+	}
+
+	//if requested, try to authenticate
+	if(auth_data && smtp_auth(log, conn, auth_data) < 0){
+		logprintf(log, LOG_WARNING, "Failed to authenticate with remote host\n");
+		return -1;
 	}
 
 	return 0;

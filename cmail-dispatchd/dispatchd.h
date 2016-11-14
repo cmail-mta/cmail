@@ -49,6 +49,7 @@ typedef struct /*_DELIVERY_REMOTE*/ {
 	DELIVERY_MODE mode;
 	char* remote_auth;	//NULL -> no auth
 	REMOTE_PORT forced_port;
+	char* remotespec;
 } REMOTE;
 
 typedef enum /*_MAIL_STATUS*/ {
