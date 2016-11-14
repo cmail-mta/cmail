@@ -6,13 +6,15 @@
 
 int auth_base64decode(LOGGER log, char* in){
 	uint32_t decode_buffer;
-	int group, len, i;
+	unsigned padded_bytes = 3;
+	int group, i;
+	size_t len;
 	char* idx;
 
 	char* base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	len = strlen(in);
 
-	if(len % 4){
+	if(len % 4 || len == 0){
 		logprintf(log, LOG_WARNING, "Input has invalid length for base64\n");
 		return -1;
 	}
@@ -20,6 +22,17 @@ int auth_base64decode(LOGGER log, char* in){
 	//decode to code point indices
 	for(i = 0; i < len; i++){
 		if(in[i] == '='){
+			//max 2 pads
+			switch(len - i){
+				case 1:
+				case 2:
+					//valid padding bytes
+					padded_bytes = 3 - (len - i);
+					break;
+				default:
+					logprintf(log, LOG_WARNING, "Invalid number of padding bytes in base64\n");
+					return -1;
+			}
 			//'=' is only allowed as trailing character, so fail if it is within valid base64
 			//this is marked MUST by some rfcs (5034)
 			for(; i < len; i++){
@@ -56,7 +69,7 @@ int auth_base64decode(LOGGER log, char* in){
 		in[(group * 3) + 3] = 0;
 	}
 
-	return (group * 3) + 3;
+	return ((group - 1) * 3) + padded_bytes;
 }
 
 //CAVEAT: this reallocs the data buffer
@@ -67,6 +80,7 @@ int auth_base64encode(LOGGER log, uint8_t** input, size_t data_len){
 	char* base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	size_t encode_triplets = (data_len / 3) + ((data_len % 3) ? 1:0);
 	size_t current_triplet = 0;
+	unsigned u;
 
 	//reallocate buffer to encoded length
 	*input = realloc(*input, (encode_triplets * 4 + 1) * sizeof(uint8_t));
@@ -87,6 +101,20 @@ int auth_base64encode(LOGGER log, uint8_t** input, size_t data_len){
 		*((*input) + (encode_triplets - current_triplet - 1) * 4 + 1) = base64_alphabet[(encode_buffer & 0x03F000) >> 12];
 		*((*input) + (encode_triplets - current_triplet - 1) * 4 + 2) = base64_alphabet[(encode_buffer & 0x0FC0) >> 6];
 		*((*input) + (encode_triplets - current_triplet - 1) * 4 + 3) = base64_alphabet[(encode_buffer & 0x3F)];
+	}
+
+	//write padding
+	switch(3 - (data_len % 3)){
+		case 2:
+			//two byte padding
+			*((*input) + encode_triplets * 4 - 2) = '=';
+		case 1:
+			//last byte is padding
+			*((*input) + encode_triplets * 4 - 1) = '=';
+			break;
+		default:
+			//no padding
+			break;
 	}
 
 	return 0;

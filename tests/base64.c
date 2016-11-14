@@ -39,5 +39,7 @@ int main(int argc, char** argv){
 
 	printf("Decode (%d): %s\n", status, input);
 
+	free(input);
+
 	return 0;
 }
