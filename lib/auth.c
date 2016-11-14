@@ -80,7 +80,6 @@ int auth_base64encode(LOGGER log, uint8_t** input, size_t data_len){
 	char* base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	size_t encode_triplets = (data_len / 3) + ((data_len % 3) ? 1:0);
 	size_t current_triplet = 0;
-	unsigned u;
 
 	//reallocate buffer to encoded length
 	*input = realloc(*input, (encode_triplets * 4 + 1) * sizeof(uint8_t));
