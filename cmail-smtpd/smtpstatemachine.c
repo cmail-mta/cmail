@@ -546,7 +546,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			}
 			//check for too many hops
 			else if(client_data->current_mail.hop_count > CMAIL_MAX_HOPS){
-				logprintf(log, LOG_WARNING, "Mail exceeded maximum hop count of %d", CMAIL_MAX_HOPS);
+				logprintf(log, LOG_WARNING, "Mail exceeded maximum hop count of %d\n", CMAIL_MAX_HOPS);
 				client_send(log, client, "554 Too many hops\r\n");
 			}
 			else{
