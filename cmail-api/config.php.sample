@@ -1,5 +1,8 @@
 <?php
-	$dbpath = "/var/db/cmail.db3";
+	// path to master database
+	$dbpath = '/var/db/cmail.db3';
+
+	// debugging output
 	$debugFlag = false;
 
 	// list of modules
@@ -7,12 +10,23 @@
 	// key = class name
 	// value = path to php file
 	$modulelist = array(
-		"Address" => "addresses/address.php",
-		"User" => "users/user.php",
-		"SMTPD" => "smtpd/smtpd.php",
-		"POP" => "pop/pop.php",
-		"Mailbox" => "mailbox/mailbox.php",
-		"Delegate" => "delegates/delegate.php"
+		'Address' => 'addresses/address.php',
+		'User' => 'users/user.php',
+		'SMTPD' => 'smtpd/smtpd.php',
+		'POP' => 'pop/pop.php',
+		'Mailbox' => 'mailbox/mailbox.php',
+		'Delegate' => 'delegates/delegate.php'
 	);
+
+	// if Address module is used
+	// Optional router for incoming messages.
+	// Key = the name of the router
+	// value = true if router requires an argument, else false.
+	$addressInrouter = [];
+
+	// Optional router for outgoing messages.
+	// Key = the name of the router
+	// value = true if router requires an argument, else false.
+	$addressOutrouter = [];
 
 ?>

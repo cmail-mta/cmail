@@ -1,38 +1,58 @@
 <?php
+	/**
+	 * This file contains the User module.
+	 *
+	 * The user module controls all actions on the user table.
+	 * @author Jan Düpmeier <j.duepmeier@googlemail.com>
+	 */
 
-	include_once("../module.php");
-
+	/**
+	 * Contains the module interface.
+	 */
+	require_once("../module.php");
 	/**
 	 * Class for user related things.
 	 */
 	class User implements Module {
 
+		/**
+		 * DB object
+		 */
 		private $db;
+		/**
+		 * Output object
+		 */
 		private $output;
+		/**
+		 * Auth object
+		 */
 		private $auth;
+		/**
+		 * Controller object.
+		 */
 		private $c;
 
-		// List of end points. Format is:
-		// $name => $func
-		// $name name of the end point
-		// $func name of the function that is called. Function must be in this class.
-		private $endPoints = array(
-			"get" => "get",
-			"add" => "add",
-			"delete" => "delete",
-			"set_password" => "set_password",
-			"delete_permission" => "deletePermission",
-			"add_permission" => "addPermission",
-			"update_permissions" => "updatePermissions",
-			"update_alias" => "updateAlias"
-		);
+		/** List of end points. Format is:
+		 * $name => $func
+		 * $name name of the end point
+		 * $func name of the function that is called. Function must be in this class.
+		 */
+		private $endPoints = [
+			'get' => 'get',
+			'add' => 'add',
+			'delete' => 'delete',
+			'set_password' => 'set_password',
+			'delete_permission' => 'deletePermission',
+			'add_permission' => 'addPermission',
+			'update_permissions' => 'updatePermissions',
+			'update_alias' => 'updateAlias'
+		];
 
 		/**
 		 * Constructor for the user class.
-		 * @param $db the db object
-		 * @param $output the output object
+		 * @param Controller $c Controller object.
 		 */
-		public function __construct($c) {
+		public function __construct(Controller $c) {
 			$this->c = $c;
 			$this->db = $c->getDB();
 			$this->output = $c->getOutput();
@@ -41,24 +61,25 @@
 
 		/**
 		 * Returns all endpoints for this module.
-		 * @return list of endpoints as keys and function name as values.
+		 * @return array list of endpoints as keys and function name as values.
 		 */
 		public function getEndPoints() {
 			return $this->endPoints;
 		}
 
 		/**
-		 * @see Module::getActiveUsers
+		 * Returns all users that can login.
+		 * @return array list of active users.
 		 */
 		public function getActiveUsers() {
 			$sql = "SELECT user_name FROM users WHERE user_authdata IS NOT NULL";
 
-			$users = $this->c->getDB()->query($sql, array(), DB::F_ARRAY);
+			$users = $this->c->getDB()->query($sql, [], DB::F_ARRAY);
 
-			$output = array();
+			$output = [];
 
 			foreach($users as $user) {
-				$output[$user["user_name"]] = true;
+				$output[$user['user_name']] = true;
 			}
 
 			return $output;
@@ -66,19 +87,24 @@
 
 		/**
 		 * Returns a list of users that are delegated to the authorized user. In list is the user itself.
-		 * @param $write if true send user list to output module
-		 * @return list of users
+		 * @param boolean $write True writes to output
+		 * @return array list of users
 		 */
 		private function getDelegated($write = true) {
 
-			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_alias
-				FROM users WHERE user_name IN (
-					SELECT api_delegate AS user_name FROM api_user_delegates WHERE api_user = :api_user
-				) OR user_name = :api_user";
+			$sql = "SELECT user_name,
+						(user_authdata IS NOT NULL) AS user_login,
+						user_alias
+					FROM users
+					WHERE user_name IN (
+						SELECT api_delegate AS user_name
+						FROM api_user_delegates
+						WHERE api_user = :api_user
+					) OR user_name = :api_user";
 
-			$params = array(
-				":api_user" => $this->auth->getUser()
-			);
+			$params = [
+				':api_user' => $this->auth->getUser()
+			];
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 
@@ -86,53 +112,47 @@
 
 			$list = $this->getModuleUserLists();
 			foreach($out as $user) {
-				$user["modules"] = $this->getActiveModules($user, $list);
+				$user['modules'] = $this->getActiveModules($user, $list);
 				$output[] = $user;
 			}
-
-			if ($write) {
-				$this->output->add("users", $output);
-			}
+			$this->output->add('users', $output, $write);
 			return $output;
 		}
 
 		/**
-		 * Returns the given user when in database. If no user is defined, send all users.
-		 * @param obj object with key username into
-		 * @param $write (optional) if true give user list to the output module
-		 * @output_flags users all users that matches this username (should be one)
-		 * @return list of users that matches (should be one)
+		 * Returns the given user when in database. If no user is defined, return all users.
+		 * @param array $obj object
+		 * @param boolean $write True writes to output
+		 * @return array list of users that matches (should be one)
 		 */
-		public function get($obj, $write = true) {
+		public function get(array $obj, $write = true) {
 
-			if ($this->auth->hasPermission("admin")) {
-				if (!isset($obj["username"])) {
+			if ($this->auth->hasPermission('admin')) {
+				if (!isset($obj['username'])) {
 					// if no username is set, return all users
 					return $this->getAll();
 				} else {
-					return $this->getByUser($obj["username"], $write);
+					return $this->getByUser($obj['username'], $write);
 				}
-			} else if ($this->auth->hasPermission("delegate")) {
-				if (isset($obj["username"]) && !empty($obj["username"])) {
+			} else if ($this->auth->hasPermission('delegate')) {
+				if (isset($obj['username']) && !empty($obj['username'])) {
 					$users = $this->auth->getDelegateUsers();
 					$users[] = $this->auth->getUser();
 					foreach($users as $user) {
-						if ($user == $obj["username"]) {
+						if ($user == $obj['username']) {
 							return $this->getByUser($user);
 						}
 					}
-					$this->output->add("status", "User has no permission to do this (not in delegated list).");
-					$this->output->add("users", []);
+					$this->output->panic('403', 'User has no permission to do this (not in delegated list).', $write);
 					return [];
 				} else {
 					return $this->getDelegated($write);
 				}
 			} else {
-				if (!isset($obj["username"]) || $obj["username"] == $this->auth->getUser()) {
+				if (!isset($obj['username']) || $obj['username'] == $this->auth->getUser()) {
 					return $this->getByUser($this->auth->getUser());
 				} else {
-					$this->output->add("status","User has no permission to do this (not the user).");
-					$this->output->add("users", []);
+					$this->output->panic('403','User has no permission to do this (not the user).', $write);
 					return [];
 				}
 			}
@@ -141,175 +161,161 @@
 
 		/**
 		 * Return a user by his name
-		 * @param $username name of the user
-		 * @param $write (optional) if true user object is given to output module
-		 * @return user object
+		 * @param string $username name of the user
+		 * @param boolean $write True writes to output.
+		 * @return array user object
 		 */
 		private function getByUser($username, $write = true) {
 
-			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_alias FROM users WHERE user_name = :user_name";
+			$sql = "SELECT user_name,
+						(user_authdata IS NOT NULL) AS user_login,
+						user_alias
+					FROM users
+					WHERE user_name = :user_name";
 
-			$params = array(":user_name" => $username);
+			$params = [':user_name' => $username];
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 
 			if (count($out) < 1) {
-				if ($write) {
-					$this->output->add("users", []);
-				}
+				$this->output->add('users', [], $write);
 				return [];
 			}
 
-			$out["modules"] = $this->getActiveModules($out[0], $this->getModuleUserLists());
+			$out['modules'] = $this->getActiveModules($out[0], $this->getModuleUserLists());
 
 			$permission_sql = "SELECT api_permission FROM api_access WHERE api_user = :api_user";
-			$permission_params = array(
-				":api_user" => $username
-			);
+			$permission_params = [
+				':api_user' => $username
+			];
 
 			$permissions = $this->db->query($permission_sql, $permission_params, DB::F_ARRAY);
-			$out[0]["user_permissions"] = [];
+			$out[0]['user_permissions'] = [];
 
 			foreach($permissions as $permission) {
-				$out[0]["user_permissions"][] = $permission["api_permission"];
+				$out[0]['user_permissions'][] = $permission['api_permission'];
 			}
 
-			if ($write) {
-				$this->output->add("users", $out);
-			}
+			$this->output->add('users', $out, $write);
 
 			return $out;
 		}
 
 		/**
 		 * Revokes a permission from the given user.
-		 * @param $user object with
-		 * 	"user_name"  => name of the user
-		 * 	"user_permission" => name of the permission
-		 * @return true or false
+		 * @param array $user object with
+		 * 	'user_name'  => name of the user
+		 * 	'user_permission' => name of the permission
+		 * @param boolean $write True writes to output
+		 * @return boolean False on error.
 		 */
-		public function deletePermission($user) {
+		public function deletePermission(array $user, $write = true) {
 
-
-			if (!isset($user["user_name"]) || empty($user["user_name"])) {
-				$this->output->add("status", "No user is set.");
+			if (!$this->c->checkParameter($user, ['user_name', 'user_permission'], $write)) {
 				return false;
 			}
 
-			if (!isset($user["user_permission"]) || empty($user["user_permission"])) {
-				$this->output->add("status", "No permission is set.");
-				return false;
-			}
-
-			if (!$this->auth->hasPermission("admin")) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->auth->hasPermission('admin')) {
+				$this->output->panic('403', 'Not allowed.', $write);
 				return false;
 			}
 
 			$sql = "DELETE FROM api_access WHERE :api_user = api_user AND api_permission = :api_permission)";
 
-			$params = array(
-				":api_user" => $user["user_name"],
-				":api_permission" => $user["user_permission"]
-			);
+			$params = [
+				':api_user' => $user['user_name'],
+				':api_permission' => $user['user_permission']
+			];
 
-			return $this->db->insert($sql, [$params]) > 0;
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
 
 		/**
 		 * grant a permission for the given user.
-		 * @param $user object with
-		 * 	"user_name" => name of the user
-		 * 	"user_permission" => name of the permission
+		 * @param array $user object with
+		 * 	'user_name' => name of the user
+		 * 	'user_permission' => name of the permission
 		 * @return true or false
 		 */
-		public function addPermission($user) {
+		public function addPermission(array $user) {
 
-
-			if (!isset($user["user_name"]) || empty($user["user_name"])) {
-				$this->output->add("status", "No user is set.");
+			if (!$this->c->checkParameter($user, ['user_name', 'user_permission'], $write)) {
 				return false;
 			}
 
-			if (!isset($user["user_permission"]) || empty($user["user_permission"])) {
-				$this->output->add("status", "No permission is set.");
-				return false;
-			}
-
-			if (!$this->auth->hasPermission("admin")) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->auth->hasPermission('admin')) {
+				$this->output->panic('403', 'Not allowed.', $write);
 				return false;
 			}
 
 			$sql = "INSERT INTO api_access (api_user, api_permission) VALUES (:api_user, :api_permission)";
 
-			$params = array(
-				":api_user" => $user["user_name"],
-				":api_permission" => $user["user_permission"]
-			);
+			$params = [
+				':api_user' => $user['user_name'],
+				':api_permission' => $user['user_permission']
+			];
 
-			return $this->db->insert($sql, [$params]) > 0;
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
 
 		/**
-		 * Updates the permissions of the given user
-		 * @param $user object with
-		 * 	"user_name"   => name of the user
-		 * 	"user_permissions" => list of user permissions
+		 * Updates the permissions of the given user.
+		 * @param array $user object with
+		 * 	'user_name'   => name of the user
+		 * 	'user_permissions' => list of user permissions
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function updatePermissions($user) {
-			if (!isset($user["user_name"]) || empty($user["user_name"])) {
-				$this->output->add("status", "No user is set.");
+		public function updatePermissions($user, $write = true) {
+			if (!$this->c->checkParameter($user, ['user_name', 'user_permissions'], $write)) {
 				return false;
 			}
 
-			if (!isset($user["user_permissions"])) {
-				$this->output->add("status", "No permissions is set.");
-				return false;
-			}
-
-			if (!$this->auth->hasPermission("admin")) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->auth->hasPermission('admin')) {
+				$this->output->add('403', 'Not allowed.', $write);
 				return false;
 			}
 
 			$sql = "DELETE FROM api_access WHERE api_user = :api_user";
 
-			$params = array(
-				":api_user" => $user["user_name"]
-			);
+			$params = [
+				':api_user' => $user['user_name']
+			];
 
 			$this->db->beginTransaction();
 
-			if ($this->db->insert($sql, [$params]) < 0) {
+			if (count($this->db->insert($sql, [$params])) < 0) {
 				$this->db->rollback();
-				return;
+				return false;
 			}
 
-			foreach($user["user_permissions"] as $permission) {
-				if (!$this->addPermission(array(
-					"user_permission" => $permission,
-					"user_name" => $user["user_name"]
-				))) {
+			foreach($user['user_permissions'] as $permission) {
+				if (!$this->addPermission([
+					'user_permission' => $permission,
+					'user_name' => $user['user_name']
+				])) {
 					$this->db->rollback();
-					return;
+					return false;
 				}
 			}
 
 			$this->db->commit();
+
+			return true;
 		}
 
 		/**
 		 * Return a list of active modules for the given user
-		 * @param user object with
-		 * 	"user_name" => name of the user
-		 * @return list of active modules
+		 * @param array user object with
+		 * 	'user_name' => name of the user
+		 * @param array $list map of modules and active users.
+		 * @return array list of active modules
 		 */
 		public function getActiveModules($user, $list) {
-			$modules = array();
+			$modules = [];
 
 			foreach ($list as $name => $users) {
-				if (isset($users[$user["user_name"]])) {
+				if (isset($users[$user['user_name']])) {
 					$modules[$name] = true;
 				}
 			}
@@ -319,26 +325,29 @@
 
 		/**
 		 * Return if the module is active for the user
-		 * @param $username username
-		 * @return true or false
+		 * @param string $username username
+		 * @return boolean true when this module is active for this user.
 		 */
 		public function isActive($username) {
 
-			if (!isset($username) || empty($username)) {
+			if (empty($username)) {
 				return false;
 			}
 
-			$obj = array("username" => $username);
+			$obj = ['username' => $username];
 
-			return ($this->get($obj, false)["user_can_login"]);
+			return ($this->get($obj, false)['user_can_login']);
 		}
 
-		// get list of active users per module
+		/**
+		 * Returns all active users for every active module.
+		 * @return array map of modules with list of active users.
+		 */
 		private function getModuleUserLists() {
 
 			global $modulelist;
 
-			$list = array();
+			$list = [];
 			foreach($modulelist as $module => $path) {
 				$list[$module] = getModuleInstance($module, $this->c)->getActiveUsers();
 			}
@@ -347,20 +356,39 @@
 
 		/**
 		 * Returns all users in database.
-		 * @output_flags users the userlist
+		 * @param boolean $write True writes to output
 		 * @return list of users
 		 */
-		public function getAll() {
+		public function getAll($write = true) {
 
-			$sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login, user_alias, user_database, link_count, coalesce(mails, 0) AS mails FROM users LEFT JOIN (SELECT address_route, count(address_route) AS link_count FROM addresses WHERE address_router = 'store' GROUP BY address_route) ON (address_route = user_name) LEFT JOIN (SELECT mail_user, count(*) AS mails FROM mailbox GROUP BY mail_user) ON (user_name = mail_user)";
+			$sql = "SELECT user_name,
+						user_authdata IS NOT NULL AS has_login,
+						user_alias,
+						user_database,
+						link_count,
+						coalesce(mails, 0) AS mails
+					FROM users
+					LEFT JOIN
+						(SELECT address_route,
+							count(address_route) AS link_count
+							FROM addresses
+							WHERE address_router = 'store'
+							GROUP BY address_route)
+					ON (address_route = user_name)
+					LEFT JOIN
+						(SELECT mail_user,
+							count(*) AS mails
+						FROM mailbox
+						GROUP BY mail_user)
+					ON (user_name = mail_user)";
 
-			$out = $this->db->query($sql, array(), DB::F_ARRAY);
+			$out = $this->db->query($sql, [], DB::F_ARRAY);
 			$list = $this->getModuleUserLists();
 			foreach($out as $key => $user) {
-				$out[$key]["modules"] = $this->getActiveModules($user, $list);
+				$out[$key]['modules'] = $this->getActiveModules($user, $list);
 			}
 
-			$this->output->add("users", $out);
+			$this->output->add('users', $out, $write);
 
 			return $out;
 
@@ -368,219 +396,216 @@
 
 		/**
 		 * create a password hash.
-		 * @param $salt salt for the password. If null then a random one will taken.
-		 * @param $password the password
+		 * @param string $salt salt for the password. If null then a random one will taken.
+		 * @param string $password the password
 		 * @return if salt is null then $salt:sha265($salt, $password), else sha265($salt, $password);
 		 */
 		public function create_password_hash($salt, $password) {
 
 			if (is_null($salt)) {
 				$salt = uniqid(mt_rand(), true);
-
-				$hash = $salt . ":" . hash("sha256", $salt . $password);
+				$hpw = hash('sha256', $salt, $password);
+				$hash = "{$salt}:{$hpw}";
 				return $hash;
 			} else {
-				return hash("sha265", $salt . $password);
+				return hash('sha265', $salt . $password);
 			}
 		}
 
 		/**
 		 * Adds an delegate to the given user.
-		 * @param $obj object with
-		 * 	"api_user"	=> name of the user
-		 * 	"api_delegate"  => name of the delegated user
-		 * @param $delegated flag for adding this delegate from the user add call.
-		 * @return true or false
+		 * @param array $obj object with
+		 * 	'api_user'	=> name of the user
+		 * 	'api_delegate'  => name of the delegated user
+		 * @param boolean $delegated flag for adding this delegate from the user add call.
+		 * @param boolean $write True writes to output.
+		 * @return False on error.
 		 */
-		public function addDelegate($obj, $delegated = false) {
+		public function addDelegate($obj, $delegated = false, $write = true) {
 
-			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
-				$this->output->add("status", "User is not set.");
+			if (!$this->c->checkParameter($obj, ['api_user', 'api_delegate'], $write)) {
 				return false;
 			}
 
-			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
-				$this->output->add("status", "Delegated user is not set.");
-				return false;
-			}
-			if (!$this->auth->hasPermission("admin") && !$delegated) {
+			if (!$this->auth->hasPermission('admin') && !$delegated) {
+				$this->c->getOutput()->panic('403', 'Not allowed.', $write);
 				return false;
 			}
 
 			$sql = "INSERT INTO api_user_delegates (api_user, api_delegate) VALUES (:api_user, :api_delegate)";
 
-			$params = array(
-				":api_user" => $auth->getUser(),
-				":api_delegate" => $obj["api_delegate"]
-			);
+			$params = [
+				':api_user' => $auth->getUser(),
+				':api_delegate' => $obj['api_delegate']
+			];
 
-			return $this->db->insert($sql, [$params]) > 0;
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
 
 		/**
 		 * Removes a delegated user from the given user.
-		 * @param $obj object with
-		 * 	"api_user"	=> name of the user
-		 * 	"api_delegate"  => name of the delegated user
-		 * @return true or false
+		 * @param array $obj object with
+		 * 	'api_user'	=> name of the user
+		 * 	'api_delegate'  => name of the delegated user
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
 		public function removeDelegate($obj) {
-			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
-				$this->output->add("status", "User is not set.");
+			if (!$this->c->checkParameter($obj, ['api_user', 'api_delegate'], $write)) {
 				return false;
 			}
 
-			if (!isset($obj["api_delegate"]) || empty($obj["api_delegate"])) {
-				$this->output->add("status", "Delegated user is not set.");
-				return false;
-			}
-			if (!$this->auth->hasPermission("admin")) {
+			if (!$this->auth->hasPermission('admin')) {
+				$this->c->getOutput()->panic('403', 'Not allowed.', $write);
 				return false;
 			}
 
 			$sql = "DELETE FROM api_user_delegates WHERE api_user = :api_user AND api_delegate = :api_delegate";
 
-			$params = array(
-				":api_user" => $auth->getUser(),
-				":api_delegate" => $obj["api_delegate"]
-			);
+			$params = [
+				':api_user' => $auth->getUser(),
+				':api_delegate' => $obj['api_delegate']
+			];
 
-			return $this->db->insert($sql, [$params]) > 0;
-
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
 
 		/**
 		 * Adds an delegated address to the given user.
-		 * @param $obj object with
-		 * 	"api_user"	 => name of the user
-		 * 	"api_expression" => address expression
-		 * @return true or false;
+		 * @param array $obj object with
+		 * 	'api_user'	 => name of the user
+		 * 	'api_expression' => address expression
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function addDelegatedAddress($obj) {
+		public function addDelegatedAddress(array $obj, $write = true) {
 
-			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
-				$this->output->add("status", "User is not set.");
-				return false;
-			}
-			if (!isset($obj["api_expression"]) || empty($obj["api_expression"])) {
-				$this->output->add("status", "Address expression is not set.");
-				return false;
-			}
-			if (!$this->auth->hasPermission("admin")) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->c->checkParameter($obj, ['api_user', 'api_expression'], $write)) {
 				return false;
 			}
 
-			$sql = "INSERT INTO api_address_delegates (api_user, api_expression) VALUES (:api_user, :api_expression)";
+			if (!$this->auth->hasPermission('admin')) {
+				$this->output->panic('403', 'Not allowed.', $write);
+				return false;
+			}
 
-			$params = array(
-				":api_user" => $obj["api_user"],
-				":api_expression" => $obj["api_expression"]
-			);
+			$sql = "INSERT INTO api_address_delegates
+					(api_user, api_expression)
+					VALUES (:api_user, :api_expression)";
 
-			return $this->db->insert($sql, [$params]) > 0;
+			$params = [
+				':api_user' => $obj['api_user'],
+				':api_expression' => $obj['api_expression']
+			];
+
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
 
 		/**
 		 * Removes an delegated address.
-		 * @param $obj object with
-		 * 	"api_user" 	 => user with delegated address
-		 * 	"api_expression" => address expression
-		 * @return true or false
+		 * @param array $obj object with
+		 * 	'api_user' 	 => user with delegated address
+		 * 	'api_expression' => address expression
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function removeDelegatedAddress($obj, $write = true) {
+		public function removeDelegatedAddress(array $obj, $write = true) {
 
-			if (!isset($obj["api_user"]) || empty($obj["api_user"])) {
-				$this->output->add("status", "User is not set.");
-				return false;
-			}
-			if (!isset($obj["api_expression"]) || empty($obj["api_expression"])) {
-				$this->output->add("status", "Address expression is not set.");
-				return false;
-			}
-			if (!$this->auth->hasPermission("admin")) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->c->checkParameter($obj, ['api_user', 'api_expression'], $write)) {
 				return false;
 			}
 
-			$sql = "DELETE FROM api_address_delegates WHERE api_user = :api_user AND api_expression = :api_expression";
+			if (!$this->auth->hasPermission('admin')) {
+				$this->output->add('403', 'Not allowed.', $write);
+				return false;
+			}
 
-			$params = array(
-				":api_user" => $obj["api_user"],
-				":api_expression" => $obj["api_expression"]
-			);
+			$sql = "DELETE FROM api_address_delegates
+					WHERE api_user = :api_user
+						AND api_expression = :api_expression";
 
-			return $this->db->insert($sql, [$params]) > 0;
+			$params = [
+				':api_user' => $obj['api_user'],
+				':api_expression' => $obj['api_expression']
+			];
+
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
 
 		/**
 		 * Adds a user to database.
-		 * @param $user the user object. Every user needs at least a name.
+		 * @param array $user the user object. Every user needs at least a name.
 		 *              Valid fields are:
-		 *              	"user_name"     => name of the user
-		 *              	"user_authdata" => password for the user
-		 *              	"user_alias"    => alias user
-		 *              	"user_permissions"   => array with user_permissions
-		 * @return true or false
+		 *              	'user_name'     => name of the user
+		 *              	'user_authdata' => password for the user
+		 *              	'user_alias'    => alias user
+		 *              	'user_permissions'   => array with user_permissions
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function add($user) {
+		public function add(array $user, $write = false) {
 
-			if (!isset($user["user_name"]) || empty($user["user_name"])) {
-				$this->output->add("status", "Username is not set.");
+			if (!$this->c->checkParameter($obj, ['user_name'], $write)) {
 				return false;
 			}
 
-			if (in_array(strtolower($user["user_name"]), ["main", "temp"])) {
-				$this->output->add("status", "Username is not allowed. ");
+			if (!$this->auth->hasPermission('admin') && !$this->auth->hasPermission('delegate')) {
+				$this->output->panic('403', 'Not allowed', $write);
 				return false;
 			}
 
-			if (!$this->auth->hasPermission("admin") && !$this->auth->hasPermission("delegate")) {
-				$this->output->add("status", "Not allowed");
+			if (in_array(strtolower($user['user_name']), ['main', 'temp'])) {
+				$this->output->panic('400', "Username {$user['user_name']} is not allowed.", $write);
 				return false;
 			}
 
-			if (isset($user["user_authdata"]) && !empty($user["user_authdata"]) && $user["user_authdata"] !== "") {
-				$user["user_authdata"] = $this->create_password_hash(null, $user["user_authdata"]);
+			if (!empty($user['user_authdata']) && $user['user_authdata'] !== '') {
+				$user['user_authdata'] = $this->create_password_hash(null, $user['user_authdata']);
 			} else {
-				$user["user_authdata"] = null;
+				$user['user_authdata'] = null;
 			}
 
 
 			$sql = "INSERT INTO users(user_name, user_authdata) VALUES (:user_name, :user_authdata)";
 
-			$params = array(
-				":user_name" => $user["user_name"],
-				":user_authdata" => $user["user_authdata"],
-			);
+			$params = [
+				':user_name' => $user['user_name'],
+				':user_authdata' => $user['user_authdata'],
+			];
 
 			$this->db->beginTransaction();
 
-			$id = $this->db->insert($sql, array($params));
+			$ids = $this->db->insert($sql, [$params]);
+			if (count($ids) < 1) {
+				return false;
+			}
 
-			if (isset($user["user_permissions"]) && !empty($user["user_permissions"])) {
-				foreach($user["user_permissions"] as $permission) {
-					$this->addPermission(array(
-						"user_permission" => $permission,
-						"user_name" => $user["user_name"]
-					));
+			$id = $ids[0];
+
+			if (!empty($user['user_permissions'])) {
+				foreach($user['user_permissions'] as $permission) {
+					if ($this->addPermission([
+						'user_permission' => $permission,
+						'user_name' => $user['user_name']
+					])) {
+						$this->db->rollback();
+						return false;
+					}
 				}
 			}
 
-			if (isset($user["user_alias"]) && !empty($user["user_alias"])) {
+			if (!empty($user['user_alias'])) {
 				if (!$this->updateAlias($user)) {
 					$this->db->rollback();
 					return false;
 				}
 			}
 
-			if (isset($id) && !empty($id)) {
-				$this->output->add("user", true);
+			if (!empty($id)) {
+				$this->output->add('user', true, $write);
 
-				if ($this->auth->hasPermission("delegate")) {
-					$status = $this->addDelegate(array("api_delegate" => $user["user_name"]), true);
-
-					if ($status < 1) {
+				if ($this->auth->hasPermission('delegate')) {
+					if (!$this->addDelegate(['api_delegate' => $user['user_name']], true, $write)) {
 						$this->db->rollback();
 						return false;
 					}
@@ -589,130 +614,106 @@
 				$this->db->commit();
 				return true;
 			} else {
-				$this->output->add("user", false);
+				$this->output->add('user', false, $write);
 				$this->db->rollback();
 				return false;
 			}
-
 		}
 
 		/**
 		 * Sets the password for the given user
-		 * @param $user user object with
-		 * 	"user_name" => name of the user
-		 * 	"user_authdata" => password of the user (if null login is not possible)
-		 * @return true or false
+		 * @param array $user user object with
+		 * 	'user_name' => name of the user
+		 * 	'user_authdata' => password of the user (if null login is not possible)
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function set_password($user) {
+		public function set_password(array $user, $write = true) {
 
-			if (!isset($user["user_name"]) || empty($user["user_name"])) {
-				$this->output->add("status", "Username is not set.");
+			if (!$this->c->checkParameter($obj, ['user_name'], $write)) {
 				return false;
 			}
 
-			if (!$this->auth->hasDelegatedUser($user["user_name"]) && $auth->getUser() !== $user["user_name"]) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->auth->hasDelegatedUser($user['user_name']) && $auth->getUser() !== $user['user_name']) {
+				$this->output->panic('403', 'Not allowed.', $write);
 				return false;
 			}
 
-			if (is_null($user["user_authdata"]) || $user["user_authdata"] === "") {
+			if (is_null($user['user_authdata']) || $user['user_authdata'] === '') {
 				$auth = null;
 			} else {
-
-				$auth = $this->create_password_hash(null, $user["user_authdata"]);
+				$auth = $this->create_password_hash(null, $user['user_authdata']);
 			}
 
 			$sql = "UPDATE users SET user_authdata = :user_authdata WHERE user_name = :user_name";
 
-			$params = array(
-				":user_name" => $user["user_name"],
-				":user_authdata" => $auth
-			);
+			$params = [
+				':user_name' => $user['user_name'],
+				':user_authdata' => $auth
+			];
 
-			$status = $this->db->insert($sql, array($params));
-
-			if (isset($status)) {
-				$this->output->add("status", "ok");
-				return true;
-			} else {
-				return false;
-			}
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
 
 		/**
 		 * Deletes a user.
-		 * @param $obj object with
-		 * 	"user_name" name of the user
-		 * @output_flags delete is "ok" when everything is fine, else "not ok"
-		 * @return false on error, else true
+		 * @param array $obj object with
+		 * 	'user_name' name of the user
+		 * @output_flags delete is 'ok' when everything is fine, else 'not ok'
+		 * @param boolean $write True writes to output.
+		 * @return boolean false on error, else true
 		 */
-		public function delete($obj) {
-			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
-				$this->output->add("status", "No username set.");
+		public function delete(array $obj, $write = false) {
+			if (!$this->c->checkParameter($obj, ['user_name'], $write)) {
 				return false;
 			}
 
-			if (!$this->auth->hasDelegatedUser($obj["user_name"]) && $auth->getUser() !== $obj["user_name"]) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->auth->hasDelegatedUser($obj['user_name']) && $auth->getUser() !== $obj['user_name']) {
+				$this->output->add('403', 'Not allowed.', $write);
 				return false;
 			}
 
 			$sql = "DELETE FROM users WHERE user_name = :username";
 
-			$params = array(":username" => $obj["user_name"]);
+			$params = [':username' => $obj['user_name']];
 
 			$status = $this->db->insert($sql, array($params));
 
-			$this->output->addDebugMessage("delete", $status);
-			if (isset($status)) {
-				$this->output->add("delete", "ok");
-				return true;
-			} else {
-				return false;
-			}
+			$this->output->addDebugMessage('delete', $status, $write);
+			return count($status) > 0;
 		}
 
 		/**
 		 * Updates the alias of the given user.
-		 * @param $obj object with
-		 * 	"user_name" => name of the user
-		 * 	"user_alias" => alias for this user.
-		 * @return true or false
+		 * @param array $obj object with
+		 * 	'user_name' => name of the user
+		 * 	'user_alias' => alias for this user.
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function updateAlias($obj) {
-
-			if (!isset($obj["user_name"]) || empty($obj["user_name"])) {
-				$this->output->add("status", "No username set.");
+		public function updateAlias(array $obj, $write = true) {
+			if (!$this->c->checkParameter($obj, ['user_name', 'user_alias'], $write)) {
 				return false;
 			}
 
-			if (!isset($obj["user_alias"]) || empty($obj["user_alias"])) {
-				$this->output->add("status", "No alias set.");
+			if ($obj['user_name'] == $obj['user_alias']) {
+				$this->output->panic('400', 'Cannot alias to the same user.', $write);
 				return false;
 			}
 
-			if ($obj["user_name"] == $obj["user_alias"]) {
-				$this->output->add("status", "Cannot alias to the same user.");
-				return false;
-			}
-
-			if (!$this->auth->hasPermission("admin")) {
-				$this->output->add("status", "Not allowed.");
+			if (!$this->auth->hasPermission('admin')) {
+				$this->output->panic('403', 'Not allowed.', $write);
 				return false;
 			}
 
 			$sql = "UPDATE users SET user_alias = :alias WHERE user_name = :user";
 
 			$params = [
-				":alias" => $obj["user_alias"],
-				":user" => $obj["user_name"]
+				':alias' => $obj['user_alias'],
+				':user' => $obj['user_name']
 			];
 
-			$status = $this->db->insert($sql, [$params]);
-
-			return $status > 0;
+			return count($this->db->insert($sql, [$params])) > 0;
 		}
-
 	}
-
 ?>

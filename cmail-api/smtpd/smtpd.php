@@ -9,11 +9,20 @@
 		private $c;
 		// possible endpoints
 		private $endPoints = array(
+			"getRouter" => "getRouter",
 			"get" => "get",
 			"add" => "add",
 			"update" => "update",
 			"delete" => "delete"
 		);
+
+		private $defaultOutrouter = [
+			"drop" => false,
+			"any" => false,
+			"defined" => false,
+			"handoff" => true,
+			"reject" => true
+		];
 
 		public function __construct($c) {
 			$this->c = $c;
@@ -29,6 +38,44 @@
 			return $this->endPoints;
 		}
 
+
+		public function getRouter($obj, $write = true) {
+
+			global $addressOutrouter;
+
+			if (!isset($addressOutrouter)) {
+				$addressOutrouter = [];
+			}
+
+			$out = $addressOutrouter  + $this->defaultOutrouter;
+
+			$this->output->add("router", $out, $write);
+
+			return $out;
+		}
+
+		private function checkRouter($obj, $write = true) {
+			global $addressOutrouter;
+
+			if (!isset($obj["smtpd_router"])) {
+				$this->output->add("status", "Router is not defined.");
+				return false;
+			}
+
+			$outrouter = $addressOutrouter + $this->defaultOutrouter;
+
+			if (!in_array($obj["smtpd_router"], $outrouter)) {
+				$this->output->add("status", "Unkown router.");
+				return false;
+			}
+
+			if ($inrouter[$obj["smtpd_router"]] && !isset($obj["smtpd_route"])) {
+				$this->output->add("status", "This router needs an argument (smtpd_route).");
+				return false;
+			}
+
+			return true;
+		}
 
 		public function getActiveUsers() {
 
@@ -61,9 +108,7 @@
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
 
-			if ($write) {
-				$this->output->add("smtpd", $out);
-			}
+			$this->output->add("smtpd", $out, $write);
 
 			return $out;
 		}
@@ -96,9 +141,7 @@
 			$params = array(":smtpd_user" => $username);
 
 			$out = $this->db->query($sql, $params, DB::F_ARRAY);
-			if ($write) {
-				$this->output->add("smtpd", $out);
-			}
+			$this->output->add("smtpd", $out, $write);
 
 			return $out;
 		}
@@ -112,8 +155,9 @@
 		}
 
 		/**
-		 * Returns all smtpd entries
-		 * @return list of all smtpd entries in database
+		 * Returns all smtpd entries.
+		 * @param boolean $write True writes to output.
+		 * @return array list of all smtpd entries in database.
 		 */
 		public function getAll($write = true) {
 
@@ -129,10 +173,8 @@
 
 			$sql = "SELECT * FROM smtpd";
 
-			$out = $this->db->query($sql, array(), DB::F_ARRAY);
-			if ($write) {
-				$this->output->add("smtpd", $out);
-			}
+			$out = $this->db->query($sql, [], DB::F_ARRAY);
+			$this->output->add("smtpd", $out, $write);
 
 			return $out;
 		}
@@ -140,21 +182,21 @@
 
 		/**
 		 * Adds an entry to the smtpd table
-		 * @param object with
+		 * @param array $smtpd object with
 		 * 	- smtpd_user (required) the username
 		 * 	- smtpd_router (required) the outrouter @see routers in docu
 		 * 	- smtpd_route (optional) parameter for outrouter
-		 * @return true or false (only one entry for one user)
+		 * @param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function add($smtpd) {
+		public function add($smtpd, $write = true) {
 
 			if (!isset($smtpd["smtpd_user"]) || empty($smtpd["smtpd_user"])) {
 				$this->output->add("status", "Username is not set.");
 				return false;
 			}
-			
-			if (!isset($smtpd["smtpd_router"]) || empty($smtpd["smtpd_router"])) {
-				$this->output->add("status", "User outrouter is not set.");
+
+			if (!$this->checkRouter($smtpd, $write)) {
 				return false;
 			}
 
@@ -171,7 +213,7 @@
 			$params = array(
 				":smtpd_user" => $smtpd["smtpd_user"],
 				":smtpd_router" => $smtpd["smtpd_inrouter"],
-				":smtpd_route" => $smtpd["smtpd_inroute"],
+				":smtpd_route" => isset($smtpd["smtpd_inroute"]) ? $smtpd["smtpd_inroute"] : null,
 			);
 
 			$id = $this->db->insert($sql, array($params));
@@ -187,22 +229,21 @@
 
 		/**
 		 * Updates an smtpd entry
-		 * @param object with
+		 * @param array $obj object with
 		 * 	- smtpd_user (required) username
 		 * 	- smtpd_router (required) the outrouter @see routers in docu
 		 * 	- smtpd_route (optional) the parameter for outrouter
-		 * @return true or false
+		 * 	@param boolean $write True writes to output.
+		 * @return boolean False on error.
 		 */
-		public function update($obj) {
+		public function update(array $obj, $write = true) {
 
 			if (!isset($obj["smtpd_user"]) || empty($obj["smtpd_user"])) {
 				$this->output->add("status", "Username is not set.");
 				return false;
 			}
 
-
-			if (!isset($obj["smtpd_router"]) || empty($obj["smtpd_router"])) {
-				$this->output->add("status", "User router is not set.");
+			if (!$this->checkRouter($obj, $write = true)) {
 				return false;
 			}
 

@@ -19,7 +19,7 @@ class Output {
 		} else {
 			$this->debug = false;
 		}
-		$this->retVal['status'] = "ok";
+		$this->retVal['status'] = 'ok';
 	}
 
 	/**
@@ -36,21 +36,26 @@ class Output {
 
 	/**
 	 * Adds data for use to output.
-	 * @param type $table
-	 * @param type $output
+	 * @param string $key key to this array
+	 * @param mixed $obj obj to add
+	 * @param boolean $write True writes to array, false does nothing.
 	 */
-	public function add($table, $output) {
-		$this->retVal[$table] = $output;
+	public function add($key, $obj, $write = true) {
+		$this->retVal[$key] = $obj;
 	}
 
+	/**
+	 * set the error flag
+	 */
 	public function setErrorFlag() {
-		$this->retVal["status"] = "error";
+		$this->retVal['status'] = 'error';
 	}
 
 	/**
 	 * Adds an status for output
 	 * @param type $function problem function
 	 * @param type $message message (use an array with 3 entries ("id", <code>, <message>))
+	 * @param Boolean $error if this message is an error (default is false)
 	 */
 	public function addDebugMessage($function, $message, $error=false) {
 
@@ -66,6 +71,24 @@ class Output {
 	}
 
 	/**
+	 * If write is true: Adds an panic message and dies.
+	 * @param string $statusCode HTTP status code
+	 * @param string $message message to write in status
+	 * @param boolean Flag for writing this message.
+	 */
+	public function panic($statusCode, $message, $write = true) {
+
+		if (!$write) {
+			return;
+		}
+
+		header("HTTP/1.0 ${statusCode} ${message}");
+		$this->add('status', $message);
+		$this->write();
+		die();
+	}
+
+	/**
 	 * Generates the output for the browser. General you call this only once.
 	 */
 	public function write() {
@@ -74,15 +97,16 @@ class Output {
 			$this->retVal['debug'] = [];
 		}
 
-		header("Access-Control-Allow-Origin: *");
+		header('Access-Control-Allow-Origin: *');
+		$json = json_encode($this->retVal, JSON_NUMERIC_CHECK);
 		# generate output
-		if (isset($_GET["callback"]) && !empty($_GET["callback"])) {
-			header("Content-Type: application/javascript");
-			$callback = $_GET["callback"];
-			echo $callback . "('" . json_encode($this->retVal, JSON_NUMERIC_CHECK) . "')";
+		if (isset($_GET['callback']) && !empty($_GET['callback'])) {
+			header('Content-Type: application/javascript');
+			$callback = $_GET['callback'];
+			echo("${callback}(${json});");
 		} else {
-			header("Content-Type: application/json");
-			echo json_encode($this->retVal, JSON_NUMERIC_CHECK);
+			header('Content-Type: application/json');
+			echo($json);
 		}
 	}
 

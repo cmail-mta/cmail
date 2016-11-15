@@ -1,16 +1,41 @@
 <?php
+/**
+ * This file implements a mail parser.
+ * @author Jan Düpmeier <j.duepmeier@googlemail.com>
+ */
 
+/**
+ * This is the class for parsing mails.
+ */
 class MailParser {
 
+	/**
+	 * the unparsed mail
+	 */
 	private $mail;
+	/**
+	 * the headers.
+	 */
 	private $headers;
+	/**
+	 * the body of the mail.
+	 */
 	private $body;
+	/**
+	 * the attachments of the mail.
+	 */
 	private $attachments;
+	/**
+	 * Error messages.
+	 */
 	private $error;
 
-
-	// encode =?<charset>?<encoding>?<text>?=
-	// =? and ?= is not part of the input string
+	/**
+	 * encode =?<charset>?<encoding>?<text>?=
+	 * =? and ?= is not part of the input string
+	 * @param string string to convert.
+	 * @return the converted string
+	 */
 	private function convertEncodedWord($str) {
 		// [0] = charset
 		// [1] = encoding (Q or B)
@@ -33,10 +58,13 @@ class MailParser {
 		}
 		$out = mb_convert_encoding($decoded, "UTF-8", $split[0]);
 		return $out;
-
 	}
 
-	// replace encoded words in a line
+	/*
+	 * replace encoded words in a line
+	 * @param string $line line to replace the encoded words.
+	 * @return string replaced line.
+	 */
 	private function replaceEncodedWords($line) {
 		$index = strpos($line, "=?");
 		if ($index === FALSE) {
@@ -61,6 +89,12 @@ class MailParser {
 		return $output;
 	}
 
+	/**
+	 * Parses the headers.
+	 * @param string $raw raw header input.
+	 * @param string $lineBreak line break to parse.
+	 * @return boolean False on error.
+	 */
 	private function parseHeaders($raw, $lineBreak="\r\n") {
 
 		$lines = explode($lineBreak, $raw);
@@ -103,13 +137,17 @@ class MailParser {
 		return true;
 	}
 
-	// extract a multipart boundary from content-type header
+	/*
+	 * extract a multipart boundary from content-type header
+	 * @param string $ct input for boundary
+	 * @return string boundary
+	 */
 	private function extractBoundary($ct) {
 		$index = strpos($ct, "boundary=");
 
 		if ($index === FALSE) {
 			$this->body = $raw;
-			return;
+			return null;
 		}
 		$boundary = substr($ct, $index + 9);
 
@@ -126,7 +164,10 @@ class MailParser {
 		return $boundary;
 	}
 
-	// returns if this mail part is a text part
+	/**
+	 * Returns if this mail part is a text part
+	 * @return boolean True if it is a text part.
+	 */
 	public function isTextPart() {
 		$ct = $this->getHeader("Content-Type");
 		// default is a text part
@@ -146,6 +187,11 @@ class MailParser {
 		}
 	}
 
+	/**
+	 * Parses the multipart body of a message
+	 * @param string $ct Content-Type string
+	 * @param string $raw raw mail
+	 */
 	private function parseMultipartBody($ct, $raw) {
 
 		$boundary = trim($this->extractBoundary($ct));
@@ -155,27 +201,42 @@ class MailParser {
 		$endBoundary = "--$boundary--";
 		$raw2 = explode($endBoundary, $raw);
 
-		$splitted = explode(trim("--" . $boundary) . $this->newLine, $raw2[0]);
+		$splitted = explode(trim("--$boundary") . $this->newLine, $raw2[0]);
 		foreach($splitted as $split) {
 			$part = new MailParser($split, $this->showBasicHeaders);
 			$this->parts[] = $part;
 
-			if ($part->isTextPart() && trim($part->getBody()) != "") {
+			if ($part->isTextPart() && trim($part->getBody()) != '') {
 				$newBody .= $part->getBody();
-				$newBody .= "\n----\n";
+				$newBody .= '\n----\n';
 			}
 		}
 		$this->body = $newBody;
 	}
 
+	/**
+	 * Parses the multipart signed body
+	 * @param string $ct Content-Type string
+	 * @param string $raw raw mail
+	 */
 	private function parseMultipartSignedBody($ct, $raw) {
 		$this->parseMultipartBody($ct, $raw);
 	}
 
+	/**
+	 * Parses the multipart unsigned body
+	 * @param string $ct Content-Type string
+	 * @param string $raw raw mail
+	 */
 	private function parseMultipartUnsignedBody($ct, $raw) {
 		$this->parseMultipartBody($ct, $raw);
 	}
 
+	/**
+	 * Parses the text plain body
+	 * @param string $ct Content-Type string
+	 * @param string $raw raw mail.
+	 */
 	private function parseTextPlainBody($ct, $raw) {
 		$cts = explode(";", $ct);
 		// default encoding is ascii
