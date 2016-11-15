@@ -4,22 +4,11 @@ cmail.smtpd = {
 	get_all: function() {
 		var self = this;
 
-		ajax.asyncGet(cmail.api_url + "smtpd/?get", function(xhr) {
-			var obj = JSON.parse(xhr.response);
-
-			if (obj.status != "ok" && obj.status != "warning") {
-				cmail.set_status(obj.status);
-			}
-
-			if (obj.status == "warning") {
-				cmail.set_status("WARNING: " + obj.warning);
-			}
-
-			var smtpds = obj.smtpd;
+		api.get(cmail.api_url + "smtpd/?get", function(resp) {
 
 			var body = gui.elem("smtpdlist");
 			body.innerHTML = "";
-			smtpds.forEach(function(smtpd) {
+			resp.smtdp.forEach(function(smtpd) {
 
 				var tr = gui.create("tr");
 
@@ -61,8 +50,7 @@ cmail.smtpd = {
 	delete: function(username) {
 		var self = this;
 		if (confirm("Really remove " + username + " from the SMTPD ACL?\nThe user will no longer be able to originate mail.\nPlease note that the user will still be able to receive mail.") == true) {
-			ajax.asyncPost(cmail.api_url + "smtpd/?delete", JSON.stringify({ smtpd_user: username }), function(xhr) {
-				cmail.set_status(JSON.parse(xhr.response).status);
+			api.post(cmail.api_url + "smtpd/?delete", JSON.stringify({ smtpd_user: username }), function(resp) {
 				self.get_all();
 			});
 		}
@@ -107,11 +95,10 @@ cmail.smtpd = {
 		} else {
 			url = "smtpd/?update";
 		}
-		ajax.asyncPost(cmail.api_url + url, JSON.stringify(smtpd), function(xhr) {
-			cmail.set_status(JSON.parse(xhr.response).status);
+		api.post(cmail.api_url + url, JSON.stringify(smtpd), function(resp) {
+			this.hide_form();
+			this.get_all();
 		});
-		this.hide_form();
-		this.get_all();
 	},
 	test: function() {
 		var address = gui.elem("smtpd_test_input").value;
@@ -126,18 +113,7 @@ cmail.smtpd = {
 			address_expression: address,
 			address_routing: router
 		}
-
-		ajax.asyncPost(cmail.api_url + "addresses/?test", JSON.stringify(obj), function(xhr) {
-			var resp = JSON.parse(xhr.response);
-
-			if (resp.status !== "ok" && resp.status !== "warning") {
-				cmail.set_status(resp.status);
-				return;
-			}
-
-			if (resp.status === "warning") {
-				cmail.set_status(resp.warning);
-			}
+		api.post(cmail.api_url + "addresses/?test", JSON.stringify(obj), function(resp) {
 
 			var body = gui.elem("smtpd_test_steps");
 			body.innerHTML = "";

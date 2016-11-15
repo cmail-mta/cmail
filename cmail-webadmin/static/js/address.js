@@ -2,10 +2,10 @@ var cmail = cmail || {};
 
 cmail.address = {
 	get: function(address, callback) {
-		var xhr = ajax.asyncPost(cmail.api_url + "addresses/?get", JSON.stringify(address), function(xhr) {
-		var addresses = JSON.parse(xhr.response).addresses;
+		api.post(cmail.api_url + "addresses/?get", JSON.stringify(address), function(resp) {
+			var addresses = resp.addresses;
 
-		callback(addresses[0]);
+			callback(addresses[0]);
 		});
 	},
 	get_all: function() {
@@ -18,20 +18,9 @@ cmail.address = {
 			url += "&test=" + test;
 		}
 
-		ajax.asyncGet(url, function(xhr) {
+		api.get(url, function(resp) {
 
-			var obj  = JSON.parse(xhr.response);
-
-			if (obj.status != "ok" && obj.status != "warning") {
-				cmail.set_status(obj.status);
-				return;
-			}
-
-			if (obj.status == "warning") {
-				cmail.set_status(obj.warning);
-			}
-
-			var addresses = obj.addresses;
+			var addresses = resp.addresses;
 			var addresslist = gui.elem("addresslist");
 			addresslist.innerHTML = "";
 			var last_address = null;
@@ -116,8 +105,8 @@ cmail.address = {
 	delete: function(obj) {
 		var self = this;
 		if (confirm("Really delete the address expression " + obj.address_expression + " (Order " + obj.address_order + ")?") == true) {
-			ajax.asyncPost(cmail.api_url + "addresses/?delete", JSON.stringify(obj), function(xhr) {
-				cmail.set_status(JSON.parse(xhr.response).status);
+			api.post(cmail.api_url + "addresses/?delete", JSON.stringify(obj), function(post) {
+				cmail.set_status(resp.status);
 				self.get_all();
 			});
 		}
@@ -133,13 +122,13 @@ cmail.address = {
 		};
 
 		if (gui.elem("form_address_type").value === "new") {
-			ajax.asyncPost(cmail.api_url + "addresses/?add", JSON.stringify(address), function(xhr) {
-				cmail.set_status(JSON.parse(xhr.response).status);
+			api.post(cmail.api_url + "addresses/?add", JSON.stringify(address), function(resp) {
+				cmail.set_status(resp.status);
 				self.get_all();
 			});
 		} else {
-			ajax.asyncPost(cmail.api_url + "addresses/?update", JSON.stringify(address), function(xhr) {
-				cmail.set_status(JSON.parse(xhr.response).status);
+			api.post(cmail.api_url + "addresses/?update", JSON.stringify(address), function(resp) {
+				cmail.set_status(resp.status);
 				self.get_all();
 			});
 		}
@@ -153,10 +142,9 @@ cmail.address = {
 		};
 		var self = this;
 
-		ajax.asyncPost(cmail.api_url + "addresses/?switch", JSON.stringify(obj), function(xhr) {
-			cmail.set_status(JSON.parse(xhr.response).status);
+		api.post(cmail.api_url + "addresses/?switch", JSON.stringify(obj), function(resp) {
+			cmail.set_status(resp.status);
 			self.get_all();
 		});
-	},
-
+	}
 };

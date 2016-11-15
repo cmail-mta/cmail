@@ -1,33 +1,9 @@
 var cmail = {
-	/**
-	 * all routers
-	 */
-	inrouter: [
-		"store",
-		"redirect",
-		"handoff",
-		"drop",
-		"reject"
-	],
-	outrouter: [
-		"drop",
-		"any",
-		"defined",
-		"handoff",
-		"reject"
-	],
 	modules: [],
 	module: {
 		get: function() {
-			ajax.asyncGet(cmail.api_url + "?get_modules", function(xhr) {
+			api.get(cmail.api_url + "?get_modules", function(resp) {
 
-				var resp = JSON.parse(xhr.response);
-				if (resp.status != "ok") {
-					cmail.set_status(resp.status);
-					if (resp.status != "warning") {
-						return;
-					}
-				}
 				cmail.modules = resp.modules;
 				gui.elem("auth_user").textContent = resp["auth_user"];
 				var head = gui.elem("userlist_head");
@@ -58,33 +34,23 @@ var cmail = {
 		this.login();
 	},
 	login: function() {
-
 		var auth = {
 			user_name: gui.elem("login_name").value,
 			password: gui.elem("login_password").value
 		};
 
-		ajax.asyncPost(cmail.api_url + "?login", JSON.stringify({ auth: auth }) , function(xhr) {
-			var resp = JSON.parse(xhr.response);
-
-			cmail.set_status(resp.status);
+		api.post(cmail.api_url + "?login", JSON.stringify({ auth: auth }) , function(resp) {
 			gui.elem("login_name").value = "";
 			gui.elem("login_password").value = "";
-
-			// check for correct login
-			if (!resp.login) {
-				gui.elem("login_prompt").style.display = "block";
-			} else {
-				gui.elem("login_prompt").style.display = "none";
-				cmail.main();
-			}
+			gui.elem('login_prompt').style.display = "none";
+			cmail.main();
 		});
 	},
 	main: function() {
 		this.module.get();
 
 		// fill router checkboxes
-		this.fill_router();
+		this.get_router();
 
 		// we need the user list for auto completion
 		if (window.location.hash !== "#user") {
@@ -100,8 +66,8 @@ var cmail = {
 		}, false);
 	},
 	logout: function() {
-		ajax.asyncGet(cmail.api_url + "?logout", function(xhr) {
-			cmail.set_status(JSON.parse(xhr.response).status);
+		api.get(cmail.api_url + "?logout", function(resp) {
+			cmail.set_status(resp.status);
 		});
 	},
 	switch_hash: function() {
@@ -127,19 +93,24 @@ var cmail = {
 			gui.elem(this.tabs[0]).style.display = "block";
 		}
 	},
-	fill_router: function() {
+	fill_router: function(router_elem, resp) {
+		// fill list
+		for (var key in resp.router) {
+			if (!resp.router.hasOwnProperty(key)) {
+				continue;
+			}
+			router_elem.appendChild(gui.createOption(key, key));
+		}
 
-		var inrouter = gui.elem("address_router");
-		var outrouter = gui.elem("smtpd_router");
-
-		// fill inrouter
-		this.inrouter.forEach(function(val) {
-			inrouter.appendChild(gui.createOption(val, val));
+		return resp.router;
+	},
+	get_router: function(elem) {
+		api.get(cmail.api_url + "smtpd/?getRouter", function (resp) {
+			this.inrouter = cmail.fill_router(gui.elem("smtpd_router"), resp);
 		});
 
-		// fill outrouter
-		this.outrouter.forEach(function(val) {
-			outrouter.appendChild(gui.createOption(val, val));
+		api.get(cmail.api_url + "addresses/?getRouter", function (resp) {
+			this.outrouter = cmail.fill_router(gui.elem("address_router"), resp);
 		});
 	},
 	set_status: function(message) {

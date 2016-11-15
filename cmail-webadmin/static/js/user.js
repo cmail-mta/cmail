@@ -18,61 +18,49 @@ cmail.user = {
 	 */
 	get_all: function() {
 		var self = this;
-		ajax.asyncGet(cmail.api_url + "users/?get", function(xhr) {
-			var obj = JSON.parse(xhr.response)
+		api.get(cmail.api_url + "users/?get", function(resp) {
 
-			// check status
-			if (obj.status != "ok" && obj.status != "warning") {
-				cmail.set_status(obj.status);
-				return;
-			}
+			// set users
+			var users = resp.users;
+			self.users = users;
 
-			if (obj.status == "warning") {
-				cmail.set_status("WARNING: " + obj.warning);
-			}
+			// table element
+			var userlist = gui.elem("userlist");
+			userlist.innerHTML = "";
 
-		// set users
-		var users = obj.users;
-		self.users = users;
+			// userlist
+			var list = {};
+			users.forEach(function(user) {
+				var tr = gui.create("tr");
+				tr.appendChild(gui.createColumn(user.user_name));
+				tr.appendChild(gui.createColumn(user.user_alias));
+				tr.appendChild(gui.createColumn(user.link_count));
 
-		// table element
-		var userlist = gui.elem("userlist");
-		userlist.innerHTML = "";
+				cmail.modules.forEach(function(module) {
+					var col = gui.create("td");
+					var cb = gui.createCheckbox(module + "_cb");
+					if (user.modules[module]) {
+						cb.checked = true;
+					}
+					cb.disabled = true;
+					col.appendChild(cb);
+					tr.appendChild(col);
+				});
 
-		// userlist
-		var list = {};
-		users.forEach(function(user) {
-			var tr = gui.create("tr");
-			tr.appendChild(gui.createColumn(user.user_name));
-			tr.appendChild(gui.createColumn(user.user_alias));
-			tr.appendChild(gui.createColumn(user.link_count));
+				tr.appendChild(gui.createColumn(user.mails));
 
-			cmail.modules.forEach(function(module) {
-				var col = gui.create("td");
-				var cb = gui.createCheckbox(module + "_cb");
-				if (user.modules[module]) {
-					cb.checked = true;
-				}
-				cb.disabled = true;
-				col.appendChild(cb);
-				tr.appendChild(col);
+				// option buttons
+				var options = gui.create("td");
+				options.appendChild(gui.createButton("edit", self.show_form, [user.user_name], self));
+				options.appendChild(gui.createButton("delete", self.delete, [user.user_name], self));
+				tr.appendChild(options);
+				userlist.appendChild(tr);
+
+				list[user.user_name] = user.user_name;
 			});
 
-			tr.appendChild(gui.createColumn(user.mails));
-
-			// option buttons
-			var options = gui.create("td");
-			options.appendChild(gui.createButton("edit", self.show_form, [user.user_name], self));
-			options.appendChild(gui.createButton("delete", self.delete, [user.user_name], self));
-			tr.appendChild(options);
-			userlist.appendChild(tr);
-
-			list[user.user_name] = user.user_name;
-		});
-
-		self.fill_username_list(list);
-		console.log(obj);
-		self.setPermissions(obj.permissions);
+			self.fill_username_list(list);
+			self.setPermissions(resp.permissions);
 		});
 
 	},
@@ -172,11 +160,9 @@ cmail.user = {
 		gui.elem("useradd").style.display = "none";
 	},
 	delete: function(name) {
-
 		var self = this;
 		if (confirm("Do you really want to delete this user?\nThis step cannot be undone.\nAll mail stored for this user will be deleted.") == true) {
-			var xhr = ajax.asyncPost(cmail.api_url + "users/?delete", JSON.stringify({ user_name: name }), function(xhr){
-				cmail.set_status(JSON.parse(xhr.response).status);
+			api.post(cmail.api_url + "users/?delete", JSON.stringify({ user_name: name }), function(resp){
 				self.get_all();
 			});
 		}
@@ -208,9 +194,7 @@ cmail.user = {
 				user["user_alias"] = gui.elem("user_alias").value;
 			}
 
-			ajax.asyncPost(cmail.api_url + "users/?add", JSON.stringify(user), function(xhr) {
-				cmail.set_status(JSON.parse(xhr.response).status);
-			});
+			api.post(cmail.api_url + "users/?add", JSON.stringify(user));
 		} else {
 			if (gui.elem("user_password_revoke").checked) {
 				authdata = true;
@@ -218,9 +202,7 @@ cmail.user = {
 
 			}
 			if (authdata) {
-				ajax.asyncPost(cmail.api_url + "users/?set_password", JSON.stringify(user), function(xhr) {
-					cmail.set_status(JSON.parse(xhr.response).status);
-				});
+				api.post(cmail.api_url + "users/?set_password", JSON.stringify(user));
 			}
 
 			if (gui.elem("user_alias") == "") {
@@ -230,18 +212,15 @@ cmail.user = {
 				alias = gui.elem("user_alias").value;
 			}
 
-			ajax.asyncPost(cmail.api_url + "users/?update_alias", JSON.stringify({
+			api.post(cmail.api_url + "users/?update_alias", JSON.stringify({
 				user_name: user.user_name,
 				user_alias: alias
-			}), function(xhr) {
-				cmail.set_status(JSON.parse(xhr.response).status);
-			});
+			}));
 
-			ajax.asyncPost(cmail.api_url + "users/?update_permissions", JSON.stringify({
+			api.post(cmail.api_url + "users/?update_permissions", JSON.stringify({
 				user_name: user.user_name,
 				user_permissions: self.user_permissions
-			}), function(xhr) {
-				cmail.set_status(JSON.parse(xhr.response).status);
+			}), function(resp) {
 				self.get_all();
 			});
 
