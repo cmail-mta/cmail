@@ -186,8 +186,7 @@ int smtp_noop(LOGGER log, CONNECTION* conn){
 }
 
 int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* conn, REMOTE_PORT port, char* auth_data){
-	unsigned i;
-	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
+	unsigned u;
 
 	//if(conn_data->state==STATE_NEW){
 		//initialize first-time data
@@ -207,13 +206,8 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 	//}
 
 	//await 220
-	if(protocol_read(log, conn, SMTP_220_TIMEOUT) < 0){
+	if(protocol_expect(log, conn, SMTP_220_TIMEOUT, 220)){
 		logprintf(log, LOG_ERROR, "Initial SMTP response failed or not properly formatted\n");
-		return -1;
-	}
-
-	if(conn_data->reply.code != 220){
-		logprintf(log, LOG_WARNING, "Server replied with %d: %s\n", conn_data->reply.code, conn_data->reply.response_text);
 		return -1;
 	}
 
@@ -241,15 +235,15 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 
 	//do tls padding
 	if(settings.tls_padding && conn->tls_mode == TLS_ONLY){
-		if(common_rand(&i, sizeof(i)) < 0){
-			i = settings.tls_padding;
+		if(common_rand(&u, sizeof(u)) < 0){
+			u = settings.tls_padding;
 		}
 		else{
-			i %= settings.tls_padding;
+			u %= settings.tls_padding;
 		}
 
-		for(; i > 0; i--){
-			if(i % 2){
+		for(; u > 0; u--){
+			if(u % 2){
 				smtp_noop(log, conn);
 			}
 			else{
