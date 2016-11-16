@@ -8,5 +8,3 @@
 	require_once('../api.php');
 
 	main('Address');
-
-?>

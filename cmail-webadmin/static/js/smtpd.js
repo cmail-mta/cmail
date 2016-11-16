@@ -8,7 +8,7 @@ cmail.smtpd = {
 
 			var body = gui.elem("smtpdlist");
 			body.innerHTML = "";
-			resp.smtdp.forEach(function(smtpd) {
+			resp.smtpd.forEach(function(smtpd) {
 
 				var tr = gui.create("tr");
 

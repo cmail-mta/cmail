@@ -4,7 +4,7 @@
 	 * @author Jan Düpmeier <j.duepmeier@googlemail.com>
 	 */
 
-	$activeModules = array();
+	$activeModules = [];
 
 	/**
 	 * Return the module instance with the given name
@@ -45,5 +45,3 @@
 		 */
 		public function getActiveUsers();
 	}
-
-?>

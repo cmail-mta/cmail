@@ -29,4 +29,3 @@
 	// value = true if router requires an argument, else false.
 	$addressOutrouter = [];
 
-?>

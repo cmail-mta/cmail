@@ -260,7 +260,8 @@
 				return false;
 			}
 
-			if (!$this->auth->hasDelegatedUser($obj['pop_user']) && ($this->auth->getUser() !== $obj['pop_user'])) {
+			if (!$this->auth->hasDelegatedUser($obj['pop_user'])
+					&& ($this->auth->getUser() !== $obj['pop_user'])) {
 				$this->output->panic('403', 'Not allowed.', $write);
 				return false;
 			}

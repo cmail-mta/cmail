@@ -857,5 +857,3 @@
 			return $steps;
 		}
 	}
-
-?>

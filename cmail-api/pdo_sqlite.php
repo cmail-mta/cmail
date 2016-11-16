@@ -4,7 +4,6 @@
  * @author Jan Düpmeier
  */
 
-
 require_once('output.php');
 
 /**
@@ -48,6 +47,7 @@ class DB {
 	 */
 	private $dbpath = null;
 
+	private $tansaction;
 
 	/**
 	 * Basic constructor
@@ -57,6 +57,7 @@ class DB {
 	public function __construct($dbpath, Output $output) {
 		$this->output = $output;
 		$this->dbpath = $dbpath;
+		$this->transaction = false;
 	}
 
 	/**
@@ -69,9 +70,6 @@ class DB {
 			$this->db = new PDO("sqlite:{$this->dbpath}");
 			$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
 		} catch (PDOException $e) {
-
-			//header("Status: 500 " . $e->getMessage());
-			//echo $e->getMessage();
 			$this->output->add('status', $e->getMessage());
 			return false;
 		}
@@ -204,7 +202,10 @@ class DB {
 			$stm->execute($param);
 
 			if ($stm->errorInfo()[1] != 0) {
-				$this->output->add('status', $stm->errorInfo()[2]);
+				if ($this->transaction) {
+					$this->rollback();
+				}
+				$this->output->panic('500', $stm->errorInfo()[2]);
 				$stm->closeCursor();
 				return $ids;
 			}
@@ -227,6 +228,7 @@ class DB {
 			$this->output->addDebugMessage('transaction', $this->db->errorInfo());
 			return false;
 		}
+		$this->transaction = true;
 		return true;
 	}
 
@@ -240,6 +242,7 @@ class DB {
 			$this->output->addDebugMessage('commit', $this->db->errorInfo());
 			return false;
 		}
+		$this->transaction = false;
 		return true;
 	}
 
@@ -248,6 +251,7 @@ class DB {
 	 */
 	function rollback() {
 		$this->db->rollback();
+		$this->transaction = false;
 	}
 
 	/**
@@ -257,6 +261,4 @@ class DB {
 	function lastInsertID() {
 		return $this->db->lastInsertId();
 	}
-
 }
-

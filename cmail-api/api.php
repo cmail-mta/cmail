@@ -114,10 +114,10 @@ class Controller {
  * 	It can be NULL, if this is called from the api root path /.
  */
 function main($module_name) {
-
 	global $modulelist, $dbpath;
+	error_reporting(E_ERROR);
 	// init
-	if(!session_start()) {
+	if(!session_start('cmail-api')) {
 		die();
 	}
 	$output = Output::getInstance();
@@ -133,11 +133,17 @@ function main($module_name) {
 
 	if (!$c->checkSchemaVersion()) {
 		$output->panic('500', 'Api version and schema version is not the same.');
+		return;
 	}
 
 	// read post
-	$http_raw = file_get_contents('php://input');
-	$obj = json_decode($http_raw, true);
+	try {
+		$http_raw = file_get_contents('php://input');
+		$obj = json_decode($http_raw, true);
+	} catch(Exception $e) {
+		$output->panic('400', 'Cannot decode the payload.');
+		return;
+	}
 
 	$output->addDebugMessage('payload', $obj);
 

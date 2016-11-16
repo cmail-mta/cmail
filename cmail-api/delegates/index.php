@@ -4,5 +4,3 @@
 	require_once('../api.php');
 
 	main('Delegate');
-
-?>

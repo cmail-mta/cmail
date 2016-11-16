@@ -6,14 +6,17 @@
 class Output {
 
 	private static $instance;
-	public $retVal;
+	private $retVal;
+	private $headers;
+	private $writed;
 
 	/**
 	 * constructor
 	 */
 	private function __construct() {
 		global $debugFlag;
-
+		$this->headers = [];
+		$this->writed = false;
 		if (isset($debugFlag)) {
 			$this->debug = $debugFlag;
 		} else {
@@ -82,7 +85,7 @@ class Output {
 			return;
 		}
 
-		header("HTTP/1.0 ${statusCode} ${message}");
+		$this->headers[] = "HTTP/1.0 ${statusCode} ${message}";
 		$this->add('status', $message);
 		$this->write();
 		die();
@@ -93,22 +96,27 @@ class Output {
 	 */
 	public function write() {
 
+		if ($this->writed) {
+			return;
+		}
+		$this->writed = true;
+
 		if (!$this->debug) {
 			$this->retVal['debug'] = [];
 		}
 
-		header('Access-Control-Allow-Origin: *');
+		$this->headers[] = 'Access-Control-Allow-Origin: *';
 		$json = json_encode($this->retVal, JSON_NUMERIC_CHECK);
 		# generate output
 		if (isset($_GET['callback']) && !empty($_GET['callback'])) {
-			header('Content-Type: application/javascript');
+			$this->headers[] = 'Content-Type: application/javascript';
 			$callback = $_GET['callback'];
-			echo("${callback}(${json});");
+			$output = "${callback}(${json});";
 		} else {
-			header('Content-Type: application/json');
-			echo($json);
+			$this->headers[] = 'Content-Type: application/json';
+			$output = $json;
 		}
+		header(implode('\r\n', $this->headers));
+		echo $output;
 	}
-
 }
-?>

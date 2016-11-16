@@ -294,4 +294,3 @@
 			return count($this->db->insert($sql, [$params])) > 0;
 		}
 	}
-?>

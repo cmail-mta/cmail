@@ -352,5 +352,3 @@ class Auth {
 		return $this->authorized;
 	}
 }
-
-?>
