@@ -82,21 +82,10 @@ int smtp_auth(LOGGER log, CONNECTION* conn, char* auth_data){
 }
 
 int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
-	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
-
 	//need to accept NULL as sender here in order to handle bounces
 	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom ? mail->envelopefrom:"");
-	if(protocol_read(log, conn, SMTP_MAIL_TIMEOUT) < 0){
-		logprintf(log, LOG_ERROR, "Failed to read response to mail initiation\n");
-		return -1;
-	}
 
-	if(conn_data->reply.code == 250){
-		return 0;
-	}
-
-	logprintf(log, LOG_WARNING, "Mail initiation response code %d\n", conn_data->reply.code);
-	return -1;
+	return protocol_expect(log, conn, SMTP_MAIL_TIMEOUT, 250);
 }
 
 int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){
