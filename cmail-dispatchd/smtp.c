@@ -30,6 +30,7 @@ int smtp_greet(LOGGER log, CONNECTION* conn, MTA_SETTINGS settings){
 	return 0;
 }
 
+#ifndef CMAIL_NO_TLS
 int smtp_starttls(LOGGER log, CONNECTION* conn){
 	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 
@@ -53,6 +54,7 @@ int smtp_starttls(LOGGER log, CONNECTION* conn){
 
 	return 0;
 }
+#endif
 
 int smtp_auth(LOGGER log, CONNECTION* conn, char* auth_data){
 	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
@@ -231,7 +233,6 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 			return -1;
 		}
 	}
-	#endif
 
 	//do tls padding
 	if(settings.tls_padding && conn->tls_mode == TLS_ONLY){
@@ -251,6 +252,7 @@ int smtp_negotiate(LOGGER log, MTA_SETTINGS settings, char* remote, CONNECTION* 
 			}
 		}
 	}
+	#endif
 
 	//if requested, try to authenticate
 	if(auth_data && smtp_auth(log, conn, auth_data) < 0){

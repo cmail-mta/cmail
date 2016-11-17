@@ -506,8 +506,10 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 						remotes[remotes_active].remote_auth = NULL;
 					}
 					remotes[remotes_active].forced_port.port = 0;
-					remotes[remotes_active].forced_port.tls_mode = TLS_NONE;
 					remotes[remotes_active].mode = DELIVER_HANDOFF;
+					#ifndef CMAIL_NO_TLS
+					remotes[remotes_active].forced_port.tls_mode = TLS_NONE;
+					#endif
 
 					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
 						remotes[remotes_active].remotespec = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
@@ -549,6 +551,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 							remotes[remotes_active].forced_port.port = strtoul(remote_separator + 1, &remote_separator, 0);
 							//check for tls modestring immediately following
 							if(*remote_separator == '/'){
+								#ifndef CMAIL_NO_TLS
 								if(!strcasecmp(remote_separator, "/starttls")){
 									remotes[remotes_active].forced_port.tls_mode = TLS_NEGOTIATE;
 								}
@@ -559,6 +562,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 									remotes[remotes_active].forced_port.tls_mode = TLS_NONE;
 									//FIXME might want to fail the remote upon invalid TLSMODE
 								}
+								#endif
 							}
 							else if(*remote_separator != 0){
 								//invalid character
@@ -595,7 +599,11 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 		for(u = 0; u < remotes_active; u++){
 			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[u].host, (remotes[u].mode == DELIVER_DOMAIN) ? "domain":"handoff");
 			if(remotes[u].forced_port.port){
+				#ifndef CMAIL_NO_TLS
 				logprintf(log, LOG_INFO, "Remote uses forced port %d with TLS mode %s\n", remotes[u].forced_port.port, tls_modestring(remotes[u].forced_port.tls_mode));
+				#else
+				logprintf(log, LOG_INFO, "Remote uses forced port %d\n", remotes[u].forced_port.port);
+				#endif
 			}
 			if(remotes[u].remote_auth){
 				logprintf(log, LOG_INFO, "Remote uses remote authentication\n");
