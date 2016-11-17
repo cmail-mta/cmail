@@ -1,6 +1,7 @@
 var cmail = cmail || {};
 
 cmail.user = {
+	url: `${cmail.api_url}users/`,
 	user_permissions: [],
 	/**
 	 * Returns a single user object from api
@@ -8,37 +9,43 @@ cmail.user = {
 	 * @return user object
 	 */
 	get: function(name) {
-		var xhr = ajax.syncPost(cmail.api_url + "users/?get", JSON.stringify({ username: name}));
-		var users = JSON.parse(xhr.response).users;
+		var self = this;
+		return new Promise(function(resolve, reject) {
+			api.post(`self.url}?get`, JSON.stringify({ username: name}), function(resp) {
+				if (resp.users.length < 1) {
+					reject();
+				}
 
-		return users[0];
+				resolve(resp.users[0]);
+			});
+		});
 	},
 	/**
 	 * Gets all users from api and fills the user table.
 	 */
 	get_all: function() {
 		var self = this;
-		api.get(cmail.api_url + "users/?get", function(resp) {
+		api.get(`${self.url}?get`, function(resp) {
 
 			// set users
 			var users = resp.users;
 			self.users = users;
 
 			// table element
-			var userlist = gui.elem("userlist");
-			userlist.innerHTML = "";
+			var userlist = gui.elem('userlist');
+			userlist.innerHTML = '';
 
 			// userlist
 			var list = {};
 			users.forEach(function(user) {
-				var tr = gui.create("tr");
+				var tr = gui.create('tr');
 				tr.appendChild(gui.createColumn(user.user_name));
 				tr.appendChild(gui.createColumn(user.user_alias));
 				tr.appendChild(gui.createColumn(user.link_count));
 
 				cmail.modules.forEach(function(module) {
-					var col = gui.create("td");
-					var cb = gui.createCheckbox(module + "_cb");
+					var col = gui.create('td');
+					var cb = gui.createCheckbox(`${module}_cb`);
 					if (user.modules[module]) {
 						cb.checked = true;
 					}
@@ -50,9 +57,9 @@ cmail.user = {
 				tr.appendChild(gui.createColumn(user.mails));
 
 				// option buttons
-				var options = gui.create("td");
-				options.appendChild(gui.createButton("edit", self.show_form, [user.user_name], self));
-				options.appendChild(gui.createButton("delete", self.delete, [user.user_name], self));
+				var options = gui.create('td');
+				options.appendChild(gui.createButton('edit', self.show_form, [user.user_name], self));
+				options.appendChild(gui.createButton('delete', self.delete, [user.user_name], self));
 				tr.appendChild(options);
 				userlist.appendChild(tr);
 
@@ -65,29 +72,21 @@ cmail.user = {
 
 	},
 	setPermissions: function(permissions) {
-		if(!permissions["admin"]) {
-			var style = gui.create('link');
-			style.setAttribute("rel", "stylesheet");
-			style.setAttribute("type", "text/css");
-			style.setAttribute("href", "static/admin.css");
-			document.head.appendChild(style);
+		if(!permissions['admin']) {
+			gui.addStylesheet('static/admin.css');
 			return;
 		}
 
-		if (!permissions["delegate"] && !permissions["admin"]) {
-			var style = gui.create('link');
-			style.setAttribute("rel", "stylesheet");
-			style.setAttribute("type", "text/css");
-			style.setAttribute("href", "static/delegate.css");
-			document.head.appendChild(style);
+		if (!permissions['delegate'] && !permissions['admin']) {
+			gui.addStylesheet('static/delegate.css');
 			return;
 		}
 	},
 	fill_username_list: function(list) {
-		var userlist = gui.elem("usernamelist");
-		userlist.innerHTML = "";
+		var userlist = gui.elem('usernamelist');
+		userlist.innerHTML = '';
 		Object.keys(list).forEach(function(username) {
-			userlist.appendChild(gui.createOption("", username));
+			userlist.appendChild(gui.createOption('', username));
 		});
 	},
 	delete_permission: function(tr, permission) {
@@ -98,71 +97,67 @@ cmail.user = {
 		}
 
 		this.user_permissions.splice(index, 1);
-		gui.elem("user_permissions").removeChild(tr);
+		gui.elem('user_permissions').removeChild(tr);
 	},
 	add_permission: function() {
-		var permission = gui.elem("user_permission").value;
+		var permission = gui.value('#user_permission');
 		this.appendPermission(permission);
 	},
 	appendPermission: function(permission) {
 
 		var self = this;
 		this.user_permissions.push(permission);
-		var permissions = gui.elem("user_permissions");
+		var permissions = gui.elem('user_permissions');
 		var tr = gui.create('tr');
 		tr.appendChild(gui.createColumn(permission));
-		var option = gui.create("td");
-		option.appendChild(gui.createButton("delete", self.delete_permission, [tr, permission], self));
+		var option = gui.create('td');
+		option.appendChild(gui.createButton('delete', self.delete_permission, [tr, permission], self));
 		tr.appendChild(option);
 		permissions.appendChild(tr);
 	},
 	show_form: function(name) {
 		var self = this;
 		this.user_permissions = [];
-		gui.elem("user_permission").innerHTML = "";
+		gui.elem('user_permission').innerHTML = '';
 		if (name) {
-			gui.elem("form_type").value = "edit";
-			var user = this.get(name);
+			gui.elem('form_type').value = 'edit';
+			self.get(name).then(function(user) {
 
-			if (!user) {
-				cmail.set_status("User not found!");
-				return;
-			}
+				gui.elem('user_name').value = user.user_name;
+				gui.elem('user_name').disabled = true;
 
-			gui.elem("user_name").value = user.user_name;
-			gui.elem("user_name").disabled = true;
+				gui.elem('user_alias').value = user.user_alias;
 
-			gui.elem("user_alias").value = user.user_alias;
-
-			user_permissions = gui.elem("user_permissions");
-			user_permissions.innerHTML = "";
-			user.user_permissions.forEach(function(permission) {
-				self.appendPermission(permission);
+				user_permissions = gui.elem('user_permissions');
+				user_permissions.innerHTML = '';
+				user.user_permissions.forEach(function(permission) {
+					self.appendPermission(permission);
+				});
+				gui.elem('useradd').style.display = 'block';
 			});
 
 		} else {
 
-			gui.elem("form_type").value = "new";
-			gui.elem("user_name").value = "";
-			gui.elem("user_name").disabled = false;
-			gui.elem("user_alias").value = "";
-			gui.elem("user_permissions").innerHTML = "";
+			gui.elem('form_type').value = 'new';
+			gui.elem('user_name').value = '';
+			gui.elem('user_name').disabled = false;
+			gui.elem('user_alias').value = '';
+			gui.elem('user_permissions').innerHTML = '';
+			gui.elem('useradd').style.display = 'block';
 
 		}
 
-		gui.elem("user_password").value = "";
-		gui.elem("user_password2").value = "";
-		gui.elem("user_password_revoke").checked = false;
-
-		gui.elem("useradd").style.display = "block";
+		gui.elem('user_password').value = '';
+		gui.elem('user_password2').value = '';
+		gui.elem('user_password_revoke').checked = false;
 	},
 	hide_form: function() {
-		gui.elem("useradd").style.display = "none";
+		gui.elem('useradd').style.display = 'none';
 	},
 	delete: function(name) {
 		var self = this;
-		if (confirm("Do you really want to delete this user?\nThis step cannot be undone.\nAll mail stored for this user will be deleted.") == true) {
-			api.post(cmail.api_url + "users/?delete", JSON.stringify({ user_name: name }), function(resp){
+		if (confirm("Do you really want to delete this user?\nThis step cannot be undone.\nAll mail stored for this user will be deleted.")) {
+			api.post(`${self.url}?delete`, JSON.stringify({ user_name: name }), function(resp){
 				self.get_all();
 			});
 		}
@@ -171,53 +166,51 @@ cmail.user = {
 		var authdata = null;
 		var self = this;
 
-		if (gui.elem("user_password").value !== gui.elem("user_password2").value) {
-			cmail.set_status("Password is not the same");
+		if (gui.value('#user_password') !== gui.value('#user_password2')) {
+			cmail.set_status('Password is not the same');
 			return;
 		}
 
-		var authdata = gui.elem("user_password").value;
+		var authdata = gui.value('#user_password');
 
-		if (authdata == "") {
+		if (!authdata) {
 			authdata = null;
 		}
 
 		var user = {
-			user_name: gui.elem("user_name").value,
+			user_name: gui.value('#user_name'),
 			user_authdata: authdata,
 			user_permissions: self.user_permissions
 		};
 
-		if (gui.elem("form_type").value === "new") {
+		if (gui.value('#form_type') === 'new') {
 
-			if (gui.elem("user_alias").value != "") {
-				user["user_alias"] = gui.elem("user_alias").value;
+			if (gui.value('#user_alias')) {
+				user['user_alias'] = gui.value('#user_alias');
 			}
 
-			api.post(cmail.api_url + "users/?add", JSON.stringify(user));
+			api.post(`${self.url}?add`, JSON.stringify(user));
 		} else {
-			if (gui.elem("user_password_revoke").checked) {
+			if (gui.elem('user_password_revoke').checked) {
 				authdata = true;
-				user["user_authdata"] = null;
-
+				user['user_authdata'] = null;
 			}
 			if (authdata) {
-				api.post(cmail.api_url + "users/?set_password", JSON.stringify(user));
+				api.post(`${self.url}?set_password`, JSON.stringify(user));
 			}
 
-			if (gui.elem("user_alias") == "") {
+			if (!gui.elem('user_alias')) {
 				alias = null;
-
 			} else {
-				alias = gui.elem("user_alias").value;
+				alias = gui.value('#user_alias');
 			}
 
-			api.post(cmail.api_url + "users/?update_alias", JSON.stringify({
+			api.post(`${self.url}?update_alias`, JSON.stringify({
 				user_name: user.user_name,
 				user_alias: alias
 			}));
 
-			api.post(cmail.api_url + "users/?update_permissions", JSON.stringify({
+			api.post(`${self.url}?update_permissions`, JSON.stringify({
 				user_name: user.user_name,
 				user_permissions: self.user_permissions
 			}), function(resp) {

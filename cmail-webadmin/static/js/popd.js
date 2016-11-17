@@ -1,21 +1,21 @@
 
 cmail.pop = {
-
+	url: `${cmail.api_url}pop/`,
 	get_all: function() {
 		var self = this;
-		api.get(cmail.api_url + "pop/?get", function(resp) {
+		api.get(`${self.url}?get`, function(resp) {
 
-			var list = gui.elem("pop_user_list");
+			var list = gui.elem('pop_user_list');
 			list.innerHTML = "";
 			resp.pop.forEach(function(p) {
-				var tr = gui.create("tr");
+				var tr = gui.create('tr');
 
 				tr.appendChild(gui.createColumn(p.pop_user));
 
-				var lock = gui.create("td");
-				var checkbox = gui.createCheckbox("popLock", function() {
+				var lock = gui.create('td');
+				var checkbox = gui.createCheckbox('popLock', function() {
 					if(confirm("Really unlock the POP mutex for this user?\nMultiple concurrent accesses to a POP3 account may have undesired consequences.")) {
-						api.post(cmail.api_url + "pop/?unlock", JSON.stringify({
+						api.post(`${self.url}?unlock`, JSON.stringify({
 							pop_user: p.pop_user
 						}), function(resp) {
 							self.get_all();
@@ -27,9 +27,9 @@ cmail.pop = {
 				lock.appendChild(checkbox);
 				tr.appendChild(lock);
 
-				var options = gui.create("td");
+				var options = gui.create('td');
 
-				options.appendChild(gui.createButton("delete", self.delete, [p], self));
+				options.appendChild(gui.createButton('delete', self.delete, [p], self));
 				tr.appendChild(options);
 				list.appendChild(tr);
 			});
@@ -39,10 +39,10 @@ cmail.pop = {
 		var self = this;
 
 		var obj = {
-			pop_user: gui.elem("pop_user").value
+			pop_user: gui.elem('pop_user').value
 		};
 
-		api.post(cmail.api_url + "pop/?add", JSON.stringify(obj), function(resp) {
+		api.post(`${self.url}?add`, JSON.stringify(obj), function(resp) {
 			self.get_all();
 		});
 	},
@@ -51,7 +51,7 @@ cmail.pop = {
 
 		if (confirm("Really revoke POP3 access from this user?\nPlease note that this will not remove any mail and the user will still be able to receive mail.")) {
 
-			api.post(cmail.api_url + "pop/?delete", JSON.stringify(p), function(resp) {
+			api.post(`${self.url}?delete`, JSON.stringify(p), function(resp) {
 				self.get_all();
 			});
 		}

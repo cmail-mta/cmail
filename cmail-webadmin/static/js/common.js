@@ -191,6 +191,13 @@ var gui = gui || {
 		});
 		return button;
 	},
+	addStylesheet: function(link) {
+		var style = gui.create('link');
+		style.setAttribute('rel', 'stylesheet');
+		style.setAttribute('type', 'text/css');
+		style.setAttribute('href', link);
+		document.head.appendChild(style);
+	},
 	createMenuEntry: function(module) {
 		var entry = gui.create('a');
 		entry.setAttribute('href', `#${module.toLowerCase()}`);
