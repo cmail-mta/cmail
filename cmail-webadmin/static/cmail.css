@@ -63,6 +63,10 @@ h1, h2, h3{
 	background-color:#ddd;
 }
 
+.active {
+	display: block !important;
+}
+
 table {
 	width: 100%;
 	text-align: center;

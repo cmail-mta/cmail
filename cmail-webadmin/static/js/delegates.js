@@ -1,5 +1,5 @@
 
-cmail.delegates = {
+cmail.delegate = {
 
 	get_all: function() {
 		var self = this;

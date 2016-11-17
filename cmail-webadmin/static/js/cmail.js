@@ -2,34 +2,31 @@ var cmail = {
 	modules: [],
 	module: {
 		get: function() {
-			api.get(cmail.api_url + "?get_modules", function(resp) {
+			var self = cmail;
+			return new Promise(function(resolve, reject) {
+				api.get(cmail.api_url + "?get_modules", function(resp) {
+					cmail.modules = resp.modules;
+					gui.elem("auth_user").textContent = resp["auth_user"];
+					var head = gui.elem("userlist_head");
+					head.innerHTML = "";
+					var tr = gui.create('tr');
+					tr.appendChild(gui.createColumn("Name"));
+					tr.appendChild(gui.createColumn("Alias"));
+					tr.appendChild(gui.createColumn("Link count"));
+					self.modules.forEach(function(module) {
+						gui.createMenuEntry(module);
+						tr.appendChild(gui.createColumn(module));
+					});
 
-				cmail.modules = resp.modules;
-				gui.elem("auth_user").textContent = resp["auth_user"];
-				var head = gui.elem("userlist_head");
-				head.innerHTML = "";
-				var tr = gui.create('tr');
-				tr.appendChild(gui.createColumn("Name"));
-				tr.appendChild(gui.createColumn("Alias"));
-				tr.appendChild(gui.createColumn("Link count"));
-				cmail.modules.forEach(function(module) {
-					tr.appendChild(gui.createColumn(module));
+					tr.appendChild(gui.createColumn("Mail count"));
+
+					tr.appendChild(gui.createColumn("Options"));
+					head.appendChild(tr);
+					resolve();
 				});
-
-				tr.appendChild(gui.createColumn("Mail count"));
-
-				tr.appendChild(gui.createColumn("Options"));
-				head.appendChild(tr);
 			});
 		}
 	},
-	tabs: [
-		"user",
-		"delegates",
-		"address",
-		"smtpd",
-		"pop"
-	],
 	init: function() {
 		this.login();
 	},
@@ -47,7 +44,7 @@ var cmail = {
 		});
 	},
 	main: function() {
-		this.module.get();
+		var promiseModules = this.module.get();
 
 		// fill router checkboxes
 		this.get_router();
@@ -59,11 +56,13 @@ var cmail = {
 
 		var self = this;
 
-		// handle tab change
-		this.switch_hash();
-		window.addEventListener("hashchange", function() {
+		promiseModules.then(function() {
+			// handle tab change
 			self.switch_hash();
-		}, false);
+			window.addEventListener("hashchange", function() {
+				self.switch_hash();
+			}, false);
+		});
 	},
 	logout: function() {
 		api.get(cmail.api_url + "?logout", function(resp) {
@@ -76,21 +75,24 @@ var cmail = {
 		this.user.hide_form();
 		this.address.hide_form();
 		var self = this;
-		this.tabs.forEach(function(tab) {
+		console.log(this.modules);
+		this.modules.forEach(function(tab) {
+			console.log(tab);
+			tab = tab.toLowerCase();
 			if ("#" + tab === hash) {
-				gui.elem(tab).style.display = "block";
+				gui.elem(tab).classList.add('active');
 				test = false;
 				if (tab != "test") {
 					self[tab].get_all();
 				}
 			} else {
-				gui.elem(tab).style.display = "none";
+				gui.elem(tab).classList.remove('active');
 			}
 		});
 
 		// check for no tab is displayed
 		if (test) {
-			gui.elem(this.tabs[0]).style.display = "block";
+			gui.elem('user').classList.add('active');
 		}
 	},
 	fill_router: function(router_elem, resp) {

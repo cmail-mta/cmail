@@ -9,12 +9,7 @@
 	</head>
 	<body onload="cmail.init();">
 		<div id="headmenu">
-			<a class="item" href="#user">Users</a>
-			<a class="item" href="#address">Adresses</a>
-			<a class="item" href="#smtpd">SMTP</a>
-			<a class="item" href="#pop">POP</a>
-			<a class="item" href="#delegates">Delegates</a>
-
+			<span id="headtags"></span>
 
 			<span id="headmenu-right">
 				<span id="status-wrapper">
@@ -172,7 +167,7 @@
 
 		</div>
 
-		<div id="delegates" class="tab">
+		<div id="delegate" class="tab">
 
 			<h2>Delegation management</h2>
 			<br />
@@ -272,6 +267,20 @@
 			</table>
 		</div>
 
+		<div id="mailbox" class="tab">
+			<h2>Mailbox Access Control</h2>
+
+			<br />
+
+			<table>
+				<thead>
+					<th>User</th><th>Mails</th>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+		</div>
+
 		<datalist id="usernamelist">
 		</datalist>
 
@@ -283,5 +292,6 @@
 		<script src="static/js/address.js"></script>
 		<script src="static/js/user.js"></script>
 		<script src="static/js/smtpd.js"></script>
+		<script src="static/js/mailbox.js"></script>
 	</body>
 </html>

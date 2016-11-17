@@ -92,7 +92,14 @@ var api = api || {
 			cmail.set_status('No response received.');
 			return;
 		}
-		cmail.set_status(xhr.statusText);
+		try {
+			var response = JSON.parse(xhr.response);
+			if (response.status) {
+				cmail.set_status(response.status);
+			}
+		} catch (e) {
+			cmail.set_status(xhr.statusText);
+		}
 	},
 	success: function(xhr, successfunc) {
 		successfunc = successfunc || function() {};
@@ -183,6 +190,13 @@ var gui = gui || {
 			}
 		});
 		return button;
+	},
+	createMenuEntry: function(module) {
+		var entry = gui.create('a');
+		entry.setAttribute('href', '#' + module.toLowerCase());
+		entry.classList.add('item');
+		entry.textContent = module;
+		gui.elem('headtags').appendChild(entry);
 	}
 };
 
