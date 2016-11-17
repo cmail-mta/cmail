@@ -1,2 +1,2 @@
 // api url
-cmail.api_url = "SERVER_API";
+cmail.api_url = 'SERVER_API';

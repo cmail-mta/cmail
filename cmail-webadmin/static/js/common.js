@@ -1,12 +1,7 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 "use strict";
 var ajax = ajax || {
-	contentType: "application/json",
-	accept: "application/json",
+	contentType: 'application/json',
+	accept: 'application/json',
 	handleRequest(type, url, success, fail, user, pass, payload, async) {
 		payload = payload || null;
 		async = async || true;
@@ -23,8 +18,8 @@ var ajax = ajax || {
 
 		try {
 			request.open(type, url, async, user, pass);
-			request.setRequestHeader("Content-type", this.contentType);
-			request.setRequestHeader("Accept", this.accept);
+			request.setRequestHeader('Content-type', this.contentType);
+			request.setRequestHeader('Accept', this.accept);
 			request.send(payload);
 		} catch(e) {
 			fail(request);
@@ -68,7 +63,7 @@ var ajax = ajax || {
 	 */
 	syncGet: function(url, user, pass) {
 		var request = new this.ajaxRequest();
-		request.open("GET", url, false, user, pass);
+		request.open('GET', url, false, user, pass);
 		request.send(null);
 		return request;
 	},
@@ -79,8 +74,8 @@ var ajax = ajax || {
 	 */
 	syncPost: function(url, payload, user, pass) {
 		var request = new this.ajaxRequest();
-		request.open("POST", url, false, user, pass);
-		request.setRequestHeader("Content-type", this.contentType);
+		request.open('POST', url, false, user, pass);
+		request.setRequestHeader('Content-type', this.contentType);
 		request.send(payload);
 		return request;
 	}
@@ -144,22 +139,27 @@ var gui = gui || {
 	elem: function(elem) {
 		return document.getElementById(elem);
 	},
+	query: function(elem) {
+		return document.querySelector(elem);
+	},
+	value: function(elem) {
+		return document.querySelector(elem).value;
+	}
 	create: function(tag) {
 		return document.createElement(tag);
 	},
 	createOption: function(text, value) {
-		var option = document.createElement("option");
-		option.setAttribute("value", value);
+		var option = document.createElement('option');
+		option.setAttribute('value', value);
 		option.textContent = text;
 
 		return option;
 	},
 	createCheckbox: function(styleClass, clickEvent) {
-		var elem = gui.create("input");
-		elem.setAttribute("class", styleClass);
-		elem.setAttribute("type","checkbox");
-		elem.addEventListener("click", clickEvent);
-
+		var elem = gui.create('input');
+		elem.setAttribute('class', styleClass);
+		elem.setAttribute('type','checkbox');
+		elem.addEventListener('click', clickEvent);
 		return elem;
 	},
 	/**
@@ -193,12 +193,10 @@ var gui = gui || {
 	},
 	createMenuEntry: function(module) {
 		var entry = gui.create('a');
-		entry.setAttribute('href', '#' + module.toLowerCase());
+		entry.setAttribute('href', `#${module.toLowerCase()}`);
 		entry.classList.add('item');
+		entry.classList.add(module.toLowerCase());
 		entry.textContent = module;
 		gui.elem('headtags').appendChild(entry);
 	}
-};
-
-var tools = tools || {
 };
