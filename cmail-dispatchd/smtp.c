@@ -84,10 +84,16 @@ int smtp_auth(LOGGER log, CONNECTION* conn, char* auth_data){
 }
 
 int smtp_initiate(LOGGER log, CONNECTION* conn, MAIL* mail){
+	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
+	//calling contract: 0 -> continue, 1 -> fail temp, -1 -> fail perm
 	//need to accept NULL as sender here in order to handle bounces
 	client_send(log, conn, "MAIL FROM:<%s>\r\n", mail->envelopefrom ? mail->envelopefrom:"");
 
-	return protocol_expect(log, conn, SMTP_MAIL_TIMEOUT, 250);
+	if(protocol_expect(log, conn, SMTP_MAIL_TIMEOUT, 250)){
+		//handle protocol failures as temporary, only 500 as permanent
+		return (conn_data->reply.code >= 500 && conn_data->reply.code <= 599) ? -1:1;
+	}
+	return 0;
 }
 
 int smtp_rcpt(LOGGER log, CONNECTION* conn, char* path){

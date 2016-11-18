@@ -6,7 +6,7 @@ int protocol_reply_reset(LOGGER log, SMTPREPLY* reply){
 		.buffer_length = reply->buffer_length
 	};
 
-	*reply=empty_reply;
+	*reply = empty_reply;
 
 	return 0;
 }

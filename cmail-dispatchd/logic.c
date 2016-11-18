@@ -164,13 +164,11 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 	int delivered_mails = 0;
 	unsigned i;
 	CONNDATA* conn_data = (CONNDATA*) conn->aux_data;
+	bool fail_permanently = false;
 
 	if(mail_dispatch(log, database, transaction, conn) < 0){
-		logprintf(log, LOG_WARNING, "Failed to dispatch transaction\n");
-		//need to reset transaction here because greylisting may fail the first connection,
-		//but we'd still like to try the next
-		smtp_rset(log, conn);
-		return -1;
+		logprintf(log, LOG_WARNING, "Dispatch function reported permanent failure\n");
+		fail_permanently = true;
 	}
 
 	//reset in case any transaction follows
@@ -190,15 +188,15 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 			case RCPT_FAIL_TEMPORARY:
 			case RCPT_FAIL_PERMANENT:
 				//handled by bouncehandler
+				//failure_reason already inserted by mail_dispatch (because replies are overwritten)
 				break;
 			case RCPT_READY:
 				logprintf(log, LOG_WARNING, "Recipient %d not touched by dispatch loop\n", i);
-				//this happens if the peer rejects the MAIL command
-				mail_failure(log, database, transaction->rcpt[i].dbid, conn_data->reply.response_text, false);
+				//this happens e.g. if the peer rejects the MAIL command
+				mail_failure(log, database, transaction->rcpt[i].dbid, conn_data->reply.response_text, fail_permanently);
 				break;
 		}
 	}
-
 
 	logprintf(log, LOG_INFO, "Handled %d mails in transaction\n", delivered_mails);
 	return delivered_mails;
