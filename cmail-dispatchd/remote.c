@@ -141,7 +141,7 @@ int remotes_fetch(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE*
 					}
 				}
 				else if(sqlite3_column_text(database->query_outbound_hosts, 1)){
-					if(remote_parse(log, (*remotes) + remotes_active, DELIVER_HANDOFF, (char*)sqlite3_column_text(database->query_outbound_hosts, 1)) < 0){
+					if(remote_parse(log, (*remotes) + remotes_active, DELIVER_DOMAIN, (char*)sqlite3_column_text(database->query_outbound_hosts, 1)) < 0){
 						logprintf(log, LOG_ERROR, "Failed to parse remote, skipping\n");
 						remote_reset((*remotes) + remotes_active);
 						continue;

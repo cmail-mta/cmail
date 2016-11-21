@@ -28,6 +28,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 			case SQLITE_ROW:
 				//ignore bounces of bounces
 				if(!sqlite3_column_text(database->query_bounce_candidates, 1)){
+					logprintf(log, LOG_WARNING, "Ignoring bounce message generated for a bounce message\n");
 					mail_delete(log, database, sqlite3_column_int(database->query_bounce_candidates, 0));
 					continue;
 				}

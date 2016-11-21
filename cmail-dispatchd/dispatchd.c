@@ -15,6 +15,7 @@ int usage(char* filename){
 
 int main(int argc, char** argv){
 	FILE* pid_file = NULL;
+	REMOTE delivery_remote = {};
 	ARGUMENTS args = {
 		.remote = {
 			.host = NULL,
@@ -158,7 +159,11 @@ int main(int argc, char** argv){
 
 	//run core loop
 	if(args.remote.host){
-		logic_handle_remote(config.log, &(config.database), config.settings, args.remote);
+		//preprocess delivery remote
+		remote_reset(&delivery_remote);
+		remote_parse(config.log, &delivery_remote, args.remote.mode, args.remote.host);
+		logic_handle_remote(config.log, &(config.database), config.settings, delivery_remote);
+		remote_reset(&delivery_remote);
 	}
 	else if(args.generate_bounces){
 		logic_generate_bounces(config.log, &(config.database), config.settings);
