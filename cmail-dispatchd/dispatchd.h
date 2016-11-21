@@ -137,6 +137,7 @@ typedef struct /*_SMTPCLIENT_CONN*/ {
 #include "config.c"
 #include "connection.c"
 #include "protocol.c"
+#include "remote.c"
 #include "smtp.c"
 #include "mail.c"
 #include "logic.c"

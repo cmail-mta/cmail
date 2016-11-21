@@ -458,140 +458,21 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	unsigned mails_delivered = 0;
 	int bounces_generated = 0;
 
-	unsigned remotes_allocated = 0;
-	unsigned remotes_active = 0;
 	REMOTE* remotes = NULL;
-	char* remote_separator;
-
+	unsigned remotes_allocated = 0;
+	int remotes_active = 0;
+	
 	logprintf(log, LOG_INFO, "Entering core loop\n");
 
 	do{
 		mails_delivered = 0;
-		remotes_active = 0;
-
-		//bind the timeout parameter
-		if(sqlite3_bind_int(database->query_outbound_hosts, 1, settings.retry_interval) != SQLITE_OK){
-			logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
-			break;
+		remotes_active = remotes_fetch(log, database, settings, &remotes, &remotes_allocated);
+		if(remotes_active < 0){
+			//FIXME how to handle these errors
+			logprintf(log, LOG_ERROR, "Remote fetching failed, error handling unclear - continuing\n");
+			remotes_active = 0;
 		}
-
-		//fetch all hosts to be delivered to
-		do{
-			status = sqlite3_step(database->query_outbound_hosts);
-			switch(status){
-				case SQLITE_ROW:
-					if(remotes_active >= remotes_allocated){
-						//reallocate remote array
-						remotes = realloc(remotes, (remotes_allocated + CMAIL_REALLOC_CHUNK) * sizeof(REMOTE));
-						if(!remotes){
-							logprintf(log, LOG_ERROR, "Failed to allocate memory for remote array\n");
-							return -1;
-						}
-						//clear memory
-						memset(remotes + remotes_allocated, 0, CMAIL_REALLOC_CHUNK * sizeof(REMOTE));
-						remotes_allocated += CMAIL_REALLOC_CHUNK;
-					}
-
-					//reset entry
-					if(remotes[remotes_active].host){
-						free(remotes[remotes_active].host);
-					}
-					if(remotes[remotes_active].remotespec){
-						free(remotes[remotes_active].remotespec);
-					}
-					if(remotes[remotes_active].remote_auth){
-						free(remotes[remotes_active].remote_auth);
-						remotes[remotes_active].remote_auth = NULL;
-					}
-					remotes[remotes_active].forced_port.port = 0;
-					remotes[remotes_active].mode = DELIVER_HANDOFF;
-					#ifndef CMAIL_NO_TLS
-					remotes[remotes_active].forced_port.tls_mode = TLS_NONE;
-					#endif
-
-					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
-						remotes[remotes_active].remotespec = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
-						remotes[remotes_active].host = common_strdup(remotes[remotes_active].remotespec);
-						//parse additional handoff remote parameters
-						//check for remote authentication
-						if(index(remotes[remotes_active].host, '@')){
-							//copy remote authentication raw
-							remote_separator = index(remotes[remotes_active].host, '@');
-							*remote_separator = 0;
-							remotes[remotes_active].remote_auth = strdup(remotes[remotes_active].host);
-							//FIXME error checking
-
-							//move host part back to .host
-							memmove(remotes[remotes_active].host, remote_separator + 1, strlen(remote_separator + 1) + 1);
-
-							//preprocess SASL response
-							u = strlen(remotes[remotes_active].remote_auth);
-							remotes[remotes_active].remote_auth = realloc(remotes[remotes_active].remote_auth, (u + 2) * sizeof(char));
-							memmove(remotes[remotes_active].remote_auth + 1, remotes[remotes_active].remote_auth, u + 1);
-							remote_separator = index(remotes[remotes_active].remote_auth, ':');
-							if(!remote_separator){
-								//TODO fail here
-							}
-							else{
-								*remote_separator = 0;
-							}
-							*remotes[remotes_active].remote_auth = 0;
-							if(auth_base64encode(log, (uint8_t**)&(remotes[remotes_active].remote_auth), u + 2) < 0){
-								//TODO fail here
-							}
-						}
-						//check for port specification (and tls mode)
-						if(index(remotes[remotes_active].host, ':')){
-							remote_separator = index(remotes[remotes_active].host, ':');
-							*remote_separator = 0;
-
-							//parse remote port
-							remotes[remotes_active].forced_port.port = strtoul(remote_separator + 1, &remote_separator, 0);
-							//check for tls modestring immediately following
-							if(*remote_separator == '/'){
-								#ifndef CMAIL_NO_TLS
-								if(!strcasecmp(remote_separator, "/starttls")){
-									remotes[remotes_active].forced_port.tls_mode = TLS_NEGOTIATE;
-								}
-								else if(!strcasecmp(remote_separator, "/tls")){
-									remotes[remotes_active].forced_port.tls_mode = TLS_ONLY;
-								}
-								else{
-									remotes[remotes_active].forced_port.tls_mode = TLS_NONE;
-									//FIXME might want to fail the remote upon invalid TLSMODE
-								}
-								#endif
-							}
-							else if(*remote_separator != 0){
-								//invalid character
-								//TODO fail this remote?
-							}
-						}
-					}
-					else if(sqlite3_column_text(database->query_outbound_hosts, 1)){
-						remotes[remotes_active].mode = DELIVER_DOMAIN;
-						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 1));
-						remotes[remotes_active].remotespec = common_strdup(remotes[remotes_active].host);
-					}
-
-					if(!remotes[remotes_active].host){
-						logprintf(log, LOG_ERROR, "Failed to allocate memory for remote host part\n");
-						continue;
-					}
-
-					remotes_active++;
-					break;
-				case SQLITE_DONE:
-					logprintf(log, LOG_INFO, "Interval contains %d remotes\n", remotes_active);
-					break;
-				default:
-					logprintf(log, LOG_WARNING, "Unhandled outbound host query result: %s\n", sqlite3_errmsg(database->conn));
-					break;
-			}
-		}
-		while(status == SQLITE_ROW);
-		sqlite3_reset(database->query_outbound_hosts);
-		sqlite3_clear_bindings(database->query_outbound_hosts);
+		logprintf(log, LOG_INFO, "Interval contains %d remote(s)\n", remotes_active);
 
 		//deliver all remotes
 		for(u = 0; u < remotes_active; u++){
@@ -633,15 +514,7 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 
 	//free allocated remotes
 	for(u = 0; u < remotes_allocated; u++){
-		if(remotes[u].host){
-			free(remotes[u].host);
-		}
-		if(remotes[u].remotespec){
-			free(remotes[u].remotespec);
-		}
-		if(remotes[u].remote_auth){
-			free(remotes[u].remote_auth);
-		}
+		remote_reset(remotes + u);
 	}
 	free(remotes);
 
