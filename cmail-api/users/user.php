@@ -352,7 +352,7 @@
 		 */
 		public function getAll() {
 
-			$sql = "SELECT user_name, (user_authdata IS NOT NULL) AS user_login, user_alias FROM users";
+			$sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login, user_alias, user_database, link_count, coalesce(mails, 0) AS mails FROM users LEFT JOIN (SELECT address_route, count(address_route) AS link_count FROM addresses WHERE address_router = 'store' GROUP BY address_route) ON (address_route = user_name) LEFT JOIN (SELECT mail_user, count(*) AS mails FROM mailbox GROUP BY mail_user) ON (user_name = mail_user)";
 
 			$out = $this->db->query($sql, array(), DB::F_ARRAY);
 			$list = $this->getModuleUserLists();

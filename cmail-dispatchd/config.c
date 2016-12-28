@@ -64,7 +64,7 @@ int config_bounceto(CONFIGURATION* config, char* directive, char* params){
 				return -1;
 			}
 
-			config->settings.bounce_to[i+1] = NULL;
+			config->settings.bounce_to[i + 1] = NULL;
 			config->settings.bounce_to[i] = common_strdup(bounce_rcpt);
 			if(!config->settings.bounce_to[i]){
 				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for bounce_copy buffer entry\n");

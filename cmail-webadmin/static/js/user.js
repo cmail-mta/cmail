@@ -45,9 +45,7 @@ cmail.user = {
 			var tr = gui.create("tr");
 			tr.appendChild(gui.createColumn(user.user_name));
 			tr.appendChild(gui.createColumn(user.user_alias));
-
-			//can login?
-			var checkbox_col = gui.create("td");
+			tr.appendChild(gui.createColumn(user.link_count));
 
 			cmail.modules.forEach(function(module) {
 				var col = gui.create("td");
@@ -59,6 +57,8 @@ cmail.user = {
 				col.appendChild(cb);
 				tr.appendChild(col);
 			});
+
+			tr.appendChild(gui.createColumn(user.mails));
 
 			// option buttons
 			var options = gui.create("td");
@@ -174,7 +174,7 @@ cmail.user = {
 	delete: function(name) {
 
 		var self = this;
-		if (confirm("Do you really delete this user?") == true) {
+		if (confirm("Do you really want to delete this user?\nThis step cannot be undone.\nAll mail stored for this user will be deleted.") == true) {
 			var xhr = ajax.asyncPost(cmail.api_url + "users/?delete", JSON.stringify({ user_name: name }), function(xhr){
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();

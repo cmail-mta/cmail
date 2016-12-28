@@ -57,7 +57,7 @@ int mail_failure(LOGGER log, DATABASE* database, int dbid, char* message, bool f
 
 	if(sqlite3_bind_int(database->insert_bounce_reason, 1, dbid) != SQLITE_OK
 		|| sqlite3_bind_text(database->insert_bounce_reason, 2, message, -1, SQLITE_STATIC) != SQLITE_OK
-		|| sqlite3_bind_int(database->insert_bounce_reason, 3, fatal?1:0)){
+		|| sqlite3_bind_int(database->insert_bounce_reason, 3, fatal ? 1:0)){
 		logprintf(log, LOG_ERROR, "Failed to bind bounce reason parameter: %s\n", sqlite3_errmsg(database->conn));
 		rv = -1;
 	}
@@ -95,23 +95,41 @@ int mail_delete(LOGGER log, DATABASE* database, int dbid){
 }
 
 int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
+	//calling contract
+	//	returning 0 -> All RCPT_READY entries will be failed temporarily
+	//	returning -1 -> All RCPT_READY entries will be failed permanently
 	CONNDATA* conn_data = (CONNDATA*)conn->aux_data;
 	unsigned i;
-	bool continue_data=false;
+	bool continue_data = false;
+	bool permanent_failure = false;
 
-	if(smtp_initiate(log, conn, mail)){
-		logprintf(log, LOG_WARNING, "Failed to initiate mail transaction\n");
-		return -1;
+	switch(smtp_initiate(log, conn, mail)){
+		case -1:
+			//permanent failure
+			//this causes logic_handle_transaction to insert a permanent failure reason
+			return -1;
+		case 0:
+			//continue delivery
+			break;
+		case 1:
+			//temporary failure (most likely greylisting)
+			//since all recipients are RCPT_READY, logic_handle_transaction inserts a temporary failure reason
+			//when we return 0
+			return 0;
 	}
 
 	for(i = 0; i < mail->recipients; i++){
-		sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid); //FIXME error check this
+		if(sqlite3_bind_int(database->query_rcpt, 1, mail->rcpt[i].dbid) != SQLITE_OK){
+			logprintf(log, LOG_ERROR, "Failed to bind database id to recipient query\n");
+			continue;
+		}
 		switch(sqlite3_step(database->query_rcpt)){
 			case SQLITE_DONE:
 				logprintf(log, LOG_WARNING, "dbid %d does not exist anymore\n", mail->rcpt[i].dbid);
 				mail->rcpt[i].status = RCPT_FAIL_PERMANENT;
 				break;
 			case SQLITE_ROW:
+				//need to insert failure reasons here because reply is overwritten in subsequent RCPTs
 				switch(smtp_rcpt(log, conn, (char*)sqlite3_column_text(database->query_rcpt, 0))){
 					case -1:
 						logprintf(log, LOG_INFO, "Recipient %d: %s failed permanently: %s\n", i, (char*)sqlite3_column_text(database->query_rcpt, 0), conn_data->reply.response_text);
@@ -142,32 +160,33 @@ int mail_dispatch(LOGGER log, DATABASE* database, MAIL* mail, CONNECTION* conn){
 
 	//bail out in order not to get a 5XX for greylisted recipients
 	if(!continue_data){
-		return -1;
+		return 0;
 	}
 
 	switch(smtp_data(log, conn, mail->data)){
 		case -1:
 			//set all recipients to permanent fail
 			logprintf(log, LOG_WARNING, "Mail rejected\n");
-			for(i = 0; i < mail->recipients; i++){
-				mail_failure(log, database, mail->rcpt[i].dbid, conn_data->reply.response_text, true);
-				mail->rcpt[i].status = RCPT_FAIL_PERMANENT;
-			}
-			return -1;
+			permanent_failure = true;
+			break;
 		case 1:
 			//set all recipients to temp fail
-			for(i = 0; i < mail->recipients; i++){
-				mail_failure(log, database, mail->rcpt[i].dbid, conn_data->reply.response_text, false);
-				mail->rcpt[i].status = RCPT_FAIL_TEMPORARY;
-			}
 			logprintf(log, LOG_WARNING, "Mail not accepted, deferring\n");
-			return -1;
+			permanent_failure = false;
+			break;
 		case 0:
 			logprintf(log, LOG_INFO, "Mail accepted\n");
 			return 0;
 	}
 
-	return -1;
+	for(i = 0; i < mail->recipients; i++){
+		if(mail->rcpt[i].status == RCPT_OK){
+			mail_failure(log, database, mail->rcpt[i].dbid, conn_data->reply.response_text, permanent_failure);
+			mail->rcpt[i].status = (permanent_failure) ? RCPT_FAIL_PERMANENT:RCPT_FAIL_TEMPORARY;
+		}
+	}
+
+	return permanent_failure ? -1:0;
 }
 
 int mail_reset(MAIL* mail, bool data_valid){

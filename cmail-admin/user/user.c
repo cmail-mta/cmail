@@ -1,5 +1,5 @@
 int sqlite_get(LOGGER log, sqlite3* db, const char* username) {
-	char* sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login, user_alias, user_database, link_count FROM users LEFT JOIN (SELECT address_route, count(address_route) AS link_count FROM addresses WHERE address_router = 'store' GROUP BY address_route) ON (address_route = user_name) WHERE user_name LIKE ?";
+	char* sql = "SELECT user_name, user_authdata IS NOT NULL AS has_login, user_alias, user_database, link_count, coalesce(mails, 0) AS mails FROM users LEFT JOIN (SELECT address_route, count(address_route) AS link_count FROM addresses WHERE address_router = 'store' GROUP BY address_route) ON (address_route = user_name) LEFT JOIN (SELECT mail_user, count(*) AS mails FROM mailbox GROUP BY mail_user) ON (user_name = mail_user) WHERE user_name LIKE ?";
 	int status;
 
 	sqlite3_stmt* stmt = database_prepare(log, db, sql);
@@ -12,14 +12,15 @@ int sqlite_get(LOGGER log, sqlite3* db, const char* username) {
 		return 3;
 	}
 
-	printf("%20s | %5s | %15s | %16s | %14s\n%s\n", "User", "Auth", "Alias", "Linked addresses", "User database",
-			"---------------------+-------+-----------------+------------------+----------------");
+	printf("%20s | %5s | %15s | %16s | %6s | %14s\n%s\n", "User", "Auth", "Alias", "Linked addresses", "Mails", "User database",
+			"---------------------+-------+-----------------+------------------+-----------------+-------");
 
 	while ((status = sqlite3_step(stmt)) == SQLITE_ROW) {
-		printf("%20s | %5d | %15s | %16d | %20s\n", (char*)sqlite3_column_text(stmt, 0), 
-				sqlite3_column_int(stmt, 1), 
-				(sqlite3_column_text(stmt, 2)) ? (char*) sqlite3_column_text(stmt, 2) : "", 
+		printf("%20s | %5d | %15s | %16d | %6d | %20s\n", (char*)sqlite3_column_text(stmt, 0),
+				sqlite3_column_int(stmt, 1),
+				(sqlite3_column_text(stmt, 2)) ? (char*) sqlite3_column_text(stmt, 2) : "",
 				sqlite3_column_int(stmt, 4),
+				sqlite3_column_int(stmt,5),
 				(sqlite3_column_text(stmt, 3)) ? (char*) sqlite3_column_text(stmt, 3) : "");
 	}
 

@@ -50,6 +50,16 @@ environment variable or by supplying the
 .BI "list " [expression]
 List all address entries contained in the database. Optionally, filter the list for entries matching
 .IR expression "."
+
+.TP
+.BI "test " mailpath
+Test which address expressions would match an incoming 
+.IR mailpath "."
+.RS
+.B Example:
+$ cmail-admin-address test cb@cbcdn.com
+.RE
+
 .TP
 .BI "add " "expression router [router-argument [order]]"
 Add an inbound path entry for the provided

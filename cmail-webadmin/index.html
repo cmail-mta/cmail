@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		<title>Cmail Admin</title>
+		<title>cmail Administration Panel</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<link rel="stylesheet" type="text/css" href="static/cmail.css" />
 		<meta name="description" content="Cmail Admin" />
@@ -9,77 +9,85 @@
 	</head>
 	<body onload="cmail.init();">
 		<div id="headmenu">
-			<a class="item" href="#user">User</a>
-			<a class="item" href="#delegates">Delegates</a>
-			<a class="item" href="#smtpd">SMTPD</a>
+			<a class="item" href="#user">Users</a>
 			<a class="item" href="#address">Adresses</a>
+			<a class="item" href="#smtpd">SMTP</a>
 			<a class="item" href="#pop">POP</a>
-			<a class="item" href="#test">Test</a>
-			<span class="left_corner">
-				<a class="item" href="" onclick="cmail.logout()">Logout</a>
-				<span>Logged in: </span>
-				<span id="auth_user"></span>
-			</span>
+			<a class="item" href="#delegates">Delegates</a>
 
-			<span>Status: </span>
-			<span id="status">Ok</span>
+
+			<span id="headmenu-right">
+				<span id="status-wrapper">
+					<span>Status:</span>
+					<span id="status">Page loaded</span>
+				</span>
+				<span>
+					<span>Hi there, </span>
+					<span id="auth_user"></span>
+					<a class="item" href="" onclick="cmail.logout()">Logout</a>
+				</span>
+			</span>
 		</div>
 
 		<div id="login_prompt" class="editPanel">
-			<form>
+			<form onsubmit="cmail.login();return false;">
 				<label>Username: <br />
 					<input id="login_name" type="text"/>
 				</label>
 				<label>Password: <br />
 					<input id="login_password" type="password" />
 				</label>
-				<span class="button" onclick="cmail.login()">Login</span>
+				<button class="button" type="submit">Login</button>
 			</form>
 		</div>
 
 		<div id="useradd" class="editPanel">
 			<form>
+				<h3 class="panel-title">Add/edit user</h3>
 				<input type="hidden" id="form_type" value="new"/>
-				<label>Username <br />
-					<input id="user_name" type="text" />
-				</label>
+				<div>
+					<label>Username <br />
+						<input id="user_name" type="text" />
+					</label>
+				</div>
 
-				<div class="separator"></div>
+				<div>
+					<label>Password <br />
+						<input type="password" id="user_password" />
+					</label>
 
-				<label>Password <br />
-					<input type="password" id="user_password" />
-				</label>
-
-				<label>Password confirm <br />
-					<input type="password" id="user_password2" />
-				</label>
-
-				<div class="separator"></div>
+					<label>Confirm password <br />
+						<input type="password" id="user_password2" />
+					</label>
+				</div>
 
 				<label class="delegate">
-					Revoke Access <input type="checkbox" id="user_password_revoke" />
+					Revoke credentials <input type="checkbox" id="user_password_revoke" />
 				</label>
 
 				<div class="separator"></div>
 
-				<label>Alias <br />
-					<input type="text" list="usernamelist" id="user_alias" />
+				<label>Alias to user<br />
+					<input type="text" list="usernamelist" id="user_alias" placeholder="Select user"/>
 				</label>
 
 				<div class="admin">
+					<h4>Manage permissions</h4>
 					<table>
 						<thead>
 							<th>Permission</th><th>Options</th>
 						</thead>
 						<tbody id="user_permissions">
 						</tbody>
+						<tfoot>
+							<td>
+								<input type="text" id="user_permission" placeholder="Permission to add" />
+							</td>
+							<td>
+								<span class="button" onclick="cmail.user.add_permission()">Add</span>
+							</td>
+						</tfoot>
 					</table>
-
-					<label id="permissions">Add permission: <br />
-						<input type="text" id="user_permission" />
-						<span class="button" onclick="cmail.user.add_permission()">Add</span>
-					</label>
-
 					<div class="separator"></div>
 
 				</div>
@@ -90,23 +98,23 @@
 
 		<div id="smtpdadd" class="editPanel">
 			<form>
+				<h3 class="panel-title">Manage SMTPD ACL / outbound routing</h3>
 				<input type="hidden" id="form_smtpd_type" value="new"/>
-				<label>Username <br />
-					<input id="smtpd_user" list="usernamelist" type="text" />
-				</label>
+				<div>
+					<label>Username <br />
+						<input id="smtpd_user" list="usernamelist" type="text" placeholder="Select user"/>
+					</label>
+				</div>
 
-				<div class="separator"></div>
-
-				<label>Outrouter <br />
-					<select id="smtpd_router">
-					</select>
-				</label>
-
-				<div class="separator"></div>
-
-				<label>Outroute <br />
-					<input id="smtpd_route" type="text" />
-				</label>
+				<div>
+					<label>Router <br />
+						<select id="smtpd_router">
+						</select>
+					</label>
+					<label>Routing argument <br />
+						<input id="smtpd_route" type="text" />
+					</label>
+				</div>
 				<div class="separator"></div>
 
 				<span class="button" onclick="cmail.smtpd.save()">Save</span>
@@ -116,29 +124,31 @@
 
 		<div id="addressadd" class="editPanel">
 			<form>
+				<h3 class="panel-title">Add/edit address expression</h3>
+				<input type="hidden" id="address_old_order" value="" />
 				<input type="hidden" id="form_address_type" value="new" />
 
-				<label>Address <br />
-					<input id="address_expression" type="text" />
-				</label>
+				<div>
+					<label>Address expression <br />
+						<input id="address_expression" type="text" width="20" />
+					</label>
 
-				<div class="separator"></div>
+					<label>Order <br />
+						<input id="address_order" type="number" placeholder="Blank to auto-assign"/>
+					</label>
+				</div>
 
-				<label>Order <br />
-					<input id="address_order" type="number" />
-				</label>
+				<div>
+					<h4>Configure inbound routing</h4>
+					<label>Router <br />
+						<select id="address_router">
+						</select>
+					</label>
 
-				<div class="separator"></div>
-				
-				<label>Inrouter <br />
-					<select id="address_router">
-					</select>
-				</label>
-
-				<div class="separator"></div>
-				<label>Inroute <br />
-					<input id="address_route" type="text" />
-				</label>
+					<label>Routing argument <br />
+						<input id="address_route" type="text" />
+					</label>
+				</div>
 
 				<div class="separator"></div>
 				<span class="button" onclick="cmail.address.save()">Save</span>
@@ -147,7 +157,7 @@
 		</div>
 
 		<div id="user" class="tab">
-			<h2>Users</h2>
+			<h2>User management / Overview</h2>
 			<br />
 			<div id="user_action_bar">
 				<span class="button" onclick="cmail.user.show_form()">Add</span>
@@ -164,7 +174,7 @@
 
 		<div id="delegates" class="tab">
 
-			<h2>Delegates</h2>
+			<h2>Delegation management</h2>
 			<br />
 			<div id="delegates_action_bar" class="admin">
 				<label>User <br />
@@ -197,14 +207,20 @@
 		</div>
 
 		<div id="address" class="tab">
-			<h2>Addresses</h2>
+			<h2>Address management</h2>
 			<br />
 			<div id="address_action_bar">
+				<div id="filter">
+					<label for="address_test">Test:
+						<input id="address_test" type="text" placeholder="address" onchange="cmail.address.get_all()" />
+					</label>
+				</div>
 				<span class="button" onclick="cmail.address.show_form()">Add</span>
 			</div>
-			<table>
+
+						<table>
 				<thead>
-					<th>Address Expression</th><th>Order</th><th>Inrouter</th><th>Inroute</th><th>Options</th>
+					<th>Address Expression</th><th>Order</th><th>Router</th><th>Argument</th><th>Options</th>
 				</thead>
 
 				<tbody id="addresslist">
@@ -216,7 +232,7 @@
 		</div>
 
 		<div id="smtpd" class="tab">
-			<h2>SMTPD Config</h2>
+			<h2>SMTPD Access control / outbound routing</h2>
 			<br />
 			<div id="smtpd_action_bar">
 				<span class="button" onclick="cmail.smtpd.show_form()">Add</span>
@@ -224,7 +240,7 @@
 
 			<table>
 				<thead>
-					<th>User</th><th>Outrouter</th><th>Outroute</th><th>Options</th>
+					<th>User</th><th>Router</th><th>Argument</th><th>Options</th>
 				</thead>
 
 				<tbody id="smtpdlist">
@@ -235,13 +251,13 @@
 
 		<div id="pop" class="tab">
 
-			<h2>POP Config</h2>
+			<h2>POP3 Access control</h2>
 
 			<br />
 
 			<div id="pop_action_bar">
 				<form action="javascript:cmail.pop.add()">
-					<input type="text" id="pop_user" list="usernamelist" value="" />
+					<input type="text" id="pop_user" list="usernamelist" value="" placeholder="Select user"/>
 					<span class="button" onclick="cmail.pop.add()">Add</span>
 				</form>
 			</div>
@@ -254,37 +270,6 @@
 				<tbody id="pop_user_list">
 				</tbody>
 			</table>
-		</div>
-
-		<div id="test" class="tab">
-
-			<h2>Test Routing</h2>
-
-			<br />
-
-			<form action="javascript:cmail.smtpd.test()">
-				<label>Mail address: <br />
-					<input type="text" id="smtpd_test_input" value="" />
-					<select id="smtpd_test_router">
-						<option value="inrouter">Inrouter</option>
-						<option value="outrouter">Outrouter</option>
-					</select>
-					<span class="button" onclick="cmail.smtpd.test()">Test</span>
-				</label>
-
-				<br />
-
-				<table>
-					<thead>
-						<tr>
-							<th>#</th><th>Action</th>
-						</tr>
-					</thead>
-
-					<tbody id="smtpd_test_steps">
-					</tbody>
-				</table>
-			</form>
 		</div>
 
 		<datalist id="usernamelist">

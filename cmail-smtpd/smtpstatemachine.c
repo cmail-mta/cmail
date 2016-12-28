@@ -161,7 +161,7 @@ int smtpstate_auth(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			client_data->state = STATE_IDLE;
 
 			//check auth data
-			if(!challenge || auth_validate(log, database, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
+			if(!challenge || auth_validate(log, database->query_authdata, client_data->sasl_user.authenticated, challenge, &(client_data->sasl_user.authorized)) < 0){
 				//login failed
 				sasl_reset_user(&(client_data->sasl_user), true);
 				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
@@ -449,7 +449,13 @@ int smtpstate_recipients(LOGGER log, CONNECTION* client, DATABASE* database, PAT
 		}
 
 		if(!current_path->route.router){
-			//path not local, accept only if authenticated
+			//path not local, check for domain part
+			if(current_path->path[current_path->delimiter_position] != '@'){
+				client_send(log, client, "551 Non-local paths need domain part\r\n");
+				pathpool_return(current_path);
+				return -1;
+			}
+			//accept only if authenticated
 			if(!client_data->sasl_user.authenticated){
 				client_send(log, client, "551 Unknown user\r\n");
 				pathpool_return(current_path);
@@ -540,7 +546,7 @@ int smtpstate_data(LOGGER log, CONNECTION* client, DATABASE* database, PATHPOOL*
 			}
 			//check for too many hops
 			else if(client_data->current_mail.hop_count > CMAIL_MAX_HOPS){
-				logprintf(log, LOG_WARNING, "Mail exceeded maximum hop count of %d", CMAIL_MAX_HOPS);
+				logprintf(log, LOG_WARNING, "Mail exceeded maximum hop count of %d\n", CMAIL_MAX_HOPS);
 				client_send(log, client, "554 Too many hops\r\n");
 			}
 			else{

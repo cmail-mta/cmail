@@ -15,6 +15,9 @@ typedef struct /*_LOGGER*/ {
 	unsigned verbosity;
 	bool log_secondary;
 	bool print_timestamp;
+	#ifdef LOGGER_MT_SAFE
+	pthread_mutex_t* sync;
+	#endif
 } LOGGER;
 
 #define LOG_ERROR 	0

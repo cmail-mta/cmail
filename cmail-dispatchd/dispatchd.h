@@ -9,7 +9,6 @@
 #include "../cmail-smtpd/smtplimits.h"
 
 #define VERSION "cmail-dispatchd 0.1"
-#define CMAIL_HAVE_DATABASE_TYPE
 #define CMAIL_REALLOC_CHUNK 10
 
 #include "../lib/logger.h"
@@ -19,6 +18,7 @@
 #include "../lib/config.h"
 //#include "../lib/tls.h" //pulled in by network.h anyway
 #include "../lib/database.h"
+#include "../lib/auth.h"
 #include "../lib/network.h"
 
 #include "../lib/logger.c"
@@ -26,6 +26,7 @@
 #include "../lib/privileges.c"
 #include "../lib/config.c"
 #include "../lib/tls.c"
+#include "../lib/auth.c"
 #include "../lib/database.c"
 #include "../lib/daemonize.c"
 #include "../lib/network.c"
@@ -36,9 +37,19 @@ typedef enum /*_DELIVERY_MODE*/ {
 	DELIVER_HANDOFF
 } DELIVERY_MODE;
 
+typedef struct /*_REMOTE_PORT*/ {
+	uint16_t port;
+	#ifndef CMAIL_NO_TLS
+	TLSMODE tls_mode;
+	#endif
+} REMOTE_PORT;
+
 typedef struct /*_DELIVERY_REMOTE*/ {
 	char* host;
 	DELIVERY_MODE mode;
+	char* remote_auth;	//NULL -> no auth
+	REMOTE_PORT forced_port;
+	char* remotespec;
 } REMOTE;
 
 typedef enum /*_MAIL_STATUS*/ {
@@ -83,13 +94,6 @@ typedef struct /*_ARGUMENT_COLLECTION*/ {
 	char* config_file;
 } ARGUMENTS;
 
-typedef struct /*_REMOTE_PORT*/ {
-	uint16_t port;
-	#ifndef CMAIL_NO_TLS
-	TLSMODE tls_mode;
-	#endif
-} REMOTE_PORT;
-
 typedef struct /*_MTA_SETTINGS*/ {
 	char* helo_announce;
 	REMOTE_PORT* port_list;
@@ -133,6 +137,7 @@ typedef struct /*_SMTPCLIENT_CONN*/ {
 #include "config.c"
 #include "connection.c"
 #include "protocol.c"
+#include "remote.c"
 #include "smtp.c"
 #include "mail.c"
 #include "logic.c"

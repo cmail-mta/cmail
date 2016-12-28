@@ -20,6 +20,12 @@
 			"test" => "testRouting"
 		);
 
+		private $routersWithArgs = [
+			"store",
+			"redirect",
+			"handoff"
+		];
+
 		/**
 		 * Constructor for the address class.
 		 * @param $c controller class
@@ -212,12 +218,18 @@
 		public function get($obj, $write = true) {
 
 			if (isset($obj["address_order"]) && !empty($obj["address_order"])) {
-				return $this->getByOrder($obj["address_order"]);
+
+				return $this->getByOrder($obj["address_order"], $write);
 			}
 
 			if (isset($obj["address_expression"]) && !empty($obj["address_expression"])) {
 				return $this->getByExpression($obj["address_expression"], $write);
 			}
+
+			if (isset($_GET["test"])) {
+				return $this->getLikeExpression($_GET["test"], $write);
+			}
+
 			if (isset($obj["address_user"]) && !empty($obj["address_user"])) {
 				return $this->getByUser($obj);
 			}
@@ -234,6 +246,45 @@
 
 			return $this->getAll();
 
+		}
+
+		public function getLikeExpression($expression, $write = true) {
+
+			$auth = $this->c->getAuth();
+			if ($auth->hasPermission("delegate")) {
+				$sql = "SELECT * FROM addresses
+					WHERE (address_expression LIKE
+					(SELECT api_expression FROM api_address_delegates
+					WHERE api_address_delegates.api_user = :api_user)
+					OR (address_router = 'store' AND address_route IN
+					(SELECT api_delegate FROM api_user_delegates
+					WHERE api_user_delegates.api_user = :api_user)))
+						AND :address_expression LIKE address_expression ORDER BY address_order DESC";
+
+
+				$params = array(
+					":address_expression" => $expression,
+					":api_user" => $auth->getUser()
+				);
+			} else if ($auth->hasPermission("admin")) {
+				$sql = "SELECT * FROM addresses WHERE :address LIKE address_expression ORDER BY address_order DESC";
+				$params = array(
+					":address" => $expression
+				);
+			} else {
+				$sql = "SELECT * FROM addresses WHERE :address LIKE address_expression AND address_route = 'store' AND address_route = :user ORDER BY address_order DESC";
+				$params = array(
+					":address" => $expression,
+					":user" => $auth->getUser()
+				);
+			}
+			$addresses = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
+
+			if ($write) {
+				$this->output->add("addresses", $addresses);
+			}
+
+			return $addresses;
 		}
 
 		public function getByExpression($expression, $write = true) {
@@ -317,11 +368,14 @@
 				$this->output->addDebugMessage("addresses", "We cannot insert an address without an address expression");
 				return -3;
 			}
-			if (!isset($address["address_user"])) {
-				$this->output->addDebugMessage("addresses", "We cannot insert an address without an username");
+			if (!isset($address["address_router"])) {
+				$this->output->addDebugMessage("addresses", "We cannot insert an address without an router");
 				return -2;
 			}
-
+			if (in_array($address["address_router"], $this->routersWithArgs) && !isset($address["address_router"])) {
+				$this->output->addDebugMessage("addresses", "The address router needs an argument (address_route)");
+				return -2;
+			}
 			$auth = $this->c->getAuth();
 			if (!$auth->hasPermission("admin") && !$auth->hasPermission("delegate")) {
 				$this->add("status", "No permission to add an address.");
@@ -337,15 +391,16 @@
 
 			$params = array(
 				":address_exp" => $address["address_expression"],
-				":username" => $address["address_user"]
+				":address_router" => $address["address_router"],
+				":address_route" => isset($address["address_route"]) ? $address["address_route"] : null
 			);
 
 			if (!isset($address["address_order"]) || $address["address_order"] == "") {
 
-				$sql = "INSERT INTO addresses(address_expression, address_user) VALUES (:address_exp, :username)";
+				$sql = "INSERT INTO addresses(address_expression, address_router, address_route) VALUES (:address_exp, :address_router, :address_route)";
 			} else {
 				$params[":order"] = $address["address_order"];
-				$sql = "INSERT INTO addresses(address_expression, address_order, address_user) VALUES (:address_exp, :order, :username)";
+				$sql = "INSERT INTO addresses(address_expression, address_order, address_router, address_route) VALUES (:address_exp, :order, :address_router, :address_route)";
 			}
 
 			$id = $this->c->getDB()->insert($sql, array($params));
@@ -359,10 +414,43 @@
 			return $id;
 		}
 
+		// checks the order
+		private function checkOrder($old, $new) {
+
+			// we can update entries with the same order.
+			if ($old === $new) {
+				return true;
+			}
+
+			// check if order is already in the database
+			$sql = "SELECT address_order FROM addresses WHERE address_order = :order";
+
+			$params = [
+				":order" => $new
+			];
+
+			$addresses = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
+
+			return count($addresses) === 0;
+		}
+
+		// updates an entry in the database
+		// the address object must contain this attributes:
+		// - address_expression
+		// - address_order
+		// - address_old_order
+		// - address_router
+		// it must contain the attribute "address_route" if the router needs an argument.
 		public function update($address) {
 
 			if (!isset($address["address_expression"])) {
 				$this->output->add("status", "We need an address expression.");
+				return false;
+			}
+
+			// this is needed because the order is the primary key
+			if (!isset($address["address_old_order"])) {
+				$this->output->add("status", "We want also the old order");
 				return false;
 			}
 
@@ -387,18 +475,24 @@
 				return false;
 			}
 
-			if (!isset($address["address_route"])) {
-				$this->output->add("status", "No address route defined.");
+			if (!$this->checkOrder($address["address_old_order"], $address["address_order"])) {
+				$this->output->add("status", "Duplicate order.");
 				return false;
 			}
 
-			$sql = "UPDATE addresses SET address_expression = :address_exp, address_order = :order, address_router = :router, address_route = :route  WHERE address_order = :order";
+			if (in_array($address["address_router"], $this->routersWithArgs) && !isset($address["address_route"])) {
+				$this->output->add("status", "Address router needs an argument (address_route).");
+				return false;
+			}
+
+			$sql = "UPDATE addresses SET address_expression = :address_exp, address_order = :order, address_router = :router, address_route = :route  WHERE address_order = :old_order";
 
 			$params = array(
 				":address_exp" => $address["address_expression"],
 				":order" => $address["address_order"],
+				":old_order" => $address["address_old_order"],
 				":router" => $address["address_router"],
-				":route" => $address["address_route"]
+				":route" => isset($address["address_route"]) ? $address["address_route"] : null
 			);
 
 			$status = $this->c->getDB()->insert($sql, array($params));

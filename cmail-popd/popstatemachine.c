@@ -67,7 +67,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 					client_send(log, client, "-ERR SASL Invalid data provided\r\n");
 					return -1;
 				case SASL_UNKNOWN_METHOD:
-					logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer+5);
+					logprintf(log, LOG_WARNING, "Client tried unsupported authentication method: %s\n", client_data->recv_buffer + 5);
 					auth_reset(&(client_data->auth));
 					client_send(log, client, "-ERR Unknown SASL mechanism\r\n");
 					return -1;
@@ -79,7 +79,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 					sasl_reset_ctx(&(client_data->auth.ctx), true);
 
 					//check auth data
-					if(!challenge || auth_validate(log, database, client_data->auth.user.authenticated, challenge, &(client_data->auth.user.authorized)) < 0){
+					if(!challenge || auth_validate(log, database->query_authdata, client_data->auth.user.authenticated, challenge, &(client_data->auth.user.authorized)) < 0){
 						//login failed
 						auth_reset(&(client_data->auth));
 						logprintf(log, LOG_INFO, "Client failed to authenticate\n");
@@ -123,9 +123,9 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 				return -1;
 			}
 
-			logprintf(log, LOG_INFO, "Client sends user %s\n", client_data->recv_buffer+5);
+			logprintf(log, LOG_INFO, "Client sends user %s\n", client_data->recv_buffer + 5);
 			client_data->auth.method = AUTH_USER;
-			client_data->auth.user.authenticated = common_strdup(client_data->recv_buffer+5);
+			client_data->auth.user.authenticated = common_strdup(client_data->recv_buffer + 5);
 			if(!client_data->auth.user.authenticated){
 				logprintf(log, LOG_WARNING, "Failed to allocate memory for user name\n");
 				client_send(log, client, "-ERR Out of memory\r\n");
@@ -143,7 +143,7 @@ int state_authorization(LOGGER log, CONNECTION* client, DATABASE* database){
 				return -1;
 			}
 
-			if(auth_validate(log, database, client_data->auth.user.authenticated, client_data->recv_buffer + 5, &(client_data->auth.user.authorized)) < 0){
+			if(auth_validate(log, database->query_authdata, client_data->auth.user.authenticated, client_data->recv_buffer + 5, &(client_data->auth.user.authorized)) < 0){
 				//failed to authenticate
 				logprintf(log, LOG_INFO, "Failed to authenticate client\n");
 				auth_reset(&(client_data->auth));
@@ -233,19 +233,19 @@ int state_transaction(LOGGER log, CONNECTION* client, DATABASE* database){
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "list", 4)){
-		return pop_list(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
+		return pop_list(log, client, database, strtoul(client_data->recv_buffer + 4, NULL, 10));
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "retr", 4)){
-		return pop_retr(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
+		return pop_retr(log, client, database, strtoul(client_data->recv_buffer + 4, NULL, 10));
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "dele", 4)){
-		return pop_dele(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
+		return pop_dele(log, client, database, strtoul(client_data->recv_buffer + 4, NULL, 10));
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "uidl", 4)){
-		return pop_uidl(log, client, database, strtoul(client_data->recv_buffer+4, NULL, 10));
+		return pop_uidl(log, client, database, strtoul(client_data->recv_buffer + 4, NULL, 10));
 	}
 
 	if(!strncasecmp(client_data->recv_buffer, "rset", 4)){

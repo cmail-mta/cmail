@@ -11,7 +11,6 @@
 #define CMAIL_FAILSCORE_LIMIT -5
 
 #define CMAIL_HAVE_LISTENER_TYPE
-#define CMAIL_HAVE_DATABASE_TYPE
 
 #include "../lib/logger.h"
 #include "../lib/signal.h"
@@ -41,7 +40,7 @@ typedef struct /*_MAIL_ENTRY*/ {
 	int mail_size;
 	bool flag_master;
 	bool flag_delete;
-	char message_id[POP_MESSAGEID_MAX+1];
+	char message_id[POP_MESSAGEID_MAX + 1];
 } POP_MAIL;
 
 typedef struct /*_MAILDROP_DESC*/ {

@@ -11,7 +11,8 @@
 		"User" => "users/user.php",
 		"SMTPD" => "smtpd/smtpd.php",
 		"POP" => "pop/pop.php",
-		"Mailbox" => "mailbox/mailbox.php"
+		"Mailbox" => "mailbox/mailbox.php",
+		"Delegate" => "delegates/delegate.php"
 	);
 
 ?>

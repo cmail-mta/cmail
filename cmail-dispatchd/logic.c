@@ -28,6 +28,7 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 			case SQLITE_ROW:
 				//ignore bounces of bounces
 				if(!sqlite3_column_text(database->query_bounce_candidates, 1)){
+					logprintf(log, LOG_WARNING, "Ignoring bounce message generated for a bounce message\n");
 					mail_delete(log, database, sqlite3_column_int(database->query_bounce_candidates, 0));
 					continue;
 				}
@@ -157,20 +158,18 @@ int logic_generate_bounces(LOGGER log, DATABASE* database, MTA_SETTINGS settings
 		free(bounce_message);
 	}
 
-	return (rv<0) ? rv:bounces;
+	return (rv < 0) ? rv:bounces;
 }
 
 int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, MAIL* transaction){
 	int delivered_mails = 0;
 	unsigned i;
 	CONNDATA* conn_data = (CONNDATA*) conn->aux_data;
+	bool fail_permanently = false;
 
 	if(mail_dispatch(log, database, transaction, conn) < 0){
-		logprintf(log, LOG_WARNING, "Failed to dispatch transaction\n");
-		//need to reset transaction here because greylisting may fail the first connection,
-		//but we'd still like to try the next
-		smtp_rset(log, conn);
-		return -1;
+		logprintf(log, LOG_WARNING, "Dispatch function reported permanent failure\n");
+		fail_permanently = true;
 	}
 
 	//reset in case any transaction follows
@@ -190,15 +189,15 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 			case RCPT_FAIL_TEMPORARY:
 			case RCPT_FAIL_PERMANENT:
 				//handled by bouncehandler
+				//failure_reason already inserted by mail_dispatch (because replies are overwritten)
 				break;
 			case RCPT_READY:
 				logprintf(log, LOG_WARNING, "Recipient %d not touched by dispatch loop\n", i);
-				//this happens if the peer rejects the MAIL command
-				mail_failure(log, database, transaction->rcpt[i].dbid, conn_data->reply.response_text, false);
+				//this happens e.g. if the peer rejects the MAIL command
+				mail_failure(log, database, transaction->rcpt[i].dbid, conn_data->reply.response_text, fail_permanently);
 				break;
 		}
 	}
-
 
 	logprintf(log, LOG_INFO, "Handled %d mails in transaction\n", delivered_mails);
 	return delivered_mails;
@@ -207,6 +206,8 @@ int logic_handle_transaction(LOGGER log, DATABASE* database, CONNECTION* conn, M
 int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE remote){
 	int status, delivered_mails = -1;
 	unsigned current_mx = 0, mx_count = 0, port, i, c;
+	char* failure_reason = "Failed to reach any MX";
+	bool fail_permanently = false;
 	sqlite3_stmt* tx_statement = (remote.mode == DELIVER_DOMAIN) ? database->query_domain:database->query_remote;
 
 	CONNDATA conn_data = {
@@ -249,7 +250,7 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 		logprintf(log, LOG_DEBUG, "%d records in DNS response\n", resolver_answer->nrrs);
 
-		if(resolver_answer->nrrs <= 0){
+		if(resolver_answer->status == adns_s_ok && resolver_answer->nrrs <= 0){
 			logprintf(log, LOG_ERROR, "No MX records for domain %s found, falling back to HANDOFF strategy\n", remote.host);
 
 			//free resolver data
@@ -257,25 +258,50 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			adns_finish(resolver);
 
 			remote.mode = DELIVER_HANDOFF;
+			mx_count = 1;
 			//TODO report error type
 		}
-		else{
+		else if(resolver_answer->status == adns_s_ok){
 			for(c = 0; c < resolver_answer->nrrs; c++){
 				logprintf(log, LOG_DEBUG, "MX %d: %s\n", c, resolver_answer->rrs.inthostaddr[c].ha.host);
 			}
 
 			mx_count = resolver_answer->nrrs;
 		}
+		else{
+			//recoverable failures should be retried, permanent errors should fail all mails
+			//in the transaction
+			//fail
+			//	adns_s_nxdomain
+			//	adns_s_nodata(?)
+			//this is checked again below
+			if(resolver_answer->status == adns_s_nxdomain){
+				logprintf(log, LOG_ERROR, "DNS query returned an irrecoverable error, failing this remote permanently\n");
+			}
+			//retry
+			//	the rest
+			else{
+				logprintf(log, LOG_ERROR, "DNS query returned a recoverable error, retrying this remote in the next interval\n");
+				free(resolver_answer);
+				adns_finish(resolver);
+				return -1;
+			}
+		}
+	}
+	else{
+		mx_count = 1;
 	}
 
 	//prepare mail data query
 	if(sqlite3_bind_int(tx_statement, 1, settings.retry_interval) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
+		//FIXME returning -1 here retries in the next interval, leaking adns_*
 		return -1;
 	}
 
-	if(sqlite3_bind_text(tx_statement, 2, remote.host, -1, SQLITE_STATIC) != SQLITE_OK){
+	if(sqlite3_bind_text(tx_statement, 2, remote.remotespec, -1, SQLITE_STATIC) != SQLITE_OK){
 		logprintf(log, LOG_ERROR, "Failed to bind host parameter\n");
+		//FIXME returning -1 here retries in the next interval, leaking adns_*
 		return -1;
 	}
 
@@ -286,9 +312,10 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 			case SQLITE_ROW:
 				if(tx_active >= tx_allocated){
 					//reallocate transaction array
-					mails = realloc(mails, (tx_allocated+CMAIL_REALLOC_CHUNK) * sizeof(MAIL));
+					mails = realloc(mails, (tx_allocated + CMAIL_REALLOC_CHUNK) * sizeof(MAIL));
 					if(!mails){
 						logprintf(log, LOG_ERROR, "Failed to allocate memory for mail transaction array\n");
+						//FIXME returning -1 here retries in the next interval, leaking adns_*
 						return -1;
 					}
 
@@ -320,29 +347,40 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 	sqlite3_clear_bindings(tx_statement);
 
 	//connect to remote
-	current_mx = 0;
-	do{
+	for(current_mx = 0; current_mx < mx_count; current_mx++){
 		if(remote.mode == DELIVER_DOMAIN){
 			resolver_remote = resolver_answer->rrs.inthostaddr[current_mx].ha.host;
 		}
 		logprintf(log, LOG_INFO, "Trying to connect to MX %d: %s\n", current_mx, resolver_remote);
 
 		for(port = 0; settings.port_list[port].port; port++){
+			REMOTE_PORT current_port = settings.port_list[port];
+
+			if(remote.mode == DELIVER_HANDOFF && remote.forced_port.port){
+				//need to break out of port iteration again at end
+				logprintf(log, LOG_INFO, "Using forced port for handoff remote\n");
+				current_port = remote.forced_port;
+			}
+
 			#ifndef CMAIL_NO_TLS
-			logprintf(log, LOG_INFO, "Trying port %d TLS mode %s\n", settings.port_list[port].port, tls_modestring(settings.port_list[port].tls_mode));
+			logprintf(log, LOG_INFO, "Trying port %d TLS mode %s\n", current_port.port, tls_modestring(current_port.tls_mode));
 			#else
-			logprintf(log, LOG_INFO, "Trying port %d\n", settings.port_list[port].port);
+			logprintf(log, LOG_INFO, "Trying port %d\n", current_port.port);
 			#endif
 
-			conn.fd = network_connect(log, resolver_remote, settings.port_list[port].port);
+			conn.fd = network_connect(log, resolver_remote, current_port.port);
 			//TODO only reconnect if port or remote have changed
 
 			if(conn.fd > 0){
 				//negotiate smtp
-				if(smtp_negotiate(log, settings, resolver_remote, &conn, settings.port_list[port]) < 0){
+				if(smtp_negotiate(log, settings, resolver_remote, &conn, current_port, remote.remote_auth) < 0){
 					logprintf(log, LOG_INFO, "Failed to negotiate required protocol level, trying next\n");
 					//FIXME might want to gracefully close smtp here
 					connection_reset(log, &conn, true);
+					//if forced port, dont try any others
+					if(remote.mode == DELIVER_HANDOFF && remote.forced_port.port){
+						break;
+					}
 					continue;
 				}
 
@@ -364,19 +402,37 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 				current_mx = mx_count; //break the outer loop
 				break;
 			}
+
+			//if forced port, dont try any others
+			if(remote.mode == DELIVER_HANDOFF && remote.forced_port.port){
+				break;
+			}
 		}
-
-		current_mx++;
 	}
-	while(current_mx < mx_count);
-	logprintf(log, LOG_INFO, "Finished delivery handling of host %s\n", remote.host);
-
+	logprintf(log, LOG_INFO, "Finished delivery handling of host %s after trying %d of %d MXes\n", remote.host, current_mx, mx_count);
 
 	if(delivered_mails < 0){
-		logprintf(log, LOG_WARNING, "Could not reach any MX for %s\n", remote.host);
+		//FIXME this does not account for partial delivery by some mailservers - or does it?
+		//TODO check who actually deletes completed mails - are all nondeleted mails retried?
+		if(remote.mode == DELIVER_DOMAIN && 
+				(resolver_answer->status == adns_s_nxdomain)){
+			//permanently fail the mails
+			logprintf(log, LOG_WARNING, "Invalid remotespec %s, permanently failing\n", remote.host);
+			failure_reason = "Failed to resolve recipient domain";
+			fail_permanently = true;
+		}
+		else if(remote.mode == DELIVER_HANDOFF){
+			logprintf(log, LOG_WARNING, "Connection or TLS negotiation failed with handoff remote %s\n", remote.host);
+			failure_reason = "Failed to connect or negotiate with handoff remote";
+		}
+		else{
+			logprintf(log, LOG_WARNING, "Could not reach any MX for %s, failing temporarily\n", remote.host);
+		}
+		
+		//insert failure reasons
 		for(i = 0; i < tx_active; i++){
 			for(c = 0; c < mails[i].recipients; c++){
-				mail_failure(log, database, mails[i].rcpt[c].dbid, "Failed to reach any MX", false);
+				mail_failure(log, database, mails[i].rcpt[c].dbid, failure_reason, fail_permanently);
 			}
 		}
 	}
@@ -399,84 +455,45 @@ int logic_handle_remote(LOGGER log, DATABASE* database, MTA_SETTINGS settings, R
 
 int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	int status;
-	unsigned i;
+	unsigned u;
 	unsigned mails_delivered = 0;
 	int bounces_generated = 0;
 
-	unsigned remotes_allocated = 0;
-	unsigned remotes_active = 0;
 	REMOTE* remotes = NULL;
-
+	unsigned remotes_allocated = 0;
+	int remotes_active = 0;
+	
 	logprintf(log, LOG_INFO, "Entering core loop\n");
 
 	do{
 		mails_delivered = 0;
-		remotes_active = 0;
-
-		//bind the timeout parameter
-		if(sqlite3_bind_int(database->query_outbound_hosts, 1, settings.retry_interval) != SQLITE_OK){
-			logprintf(log, LOG_ERROR, "Failed to bind timeout parameter\n");
-			break;
+		remotes_active = remotes_fetch(log, database, settings, &remotes, &remotes_allocated);
+		if(remotes_active < 0){
+			//FIXME how to handle these errors
+			logprintf(log, LOG_ERROR, "Remote fetching failed, error handling unclear - continuing\n");
+			remotes_active = 0;
 		}
-
-		//fetch all hosts to be delivered to
-		do{
-			status = sqlite3_step(database->query_outbound_hosts);
-			switch(status){
-				case SQLITE_ROW:
-					if(remotes_active >= remotes_allocated){
-						//reallocate remote array
-						remotes = realloc(remotes, (remotes_allocated + CMAIL_REALLOC_CHUNK) * sizeof(REMOTE));
-						if(!remotes){
-							logprintf(log, LOG_ERROR, "Failed to allocate memory for remote array\n");
-							return -1;
-						}
-						//clear memory
-						memset(remotes + remotes_allocated, 0, CMAIL_REALLOC_CHUNK * sizeof(REMOTE));
-						remotes_allocated += CMAIL_REALLOC_CHUNK;
-					}
-
-					if(remotes[remotes_active].host){
-						free(remotes[remotes_active].host);
-					}
-
-					remotes[remotes_active].mode = DELIVER_HANDOFF;
-
-					if(sqlite3_column_text(database->query_outbound_hosts, 0)){
-						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 0));
-					}
-					else if(sqlite3_column_text(database->query_outbound_hosts, 1)){
-						remotes[remotes_active].mode = DELIVER_DOMAIN;
-						remotes[remotes_active].host = common_strdup((char*)sqlite3_column_text(database->query_outbound_hosts, 1));
-					}
-
-					if(!remotes[remotes_active].host){
-						logprintf(log, LOG_ERROR, "Failed to allocate memory for remote host part\n");
-						continue;
-					}
-
-					remotes_active++;
-					break;
-				case SQLITE_DONE:
-					logprintf(log, LOG_INFO, "Interval contains %d remotes\n", remotes_active);
-					break;
-				default:
-					logprintf(log, LOG_WARNING, "Unhandled outbound host query result: %s\n", sqlite3_errmsg(database->conn));
-					break;
-			}
-		}
-		while(status == SQLITE_ROW);
-		sqlite3_reset(database->query_outbound_hosts);
-		sqlite3_clear_bindings(database->query_outbound_hosts);
+		logprintf(log, LOG_INFO, "Interval contains %d remote(s)\n", remotes_active);
 
 		//deliver all remotes
-		for(i = 0; i < remotes_active; i++){
-			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[i].host, (remotes[i].mode == DELIVER_DOMAIN) ? "domain":"handoff");
+		for(u = 0; u < remotes_active; u++){
+			logprintf(log, LOG_INFO, "Starting delivery for %s in mode %s\n", remotes[u].host, (remotes[u].mode == DELIVER_DOMAIN) ? "domain":"handoff");
+			if(remotes[u].forced_port.port){
+				#ifndef CMAIL_NO_TLS
+				logprintf(log, LOG_INFO, "Remote uses forced port %d with TLS mode %s\n", remotes[u].forced_port.port, tls_modestring(remotes[u].forced_port.tls_mode));
+				#else
+				logprintf(log, LOG_INFO, "Remote uses forced port %d\n", remotes[u].forced_port.port);
+				#endif
+			}
+			if(remotes[u].remote_auth){
+				logprintf(log, LOG_INFO, "Remote uses remote authentication\n");
+				logprintf(log, LOG_DEBUG, "Remote authentication data %s\n", remotes[u].remote_auth);
+			}
 
 			//TODO implement multi-threading here
-			status = logic_handle_remote(log, database, settings, remotes[i]);
+			status = logic_handle_remote(log, database, settings, remotes[u]);
 
-			if(status<0){
+			if(status < 0){
 				logprintf(log, LOG_WARNING, "Delivery procedure returned an error\n");
 			}
 			else{
@@ -497,10 +514,8 @@ int logic_loop_hosts(LOGGER log, DATABASE* database, MTA_SETTINGS settings){
 	while(!abort_signaled);
 
 	//free allocated remotes
-	for(i = 0; i < remotes_allocated; i++){
-		if(remotes[i].host){
-			free(remotes[i].host);
-		}
+	for(u = 0; u < remotes_allocated; u++){
+		remote_reset(remotes + u);
 	}
 	free(remotes);
 

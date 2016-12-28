@@ -1,16 +1,24 @@
 var cmail = cmail || {};
 
 cmail.address = {
-	get: function(address) {
-		var xhr = ajax.syncPost(cmail.api_url + "addresses/?get", JSON.stringify(address));
+	get: function(address, callback) {
+		var xhr = ajax.asyncPost(cmail.api_url + "addresses/?get", JSON.stringify(address), function(xhr) {
 		var addresses = JSON.parse(xhr.response).addresses;
 
-		return addresses[0];
+		callback(addresses[0]);
+		});
 	},
 	get_all: function() {
 		var self = this;
 
-		ajax.asyncGet(cmail.api_url + "addresses/?get", function(xhr) {
+		var url = cmail.api_url + "addresses/?get";
+		var test = document.getElementById("address_test").value;
+
+		if (test) {
+			url += "&test=" + test;
+		}
+
+		ajax.asyncGet(url, function(xhr) {
 
 			var obj  = JSON.parse(xhr.response);
 
@@ -45,16 +53,16 @@ cmail.address = {
 
 				var options = gui.create("td");
 				if (last_address) {
-					options.appendChild(gui.createButton("/\\", self.switch_order, [last_address, address], self));
+					options.appendChild(gui.createButton("▲", self.switch_order, [last_address, address], self));
 				} else {
-					button = gui.createButton("/\\", function() {}, [], self);
+					button = gui.createButton("▲", function() {}, [], self);
 					button.style.visibility = "hidden";
 					options.appendChild(button);
 				}
 				if (next_address) {
-					options.appendChild(gui.createButton("\\/", self.switch_order, [next_address, address], self));
+					options.appendChild(gui.createButton("▼", self.switch_order, [next_address, address], self));
 				} else {
-					button = gui.createButton("\\/", function() {}, [], self);
+					button = gui.createButton("▼", function() {}, [], self);
 					button.style.visibility = "hidden";
 					options.appendChild(button);
 				}
@@ -65,24 +73,31 @@ cmail.address = {
 				addresslist.appendChild(tr);
 			};
 		});
+
 	},
 	show_form: function(obj) {
 		if (obj) {
 			gui.elem("form_address_type").value = "edit";
 
 			// get the newest entry
-			var address = this.get(obj);
+			this.get(obj, function(address) {
 
-			if (!address) {
-				cmail.set_status("Address not found!");
-				return;
-			}
+				if (!address) {
+					cmail.set_status("Address not found!");
+					return;
+				}
 
-			gui.elem("address_expression").value = address.address_expression;
-			gui.elem("address_expression").disabled = true;
-			gui.elem("address_order").value = address.address_order;
-			gui.elem("address_router").value = address.address_router;
-			gui.elem("address_route").value = address.address_route;
+				gui.elem("address_expression").value = address.address_expression;
+				gui.elem("address_expression").disabled = true;
+				gui.elem("address_old_order").value = address.address_order;
+				gui.elem("address_order").value = address.address_order;
+				gui.elem("address_router").value = address.address_router;
+				gui.elem("address_route").value = address.address_route;
+
+				gui.elem("addressadd").style.display = "block";
+
+			});
+
 		} else {
 			gui.elem("form_address_type").value = "new";
 			gui.elem("address_expression").value = "";
@@ -90,16 +105,17 @@ cmail.address = {
 			gui.elem("address_order").value = "";
 			gui.elem("address_router").value = "";
 			gui.elem("address_route").value = "";
+
+			gui.elem("addressadd").style.display = "block";
 		}
 
-		gui.elem("addressadd").style.display = "block";
 	},
 	hide_form: function() {
 		gui.elem("addressadd").style.display = "none";
 	},
 	delete: function(obj) {
 		var self = this;
-		if (confirm("Do you really delete the item with order: " + obj.address_order + " (" + obj.address_expression + ")?") == true) {
+		if (confirm("Really delete the address expression " + obj.address_expression + " (Order " + obj.address_order + ")?") == true) {
 			ajax.asyncPost(cmail.api_url + "addresses/?delete", JSON.stringify(obj), function(xhr) {
 				cmail.set_status(JSON.parse(xhr.response).status);
 				self.get_all();
@@ -111,6 +127,7 @@ cmail.address = {
 		var address = {
 			address_expression: gui.elem("address_expression").value,
 			address_order: gui.elem("address_order").value,
+			address_old_order: gui.elem("address_old_order").value,
 			address_router: gui.elem("address_router").value,
 			address_route: gui.elem("address_route").value
 		};

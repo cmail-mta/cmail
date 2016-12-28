@@ -35,10 +35,13 @@ var cmail = {
 				var tr = gui.create('tr');
 				tr.appendChild(gui.createColumn("Name"));
 				tr.appendChild(gui.createColumn("Alias"));
-
+				tr.appendChild(gui.createColumn("Link count"));
 				cmail.modules.forEach(function(module) {
 					tr.appendChild(gui.createColumn(module));
 				});
+
+				tr.appendChild(gui.createColumn("Mail count"));
+
 				tr.appendChild(gui.createColumn("Options"));
 				head.appendChild(tr);
 			});
@@ -49,8 +52,7 @@ var cmail = {
 		"delegates",
 		"address",
 		"smtpd",
-		"pop",
-		"test"
+		"pop"
 	],
 	init: function() {
 		this.login();

@@ -79,7 +79,7 @@
 
 		public function get($obj, $write = true) {
 
-			$sql = "SELECT * FROM mailbox WHERE mail_user = :mail_user";
+			$sql = "SELECT * FROM mailbox WHERE mail_user = :mail_user ORDER BY mail_submission DESC";
 
 			$user = $this->user;
 
