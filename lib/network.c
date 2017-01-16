@@ -101,7 +101,7 @@ int network_listener(LOGGER log, char* bindhost, char* port){
 	hints.ai_flags = AI_PASSIVE;
 
 	status = getaddrinfo(bindhost, port, &hints, &info);
-	if(status != 0){
+	if(status){
 		logprintf(log, LOG_ERROR, "Failed to get socket info for %s port %s: %s\n", bindhost, port, gai_strerror(status));
 		return -1;
 	}
