@@ -1,6 +1,6 @@
 int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_COMMAND* entry, WORKER_CLIENT* client){
 	unsigned i;
-	int rv = 0;
+	int rv_user = 0, rv_master = 0, rv = 0;
 
 	logprintf(log, LOG_DEBUG, "Handling command [%s]: %s\n", entry->tag, entry->command);
 	if(entry->parameters){
@@ -13,36 +13,52 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"%s OK Access granted\r\n", entry->tag);
 	}
+
 	else if(!strcasecmp(entry->command, "noop")){
 		//TODO check for new mail
 		rv = -1;
 	}
-	else if(entry->parameters && !strcasecmp(entry->command, "create")){
-		rv = imap_create(log, master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
-		if(rv >= 0 && client->user_database.conn){
-			rv = imap_create(log, &(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
-			if(rv < 0){
-				//FIXME roll back changes to master database
-			}
-		}
 
-		if(rv == 0){
+	else if(entry->parameters && !strcasecmp(entry->command, "create")){
+		rv_master = imap_create(log, master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		if(client->user_database.conn){
+			rv_user = imap_create(log, &(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		}
+		//TODO rollbacks on failure
+
+		if(rv_master == 0 && rv_user == 0){
 			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 					"%s OK Mailbox created\r\n", entry->tag);
+			rv = 0;
 		}
 		else if(entry->replies && entry->replies[0]){
 			rv = 0;
 		}
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "delete")){
-		//TODO implement mailbox deletion
+		logprintf(log, LOG_DEBUG, "hello\n");
+		rv_master = imap_delete(log, master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		if(client->user_database.conn){
+			rv_user = imap_delete(log, &(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		}
+
+		//TODO rollbacks on failure
+
+		if((client->user_database.conn && (rv_user == 0 || rv_master == 0)) || rv_master == 0){
+			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+					"%s OK Mailbox deleted\r\n", entry->tag);
+			rv = 0;
+		}
+		else if(entry->replies && entry->replies[0]){
+			rv = 0;
+		}
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "rename")){
 		//TODO implement rename
 		logprintf(log, LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
 	}
 	else if(entry->parameters && (!strcasecmp(entry->command, "examine") || !strcasecmp(entry->command, "select"))){
-		client->selection_master = database_resolve_path(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0], NULL);
+		client->selection_master = database_query_mailbox(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(client->selection_master < 0){
 			//FIXME this should probably detect internal errors
 			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
@@ -51,7 +67,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		}
 		else{
 			if(client->user_database.conn){
-				client->selection_user = database_resolve_path(log, &(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0], NULL);
+				client->selection_user = database_query_mailbox(log, &(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 				rv = (client->selection_user < 0) ? -1:0;
 			}
 

@@ -8,3 +8,12 @@ Error check pthread_ calls
 Check failscore in queue purge
 Queue worker needs to be able to modify client connection score
 Sync mailbox UIDVALIDITY drift between user/master databases
+
+Design:
+	1 handler/1 worker thread
+		Worker needs to keep all user data
+	1 handler/MAX_CONC workers
+		Worker thread handles 1 user
+
+User INBOX UIDVALIDITY in users table
+Remove the parent field from IMAP mailbox table, as relations can only be properly assessed from the name anyway...

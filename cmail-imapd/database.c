@@ -66,16 +66,15 @@ int database_aggregate_query(LOGGER log, int* result, sqlite3_stmt* stmt, unsign
 	return 0;
 }
 
-int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox, int parent){
+int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox){
 	int rv = -1;
 	int result;
 
 	//all INBOXes are 0
-	if(parent < 0 && !strcasecmp(mailbox, "inbox")){
+	if(!strcasecmp(mailbox, "inbox")){
 		return 0;
 	}
 
-	//cannot bind parent directly since NULL is a valid parent (and that cannot be expressed in an = expression)
 	if(sqlite3_bind_text(db->mailbox_find, 1, mailbox, -1, SQLITE_STATIC) == SQLITE_OK
 			&& sqlite3_bind_text(db->mailbox_find, 2, user, -1, SQLITE_STATIC) == SQLITE_OK){
 
@@ -83,16 +82,13 @@ int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* ma
 			result = sqlite3_step(db->mailbox_find);
 			switch(result){
 				case SQLITE_DONE:
-					logprintf(log, LOG_DEBUG, "Mailbox %s with parent %d does not exist for user %s\n", mailbox, parent, user);
+					logprintf(log, LOG_DEBUG, "Mailbox %s does not exist for user %s\n", mailbox, user);
 					break;
 				case SQLITE_ROW:
-					if((parent < 0 && sqlite3_column_type(db->mailbox_find, 1) == SQLITE_NULL)
-							|| (parent >= 0 && sqlite3_column_int(db->mailbox_find, 1) == parent)){
-						rv = sqlite3_column_int(db->mailbox_find, 0);
-						logprintf(log, LOG_DEBUG, "Mailbox %s with parent %d for user %s has ID %d\n", mailbox, parent, user, rv);
-						//break out of the loop
-						result = SQLITE_DONE;
-					}
+					rv = sqlite3_column_int(db->mailbox_find, 0);
+					logprintf(log, LOG_DEBUG, "Mailbox %s for user %s has ID %d\n", mailbox, user, rv);
+					//break out of the loop
+					result = SQLITE_DONE;
 					break;
 				default:
 					logprintf(log, LOG_ERROR, "Failed to query for mailbox: %s\n", sqlite3_errmsg(db->conn));
@@ -108,70 +104,6 @@ int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* ma
 
 	sqlite3_clear_bindings(db->mailbox_find);
 	sqlite3_reset(db->mailbox_find);
-
-	return rv;
-}
-
-int database_resolve_path(LOGGER log, WORKER_DATABASE* db, char* user, char* path, char** unresolved){
-	char* next_mailbox = NULL;
-	char* tokenize_path;
-	size_t path_len = strlen(path);
-	int mailbox_id = -1, parent;
-	int rv = 0, i;
-
-	//check for leading slashes
-	if(path_len <= 0 || path[0] == '/'){
-		logprintf(log, LOG_ERROR, "Leading slash in mailbox path\n");
-		return -1;
-	}
-
-	//check for double slashes
-	if(strstr(path, "//")){
-		logprintf(log, LOG_ERROR, "Double slashes in mailbox path\n");
-		return -1;
-	}
-
-	//strip trailing slash
-	if(path[path_len - 1] == '/'){
-		path[path_len - 1] = 0;
-	}
-
-	//scan mailbox path iteratively
-	for(next_mailbox = strtok_r(path, "/", &tokenize_path); next_mailbox; next_mailbox = strtok_r(NULL, "/", &tokenize_path)){
-		parent = mailbox_id;
-		logprintf(log, LOG_DEBUG, "Checking for mailbox %s parent %d existence\n", next_mailbox, parent);
-		mailbox_id = database_query_mailbox(log, db, user, next_mailbox, parent);
-
-		if(mailbox_id == -2){
-			logprintf(log, LOG_ERROR, "Failed to query mailbox info\n");
-			//return internal error
-			rv = -1;
-			break;
-		}
-
-		//if the mailbox does not exist (and the info is requested), return offset & parent
-		if(mailbox_id < 0){
-			logprintf(log, LOG_INFO, "Mailbox path incomplete at %s parent %d\n", next_mailbox, parent);
-			if(unresolved){
-				*unresolved = next_mailbox;
-				rv = parent;
-			}
-			else{
-				rv = -1;
-			}
-			break;
-		}
-		else{
-			rv = mailbox_id;
-		}
-	}
-
-	//reset all terminators in the mailbox path
-	for(i = 0; i < path_len; i++){
-		if(path[i] == 0){
-			path[i] = '/';
-		}
-	}
 
 	return rv;
 }
@@ -209,10 +141,124 @@ int database_create_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* m
 	return rv;
 }
 
+size_t database_mailbox_inferiors(WORKER_DATABASE* db, int mailbox, char* user, int** inferior_id){
+	int status = SQLITE_DONE;
+	size_t inferiors = 0;
+
+	//sanity check
+	if(!user){
+		//TODO log output
+		return 0;
+	}
+
+	if(sqlite3_bind_int(db->mailbox_find_inferiors, 1, mailbox) == SQLITE_OK
+			&& sqlite3_bind_text(db->mailbox_find_inferiors, 2, user, -1, SQLITE_STATIC) == SQLITE_OK){
+		do{
+			status = sqlite3_step(db->mailbox_find_inferiors);
+			switch(status){
+				case SQLITE_ROW:
+					//FIXME this might be problematic
+					if(inferior_id){
+						*inferior_id = realloc(*inferior_id, (inferiors + 1) * sizeof(int));
+						if(!(*inferior_id)){
+							//TODO log output
+						}
+						(*inferior_id)[inferiors] = sqlite3_column_int(db->mailbox_find_inferiors, 0);
+					}
+					inferiors++;
+					break;
+				case SQLITE_DONE:
+				case SQLITE_OK:
+					break;
+				default:
+					//TODO log output
+					break;
+			}
+		} while(status != SQLITE_DONE);
+	}
+	else{
+		//TODO log output
+	}
+
+	sqlite3_clear_bindings(db->mailbox_find_inferiors);
+	sqlite3_reset(db->mailbox_find_inferiors);
+	return inferiors;
+}
+
+int database_delete_mailbox_mail(WORKER_DATABASE* db, int mailbox, char* user){
+	int rv = 0;
+
+	//sanity check
+	if(mailbox <= 0 || !user){
+		//TODO log output
+		return -1;
+	}
+
+	if(sqlite3_bind_int(db->mailbox_delete_contents, 1, mailbox) == SQLITE_OK
+			&& sqlite3_bind_text(db->mailbox_delete_contents, 2, user, -1, SQLITE_STATIC) == SQLITE_OK){
+		switch(sqlite3_step(db->mailbox_delete_contents)){
+			case SQLITE_DONE:
+			case SQLITE_OK:
+				//TODO log output
+				break;
+			default:
+				//TODO log output
+				rv = -2;
+				break;
+		}
+
+	}
+	else{
+		//TODO log output
+		rv = -1;
+	}
+
+	sqlite3_clear_bindings(db->mailbox_delete_contents);
+	sqlite3_reset(db->mailbox_delete_contents);
+
+	return rv;
+}
+
+int database_delete_mailbox(WORKER_DATABASE* db, int mailbox, char* user){
+	int rv = 0;
+
+	//sanity check
+	if(mailbox <= 0 || !user){
+		//TODO log output
+		return -1;
+	}
+
+	if(sqlite3_bind_int(db->mailbox_delete, 1, mailbox) == SQLITE_OK
+			&& sqlite3_bind_text(db->mailbox_delete, 2, user, -1, SQLITE_STATIC) == SQLITE_OK){
+		switch(sqlite3_step(db->mailbox_delete)){
+			case SQLITE_DONE:
+			case SQLITE_OK:
+				//TODO log output
+				break;
+			default:
+				//TODO log output
+				rv = -2;
+				break;
+		}
+
+	}
+	else{
+		//TODO log output
+		rv = -1;
+	}
+
+	sqlite3_clear_bindings(db->mailbox_delete);
+	sqlite3_reset(db->mailbox_delete);
+
+	return rv;
+}
+
 int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool is_master){
 	char* FIND_MAILBOX = "SELECT mailbox_id, mailbox_parent FROM mailbox_names WHERE mailbox_name = ? AND mailbox_user = ?;";
+	char* FIND_MAILBOX_INFERIORS = "SELECT mailbox_id FROM mailbox_names WHERE mailbox_name LIKE (SELECT mailbox_name FROM mailbox_names WHERE mailbox_id = ?) || '/\%' AND mailbox_user = ?;";
 	char* CREATE_MAILBOX = "INSERT INTO mailbox_names (mailbox_name, mailbox_parent, mailbox_user) VALUES (?, ?, ?);";
-	char* DELETE_MAILBOX = "DELETE FROM mailbox_names WHERE mailbox_name = ? AND mailbox_parent = ?;";
+	char* DELETE_MAILBOX = "DELETE FROM mailbox_names WHERE mailbox_id = ? AND mailbox_user = ?;";
+	char* DELETE_MAILBOX_CONTENTS = "DELETE FROM mailbox WHERE mail_id IN (SELECT mail_id FROM mailbox_mapping WHERE mailbox_id = ?) AND mail_user = ?;";
 	char* QUERY_USER_DATABASE = "SELECT user_database FROM main.users WHERE user_name = ? AND user_database NOT NULL;";
 	char* FETCH_MAIL = "SELECT mail_data FROM main.mailbox WHERE mail_id = ?;";
 
@@ -229,8 +275,10 @@ int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool i
 	}
 
 	db->mailbox_find = database_prepare(log, db->conn, FIND_MAILBOX);
+	db->mailbox_find_inferiors = database_prepare(log, db->conn, FIND_MAILBOX_INFERIORS);
 	db->mailbox_create = database_prepare(log, db->conn, CREATE_MAILBOX);
 	db->mailbox_delete = database_prepare(log, db->conn, DELETE_MAILBOX);
+	db->mailbox_delete_contents = database_prepare(log, db->conn, DELETE_MAILBOX_CONTENTS);
 	db->fetch = database_prepare(log, db->conn, FETCH_MAIL);
 
 	db->selection_exists = database_prepare(log, db->conn, SELECTION_EXISTS);

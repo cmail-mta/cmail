@@ -167,8 +167,10 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 typedef struct /*_WORKER_DB_CONN*/ {
 	sqlite3* conn;
 	sqlite3_stmt* mailbox_find;
+	sqlite3_stmt* mailbox_find_inferiors;
 	sqlite3_stmt* mailbox_create;
 	sqlite3_stmt* mailbox_delete;
+	sqlite3_stmt* mailbox_delete_contents;
 	sqlite3_stmt* query_userdatabase;
 	sqlite3_stmt* fetch;
 

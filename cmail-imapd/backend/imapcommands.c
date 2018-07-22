@@ -1,32 +1,13 @@
 int imap_create(LOGGER log, WORKER_DATABASE* db, QUEUED_COMMAND* command, char* user, char* mailbox){
 	int rv = 0;
-	size_t mailbox_len = strlen(mailbox), i;
 	char* next_mailbox = NULL;
-	char* tokenize_mailbox;
-	int mailbox_id = -1, parent;
+	int parent = -1;
 
-	//TODO this should modfy the connection score
+	//TODO this should modify the connection score
+	logprintf(log, LOG_DEBUG, "Trying to create mailbox %s for %s\n", mailbox, user);
 
-	//decode mailbox name from UTF-7
-	//path_len = protocol_utf7_decode(log, mailbox);
-	//if(path_len < 0){
-	//	logprintf(log, LOG_ERROR, "Failed to decode mailbox path\n");
-	//	//TODO send appropriate response
-	//	return -1;
-	//}
-
-	logprintf(log, LOG_DEBUG, "Trying to create mailbox path %s\n", mailbox);
-
-	parent = database_resolve_path(log, db, user, mailbox, &next_mailbox);
-	if(parent < 0){
-		logprintf(log, LOG_ERROR, "Invalid path provided\n");
-		command->replies = common_strappf(command->replies, &(command->replies_length),
-				"%s NO Invalid path specified\r\n", command->tag);
-		return -1;
-	}
-
-	//check if entire path existed before creating it
-	if(!next_mailbox){
+	//check if entire path existed before creating it (6.3.3: CREATE INBOX -> NO, CREATE EXISTING -> NO)
+	if(database_query_mailbox(log, db, user, mailbox) >= 0){
 		logprintf(log, LOG_WARNING, "Path already existed\n");
 		command->replies = common_strappf(command->replies, &(command->replies_length),
 				"%s NO Mailbox already exists\r\n", command->tag);
@@ -34,37 +15,82 @@ int imap_create(LOGGER log, WORKER_DATABASE* db, QUEUED_COMMAND* command, char* 
 	}
 
 	//create mailbox path iteratively
-	for(next_mailbox = strtok_r(next_mailbox, "/", &tokenize_mailbox); next_mailbox; next_mailbox = strtok_r(NULL, "/", &tokenize_mailbox)){
-		logprintf(log, LOG_DEBUG, "Creating mailbox %s parent %d\n", next_mailbox, parent);
-
-		mailbox_id = database_create_mailbox(log, db, user, next_mailbox, parent);
-		if(mailbox_id < 0){
-			//FIXME might want to rollback changes
-			logprintf(log, LOG_ERROR, "Failed to create mailbox\n");
-			command->replies = common_strappf(command->replies, &(command->replies_length),
-					"%s NO Failed to create mailbox\r\n", command->tag);
-			rv = -1;
-			break;
+	for(next_mailbox = strchr(mailbox, '/'); next_mailbox; next_mailbox = strchr(next_mailbox + 1, '/')){
+		*next_mailbox = 0;
+		parent = database_query_mailbox(log, db, user, mailbox);
+		if(parent >= 0){
+			logprintf(log, LOG_DEBUG, "Reusing existing mailbox %s with ID\n", next_mailbox, parent);
+		}
+		else{
+			parent = database_create_mailbox(log, db, user, mailbox, parent);
+			if(parent < 0){
+				//FIXME might want to rollback changes
+				logprintf(log, LOG_ERROR, "Failed to create mailbox %s for user %s\n", mailbox, user);
+				command->replies = common_strappf(command->replies, &(command->replies_length),
+						"%s NO Failed to create mailbox\r\n", command->tag);
+				rv = -1;
+				break;
+			}
+			logprintf(log, LOG_DEBUG, "Created mailbox %s for %s as %d\n", next_mailbox, user, parent);
 		}
 
-		parent = mailbox_id;
+		*next_mailbox = '/';
 	}
 
-	//reset all terminators in the mailbox path
-	for(i = 0; i < mailbox_len; i++){
-		if(mailbox[i] == 0){
-			mailbox[i] = '/';
-		}
+	parent = database_create_mailbox(log, db, user, mailbox, parent);
+	if(parent < 0){
+		//FIXME might want to rollback changes
+		logprintf(log, LOG_ERROR, "Failed to create mailbox %s for user %s\n", mailbox, user);
+		command->replies = common_strappf(command->replies, &(command->replies_length),
+			"%s NO Failed to create mailbox\r\n", command->tag);
+		rv = -1;
 	}
-
+	logprintf(log, LOG_DEBUG, "Created mailbox path %s for %s as %d\n", mailbox, user, parent);
 	return rv;
+}
+
+int imap_delete(LOGGER log, WORKER_DATABASE* db, QUEUED_COMMAND* command, char* user, char* mailbox){
+	int mailbox_id = database_query_mailbox(log, db, user, mailbox);
+	//6.3.4: DELETE INBOX -> NO, DELETE NONEXISTING -> NO
+	//Delete nonexisting might happen when either user or master database do not know that name
+	if(!strcasecmp(mailbox, "INBOX") || mailbox_id < 0){
+		logprintf(log, LOG_ERROR, "Failed to delete mailbox %s for user %s, does not exist\n", mailbox, user);
+		command->replies = common_strappf(command->replies, &(command->replies_length),
+				"%s NO Failed to delete mailbox\r\n", command->tag);
+		return -1;
+	}
+
+	//6.3.4: Since we don't like \Noselect (and we want to keep the foreign key design), we don't delete mailboxes with inferiors
+	if(database_mailbox_inferiors(db, mailbox_id, user, NULL) > 0){
+		logprintf(log, LOG_ERROR, "Failed to delete mailbox %s for user %s, has inferiors\n", mailbox, user);
+		command->replies = common_strappf(command->replies, &(command->replies_length),
+				"%s NO Mailbox has inferiors\r\n", command->tag);
+		return -1;
+	}
+
+	//RFC2683 implies that DELETE should also purge the mailbox
+	if(database_delete_mailbox_mail(db, mailbox_id, user)){
+		logprintf(log, LOG_ERROR, "Failed to purge mailbox %s for user %s\n", mailbox, user);
+		command->replies = common_strappf(command->replies, &(command->replies_length),
+				"%s NO Failed to delete mailbox contents\r\n", command->tag);
+		return -2;
+	}
+
+	if(database_delete_mailbox(db, mailbox_id, user)){
+		logprintf(log, LOG_ERROR, "Failed to delete mailbox entry %s for user %s\n", mailbox, user);
+		command->replies = common_strappf(command->replies, &(command->replies_length),
+				"%s NO Failed to delete mailbox\r\n", command->tag);
+		return -2;
+	}
+
+	logprintf(log, LOG_ERROR, "Deleted mailbox %s for user %s\n", mailbox, user);
+	return 0;
 }
 
 int imap_logout(LOGGER log, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* queue){
 	client_send(log, client, "* BYE for now\r\n");
 	client_send(log, client, "%s OK LOGOUT completed\r\n", sentence.tag);
-	//FIXME this needs the command queue mutex in order to ensure that the queue does not contain any more commands
-	//for this connection
+	//client_close checks the command queue for lingering commands and marks them for discard
 	return client_close(log, client, database, queue);
 }
 

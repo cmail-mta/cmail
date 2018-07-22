@@ -105,8 +105,6 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		}
 
 		//reset timeout
-		//FIXME this needs to be low in order to have the queue checked regularly
-		//alternatively, use a pipe-to-self construct
 		select_timeout.tv_sec = CMAIL_SELECT_TIMEOUT;
 		select_timeout.tv_usec = 0;
 
