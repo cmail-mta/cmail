@@ -201,6 +201,7 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 				case COMMAND_INTERNAL_FAILURE:
 					client_send(log, head->client, "%s BAD Internal failure\r\n", head->tag);
 					head->discard = true;
+					//fall through
 				case COMMAND_REPLY:
 					//send reply
 					if(head->replies && head->replies[0] && !head->discard){
