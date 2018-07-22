@@ -41,12 +41,6 @@ int main(int argc, char** argv){
 			.insert_bounce_reason = NULL,
 			.delete_mail = NULL
 		},
-		.log = {
-			.stream = stderr,
-			.verbosity = 0,
-			.log_secondary = false,
-			.print_timestamp = true
-		},
 		.privileges = {
 			.uid = 0,
 			.gid= 0
@@ -87,59 +81,59 @@ int main(int argc, char** argv){
 	#endif
 
 	//read config file
-	if(config_parse(config.log, &config, args.config_file) < 0){
-		logprintf(config.log, LOG_ERROR, "Failed to parse config file\n");
+	if(config_parse(&config, args.config_file) < 0){
+		logprintf(LOG_ERROR, "Failed to parse config file\n");
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
 		return EXIT_FAILURE;
 	}
 
 	//initialize database
-	if(database_initialize(config.log, &(config.database)) < 0){
-		logprintf(config.log, LOG_ERROR, "Failed to initialize database\n");
+	if(database_initialize(&(config.database)) < 0){
+		logprintf(LOG_ERROR, "Failed to initialize database\n");
 		config_free(&config);
 		TLSSUPPORT(gnutls_global_deinit());
 		return EXIT_FAILURE;
 	}
 
 	//set up signal masks //TODO error check this
-	signal_init(config.log);
+	signal_init();
 
 	//if needed, open pid file handle before dropping privileges
 	if(config.pid_file){
 		pid_file = fopen(config.pid_file, "w");
 		if(!pid_file){
-			logprintf(config.log, LOG_ERROR, "Failed to open pidfile for writing\n");
+			logprintf(LOG_ERROR, "Failed to open pidfile for writing\n");
 		}
 	}
 
 	//drop privileges
 	if(getuid() == 0 && args.drop_privileges){
-		if(privileges_drop(config.log, config.privileges) < 0){
+		if(privileges_drop(config.privileges) < 0){
 			config_free(&config);
 			TLSSUPPORT(gnutls_global_deinit());
 			exit(EXIT_FAILURE);
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges ? " (Because you are not root)":""));
+		logprintf(LOG_INFO, "Not dropping privileges%s\n", (args.drop_privileges ? " (Because you are not root)":""));
 	}
 
 	//detach from console
-	if(args.daemonize && config.log.stream != stderr){
-		logprintf(config.log, LOG_INFO, "Detaching from parent process\n");
+	if(args.daemonize && log_output(NULL) != stderr){
+		logprintf(LOG_INFO, "Detaching from parent process\n");
 
 		//flush the stream so we do not get everything twice
-		fflush(config.log.stream);
+		fflush(log_output(NULL));
 
 		//stop secondary log output
-		config.log.log_secondary = false;
+		log_verbosity(-1, false);
 
-		switch(daemonize(config.log, pid_file)){
+		switch(daemonize(pid_file)){
 			case 0:
 				break;
 			case 1:
-				logprintf(config.log, LOG_INFO, "Parent process going down\n");
+				logprintf(LOG_INFO, "Parent process going down\n");
 				config_free(&config);
 				TLSSUPPORT(gnutls_global_deinit());
 				exit(EXIT_SUCCESS);
@@ -151,7 +145,7 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
-		logprintf(config.log, LOG_INFO, "Not detaching from console%s\n", (args.daemonize ? " (Because the log output stream is stderr)":""));
+		logprintf(LOG_INFO, "Not detaching from console%s\n", (args.daemonize ? " (Because the log output stream is stderr)":""));
 		if(pid_file){
 			fclose(pid_file);
 		}
@@ -161,15 +155,15 @@ int main(int argc, char** argv){
 	if(args.remote.host){
 		//preprocess delivery remote
 		remote_reset(&delivery_remote);
-		remote_parse(config.log, &delivery_remote, args.remote.mode, args.remote.host);
-		logic_handle_remote(config.log, &(config.database), config.settings, delivery_remote);
+		remote_parse(&delivery_remote, args.remote.mode, args.remote.host);
+		logic_handle_remote(&(config.database), config.settings, delivery_remote);
 		remote_reset(&delivery_remote);
 	}
 	else if(args.generate_bounces){
-		logic_generate_bounces(config.log, &(config.database), config.settings);
+		logic_generate_bounces(&(config.database), config.settings);
 	}
 	else{
-		logic_loop_hosts(config.log, &(config.database), config.settings);
+		logic_loop_hosts(&(config.database), config.settings);
 	}
 
 	//cleanup

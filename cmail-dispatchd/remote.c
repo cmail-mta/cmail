@@ -24,7 +24,7 @@ int remote_reset(REMOTE* remote){
 	return 0;
 }
 
-int remote_parse(LOGGER log, REMOTE* remote, DELIVERY_MODE mode, char* remotespec){
+int remote_parse(REMOTE* remote, DELIVERY_MODE mode, char* remotespec){
 	char* remote_separator = NULL;
 	unsigned u;
 
@@ -33,7 +33,7 @@ int remote_parse(LOGGER log, REMOTE* remote, DELIVERY_MODE mode, char* remotespe
 	remote->mode = mode;
 
 	if(!remote->remotespec || !remote->host){
-		logprintf(log, LOG_ERROR, "Failed to allocate memory for remote hostspec\n");
+		logprintf(LOG_ERROR, "Failed to allocate memory for remote hostspec\n");
 		return -1;
 	}
 
@@ -62,7 +62,7 @@ int remote_parse(LOGGER log, REMOTE* remote, DELIVERY_MODE mode, char* remotespe
 				*remote_separator = 0;
 			}
 			*remote->remote_auth = 0;
-			if(auth_base64encode(log, (uint8_t**)&(remote->remote_auth), u + 2) < 0){
+			if(auth_base64encode((uint8_t**)&(remote->remote_auth), u + 2) < 0){
 				//TODO fail here
 			}
 		}
@@ -92,7 +92,7 @@ int remote_parse(LOGGER log, REMOTE* remote, DELIVERY_MODE mode, char* remotespe
 			}
 			else if(*remote_separator != 0){
 				//invalid character, fail this remote
-				logprintf(log, LOG_WARNING, "Trailing separator after portspec did not indicate TLS mode\n");
+				logprintf(LOG_WARNING, "Trailing separator after portspec did not indicate TLS mode\n");
 				return -1;
 			}
 		}					
@@ -101,13 +101,13 @@ int remote_parse(LOGGER log, REMOTE* remote, DELIVERY_MODE mode, char* remotespe
 	return 0;
 }
 
-int remotes_fetch(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE** remotes, unsigned* remotes_allocated){
+int remotes_fetch(DATABASE* database, MTA_SETTINGS settings, REMOTE** remotes, unsigned* remotes_allocated){
 	int status;
 	int remotes_active = 0;
 	
 	//bind retry timeout parameter
 	if(sqlite3_bind_int(database->query_outbound_hosts, 1, settings.retry_interval) != SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind mail retry timeout parameter\n");
+		logprintf(LOG_ERROR, "Failed to bind mail retry timeout parameter\n");
 		return -1;
 	}
 
@@ -120,7 +120,7 @@ int remotes_fetch(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE*
 					//reallocate remote array
 					*remotes = realloc(*remotes, ((*remotes_allocated) + CMAIL_REALLOC_CHUNK) * sizeof(REMOTE));
 					if(!(*remotes)){
-						logprintf(log, LOG_ERROR, "Failed to allocate memory for remote array\n");
+						logprintf(LOG_ERROR, "Failed to allocate memory for remote array\n");
 						return -1;
 					}
 
@@ -133,22 +133,22 @@ int remotes_fetch(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE*
 				remote_reset((*remotes) + remotes_active);
 
 				if(sqlite3_column_text(database->query_outbound_hosts, 0)){
-					if(remote_parse(log, (*remotes) + remotes_active, DELIVER_HANDOFF, (char*)sqlite3_column_text(database->query_outbound_hosts, 0)) < 0){
+					if(remote_parse((*remotes) + remotes_active, DELIVER_HANDOFF, (char*)sqlite3_column_text(database->query_outbound_hosts, 0)) < 0){
 						//FIXME check this failure mode
-						logprintf(log, LOG_ERROR, "Failed to parse remote, skipping\n");
+						logprintf(LOG_ERROR, "Failed to parse remote, skipping\n");
 						remote_reset((*remotes) + remotes_active);
 						continue;
 					}
 				}
 				else if(sqlite3_column_text(database->query_outbound_hosts, 1)){
-					if(remote_parse(log, (*remotes) + remotes_active, DELIVER_DOMAIN, (char*)sqlite3_column_text(database->query_outbound_hosts, 1)) < 0){
-						logprintf(log, LOG_ERROR, "Failed to parse remote, skipping\n");
+					if(remote_parse((*remotes) + remotes_active, DELIVER_DOMAIN, (char*)sqlite3_column_text(database->query_outbound_hosts, 1)) < 0){
+						logprintf(LOG_ERROR, "Failed to parse remote, skipping\n");
 						remote_reset((*remotes) + remotes_active);
 						continue;
 					}
 				}
 				else{
-					logprintf(log, LOG_ERROR, "Invalid database remote\n");
+					logprintf(LOG_ERROR, "Invalid database remote\n");
 				}
 
 				remotes_active++;
@@ -157,7 +157,7 @@ int remotes_fetch(LOGGER log, DATABASE* database, MTA_SETTINGS settings, REMOTE*
 				//done reading remotes
 				break;
 			default:
-				logprintf(log, LOG_WARNING, "Unhandled outbound host query result: %s\n", sqlite3_errmsg(database->conn));
+				logprintf(LOG_WARNING, "Unhandled outbound host query result: %s\n", sqlite3_errmsg(database->conn));
 				break;
 		}
 	}

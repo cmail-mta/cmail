@@ -32,88 +32,88 @@ int usage(char* fn) {
 #include "../lib/common.c"
 
 
-int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_add(sqlite3* db, int argc, char* argv[]) {
 	int status = 0;
 
 	if (argc < 3) {
-		logprintf(log, LOG_ERROR, "Missing arguments\n\n");
+		logprintf(LOG_ERROR, "Missing arguments\n\n");
 		return -1;
 	}
 
 	if(!router_valid(argv[2])){
-		logprintf(log, LOG_WARNING, "Unknown router %s, adding anyway\n", argv[2]);
+		logprintf(LOG_WARNING, "Unknown router %s, adding anyway\n", argv[2]);
 	}
 
 	if (argc == 3) {
-		status = sqlite_add_address(log, db, argv[1], argv[2], NULL);
+		status = sqlite_add_address(db, argv[1], argv[2], NULL);
 	} else if (argc == 4) {
-		status = sqlite_add_address(log, db, argv[1], argv[2], argv[3]);
+		status = sqlite_add_address(db, argv[1], argv[2], argv[3]);
 	}
 	else if (argc == 5) {
-		status = sqlite_add_address_order(log, db, argv[1], strtol(argv[4], NULL, 10), argv[2], argv[3]);
+		status = sqlite_add_address_order(db, argv[1], strtol(argv[4], NULL, 10), argv[2], argv[3]);
 	}
 	else{
-		logprintf(log, LOG_ERROR, "Too many arguments\n\n");
+		logprintf(LOG_ERROR, "Too many arguments\n\n");
 		status = -1;
 	}
 
 	return status;
 }
 
-int mode_delete(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_delete(sqlite3* db, int argc, char* argv[]) {
 	if (argc < 2) {
-		logprintf(log, LOG_ERROR, "Missing argument\n\n");
+		logprintf(LOG_ERROR, "Missing argument\n\n");
 		return -1;
 	}
 
-	return sqlite_delete_address(log, db, strtol(argv[1], NULL, 10));
+	return sqlite_delete_address(db, strtol(argv[1], NULL, 10));
 }
 
-int mode_swap(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_swap(sqlite3* db, int argc, char* argv[]) {
 	if (argc < 3) {
-		logprintf(log, LOG_ERROR, "Missing arguments\n\n");
+		logprintf(LOG_ERROR, "Missing arguments\n\n");
 		return -1;
 	}
 
-	return sqlite_swap(log, db, strtol(argv[1], NULL, 10), strtol(argv[2], NULL, 10));
+	return sqlite_swap(db, strtol(argv[1], NULL, 10), strtol(argv[2], NULL, 10));
 }
 
-int mode_update(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_update(sqlite3* db, int argc, char* argv[]) {
 	if (argc < 3) {
-		logprintf(log, LOG_ERROR, "Missing arguments\n\n");
+		logprintf(LOG_ERROR, "Missing arguments\n\n");
 		return -1;
 	}
 
 	if(!router_valid(argv[2])){
-		logprintf(log, LOG_WARNING, "Unknown router %s, adding anyway\n", argv[2]);
+		logprintf(LOG_WARNING, "Unknown router %s, adding anyway\n", argv[2]);
 	}
 
 	if(argc == 3){
-		return sqlite_update_address(log, db, strtol(argv[1], NULL, 10), argv[2], NULL);
+		return sqlite_update_address(db, strtol(argv[1], NULL, 10), argv[2], NULL);
 	}
 	else{
-		return sqlite_update_address(log, db, strtol(argv[1], NULL, 10), argv[2], argv[3]);
+		return sqlite_update_address(db, strtol(argv[1], NULL, 10), argv[2], argv[3]);
 	}
 }
 
-int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_list(sqlite3* db, int argc, char* argv[]) {
 	char* filter = "%";
 
 	if (argc > 1) {
 		filter = argv[1];
 	}
 
-	return sqlite_get_address(log, db, filter, false);
+	return sqlite_get_address(db, filter, false);
 }
 
-int mode_test(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_test(sqlite3* db, int argc, char* argv[]) {
 	char* filter = "%";
 
 	if (argc > 1) {
 		filter = argv[1];
 	}
 
-	return sqlite_get_address(log, db, filter, true);
+	return sqlite_get_address(db, filter, true);
 }
 
 int main(int argc, char* argv[]) {
@@ -133,10 +133,7 @@ int main(int argc, char* argv[]) {
 	char* cmds[argc];
 	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
-	LOGGER log = {
-		.stream = stderr,
-		.verbosity = config.verbosity
-	};
+	log_verbosity(config.verbosity, false);
 
 	if (cmdsc < 0) {
 		return 1;
@@ -145,20 +142,20 @@ int main(int argc, char* argv[]) {
 	sqlite3* db = NULL;
 
 	if(!cmdsc){
-		logprintf(log, LOG_ERROR, "No command specified\n\n");
+		logprintf(LOG_ERROR, "No command specified\n\n");
 		exit(usage(argv[0]));
 	}
 
-	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
-	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
+	logprintf(LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(config.dbpath, SQLITE_OPEN_READWRITE);
 
 	if(!db){
 		exit(usage(argv[0]));
 	}
 
 	//check database version
-	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
-		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.\n");
+	if (database_schema_version(db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(LOG_ERROR, "The specified database (%s) is at an unsupported schema version.\n");
 		sqlite3_close(db);
 		return 11;
 	}
@@ -166,19 +163,19 @@ int main(int argc, char* argv[]) {
 	int status;
 
 	if (!strcmp(cmds[0], "add")) {
-		status = mode_add(log, db, cmdsc, cmds);
+		status = mode_add(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "delete")) {
-		status = mode_delete(log, db, cmdsc, cmds);
+		status = mode_delete(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "swap")) {
-		status = mode_swap(log, db, cmdsc, cmds);
+		status = mode_swap(db, cmdsc, cmds);
 	} else if (!strcmp(cmds[0], "update")) {
-		status = mode_update(log, db, cmdsc, cmds);
+		status = mode_update(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "list")) {
-		status = mode_list(log, db, cmdsc, cmds);
+		status = mode_list(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "test")) {
-		status = mode_test(log, db, cmdsc, cmds);
+		status = mode_test(db, cmdsc, cmds);
 	} else {
-		logprintf(log, LOG_ERROR, "Unkown command %s\n\n", cmds[0]);
+		logprintf(LOG_ERROR, "Unkown command %s\n\n", cmds[0]);
 		exit(usage(argv[0]));
 	}
 

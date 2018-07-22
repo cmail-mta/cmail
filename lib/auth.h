@@ -7,6 +7,6 @@
 #include <nettle/base16.h>
 #include <nettle/sha2.h>
 
-int auth_base64decode(LOGGER log, char* in);
+int auth_base64decode(char* in);
 int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, char* pass, unsigned pass_bytes);
-int auth_validate(LOGGER log, sqlite3_stmt* auth_data, char* user, char* password, char** authorized_identity);
+int auth_validate(sqlite3_stmt* auth_data, char* user, char* password, char** authorized_identity);

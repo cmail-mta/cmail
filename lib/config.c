@@ -4,20 +4,20 @@
  * For further information, consult LICENSE.txt
  */
 
-int config_parse(LOGGER log, void* config_data, char* conf_file){
+int config_parse(void* config_data, char* conf_file){
 	char line_buffer[MAX_CFGLINE + 1];
 	char* line_data = NULL;
 	int offset;
 
 	if(!conf_file){
-		logprintf(log, LOG_ERROR, "Null pointer passed as config file\n");
+		logprintf(LOG_ERROR, "Null pointer passed as config file\n");
 		return -1;
 	}
 
 	FILE* conf_stream = fopen(conf_file, "r");
 
 	if(!conf_stream){
-		logprintf(log, LOG_ERROR, "Failed to read configuration file: %s\n", strerror(errno));
+		logprintf(LOG_ERROR, "Failed to read configuration file: %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -53,7 +53,7 @@ int config_parse(LOGGER log, void* config_data, char* conf_file){
 	}
 
 	if(errno != 0){
-		logprintf(log, LOG_ERROR, "Error while reading configuration file: %s\n", strerror(errno));
+		logprintf(LOG_ERROR, "Error while reading configuration file: %s\n", strerror(errno));
 		fclose(conf_stream);
 		return -1;
 	}

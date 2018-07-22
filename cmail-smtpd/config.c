@@ -70,7 +70,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 							settings.fixed_user = token + 6;
 						}
 						else{
-							logprintf(config->log, LOG_WARNING, "Unknown auth parameter %s\n", token);
+							logprintf(LOG_WARNING, "Unknown auth parameter %s\n", token);
 						}
 						token = strtok_r(NULL, ",", &tokenize_argument);
 					}
@@ -85,7 +85,7 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 				settings.max_size = strtoul(token + 5, NULL, 10);
 			}
 			else{
-				logprintf(config->log, LOG_INFO, "Ignored additional bind parameter %s\n", token);
+				logprintf(LOG_INFO, "Ignored additional bind parameter %s\n", token);
 			}
 		}
 	}while(token);
@@ -96,18 +96,18 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 			tls_mode = TLS_NEGOTIATE;
 		}
 
-		if(tls_init_listener(config->log, &settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities) < 0){
+		if(tls_init_listener(&settings, tls_certfile, tls_keyfile, tls_dh_paramfile, tls_priorities) < 0){
 			return -1;
 		}
 	}
 	else if(tls_keyfile || tls_certfile || tls_mode != TLS_NONE){
-		logprintf(config->log, LOG_ERROR, "Need both certificate and key for TLS\n");
+		logprintf(LOG_ERROR, "Need both certificate and key for TLS\n");
 		return -1;
 	}
 	#endif
 
 	//try to open a listening socket
-	listen_fd = network_listener(config->log, bindhost, port);
+	listen_fd = network_listener(bindhost, port);
 
 	if(listen_fd < 0){
 		return -1;
@@ -116,12 +116,12 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 	//add the new listener to the pool
 	listener_slot = connpool_add(&(config->listeners), listen_fd);
 	if(listener_slot >= 0){
-		logprintf(config->log, LOG_INFO, "Bound to %s port %s (slot %d)\n", bindhost, port, listener_slot);
+		logprintf(LOG_INFO, "Bound to %s port %s (slot %d)\n", bindhost, port, listener_slot);
 
 		//create listener auxdata
 		config->listeners.conns[listener_slot].aux_data = calloc(1, sizeof(LISTENER));
 		if(!config->listeners.conns[listener_slot].aux_data){
-			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener\n");
+			logprintf(LOG_ERROR, "Failed to allocate auxiliary data for listener\n");
 			return -1;
 		}
 
@@ -135,21 +135,21 @@ int config_bind(CONFIGURATION* config, char* directive, char* params){
 
 		listener_data->announce_domain = common_strdup(settings.announce_domain);
 		if(!listener_data->announce_domain){
-			logprintf(config->log, LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
+			logprintf(LOG_ERROR, "Failed to allocate auxiliary data for listener announce\n");
 			return -1;
 		}
 
 		if(settings.fixed_user){
 			listener_data->fixed_user = common_strdup(settings.fixed_user);
 			if(!listener_data->fixed_user){
-				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for fixed user storage\n");
+				logprintf(LOG_ERROR, "Failed to allocate memory for fixed user storage\n");
 				return -1;
 			}
 		}
 		return 0;
 	}
 
-	logprintf(config->log, LOG_ERROR, "Failed to store listen socket\n");
+	logprintf(LOG_ERROR, "Failed to store listen socket\n");
 	return -1;
 }
 
@@ -161,22 +161,22 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 	if(!strcmp(directive, "user")){
 		user_info = getpwnam(params);
 		if(!user_info){
-			logprintf(config->log, LOG_ERROR, "Failed to get user info for %s\n", params);
+			logprintf(LOG_ERROR, "Failed to get user info for %s\n", params);
 			return -1;
 		}
 		config->privileges.uid = user_info->pw_uid;
 		config->privileges.gid = user_info->pw_gid;
-		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to uid %d gid %d\n", config->privileges.uid, config->privileges.gid);
+		logprintf(LOG_DEBUG, "Configured dropped privileges to uid %d gid %d\n", config->privileges.uid, config->privileges.gid);
 		return 0;
 	}
 	else if(!strcmp(directive, "group")){
 		group_info = getgrnam(params);
 		if(!group_info){
-			logprintf(config->log, LOG_ERROR, "Failed to get group info for %s\n", params);
+			logprintf(LOG_ERROR, "Failed to get group info for %s\n", params);
 			return -1;
 		}
 		config->privileges.gid = group_info->gr_gid;
-		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to gid %d\n", config->privileges.gid);
+		logprintf(LOG_DEBUG, "Configured dropped privileges to gid %d\n", config->privileges.gid);
 		return 0;
 	}
 	return -1;
@@ -184,11 +184,11 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 
 int config_database(CONFIGURATION* config, char* directive, char* params){
 	if(config->database.conn){
-		logprintf(config->log, LOG_ERROR, "Can not use %s as master database, another one is already attached\n", params);
+		logprintf(LOG_ERROR, "Can not use %s as master database, another one is already attached\n", params);
 		return -1;
 	}
 
-	config->database.conn = database_open(config->log, params, SQLITE_OPEN_READWRITE);
+	config->database.conn = database_open(params, SQLITE_OPEN_READWRITE);
 
 	return (config->database.conn) ? 0:-1;
 }
@@ -197,17 +197,17 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 	FILE* log_file;
 
 	if(!strcmp(directive, "verbosity")){
-		config->log.verbosity = strtoul(params, NULL, 10);
+		log_verbosity(strtoul(params, NULL, 10), true);
 		return 0;
 	}
 	else if(!strcmp(directive, "logfile")){
 		log_file = fopen(params, "a");
 		if(!log_file){
-			logprintf(config->log, LOG_ERROR, "Failed to open logfile %s for appending\n", params);
+			logprintf(LOG_ERROR, "Failed to open logfile %s for appending\n", params);
 			return -1;
 		}
-		config->log.stream = log_file;
-		config->log.log_secondary = true;
+		log_output(log_file);
+		log_verbosity(-1, true);
 		return 0;
 	}
 	return -1;
@@ -215,14 +215,14 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 
 int config_pidfile(CONFIGURATION* config, char* directive, char* params){
 	if(config->pid_file){
-		logprintf(config->log, LOG_ERROR, "Multiple pidfile stanzas read, aborting\n");
+		logprintf(LOG_ERROR, "Multiple pidfile stanzas read, aborting\n");
 		return -1;
 	}
 
 	config->pid_file = common_strdup(params);
 
 	if(!config->pid_file){
-		logprintf(config->log, LOG_ERROR, "Failed to allocate memory for pidfile path\n");
+		logprintf(LOG_ERROR, "Failed to allocate memory for pidfile path\n");
 		return -1;
 	}
 	return 0;
@@ -266,7 +266,7 @@ int config_line(void* config_data, char* line){
 		return config_pidfile(config, line, line + parameter);
 	}
 
-	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
+	logprintf(LOG_ERROR, "Unknown configuration directive %s\n", line);
 	return -1;
 }
 
@@ -292,15 +292,15 @@ void config_free(CONFIGURATION* config){
 	}
 
 	connpool_free(&(config->listeners));
-	database_free(config->log, &(config->database));
+	database_free(&(config->database));
 
 	if(config->pid_file){
 		free(config->pid_file);
 	}
 
-	if(config->log.stream != stderr){
-		fflush(config->log.stream);
-		fclose(config->log.stream);
-		config->log.stream = stderr;
+	if(log_output(NULL) != stderr){
+		fflush(log_output(NULL));
+		fclose(log_output(NULL));
+		log_output(stderr);
 	}
 }

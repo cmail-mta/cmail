@@ -4,6 +4,8 @@
  * For further information, consult LICENSE.txt
  */
 
+#include "logger.h"
+
 char* common_strdup(char* input){
 	char* duplicate = NULL;
 	size_t length = strlen(input);
@@ -156,7 +158,7 @@ ssize_t common_read_file(char* filename, uint8_t** out){
 	return file_size;
 }
 
-ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
+ssize_t common_next_line(char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
 	//This function needs to be called on a buffer until it returns 0,
 	//otherwise, the append_offset points to the end of the "olddata" buffer
 	size_t append_offset = *append_offset_p;
@@ -164,11 +166,11 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 	int i;
 
 	if(new_bytes < 0){
-		logprintf(log, LOG_ERROR, "common_next_line called with error condition in last read, bailing\n");
+		logprintf(LOG_ERROR, "common_next_line called with error condition in last read, bailing\n");
 		return 0;
 	}
 
-	logprintf(log, LOG_DEBUG, "Next line parser called with offset %d bytes %d\n", append_offset, new_bytes);
+	logprintf(LOG_DEBUG, "Next line parser called with offset %d bytes %d\n", append_offset, new_bytes);
 
 	if(append_offset > 1 && buffer[append_offset-1] == 0 && buffer[append_offset-2] == 0){
 		//copyback clearing of last line
@@ -180,11 +182,11 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 
 		append_offset = 0;
 
-		logprintf(log, LOG_DEBUG, "Copyback done, offset %d, first byte %02X, %d bytes\n", append_offset, buffer[0], new_bytes);
+		logprintf(LOG_DEBUG, "Copyback done, offset %d, first byte %02X, %d bytes\n", append_offset, buffer[0], new_bytes);
 	}
 
 	//scan new bytes for terminators
-	for(i=0;i<new_bytes-1;i++){ //last byte is checked in condition
+	for(i = 0 ; i < new_bytes - 1; i++){ //last byte is checked in condition
 		if(buffer[append_offset + i] == '\r' && buffer[append_offset + i + 1] == '\n'){
 			//terminate line
 			buffer[append_offset + i] = 0;
@@ -194,7 +196,7 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 			*append_offset_p = append_offset + i + 2; //append after the second \0
 			*new_bytes_p = new_bytes - i - 2;
 
-			logprintf(log, LOG_DEBUG, "Next line contains %d bytes\n", append_offset + i);
+			logprintf(LOG_DEBUG, "Next line contains %d bytes\n", append_offset + i);
 			return append_offset + i;
 		}
 	}
@@ -203,7 +205,7 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 	*append_offset_p = append_offset + new_bytes;
 	*new_bytes_p = 0;
 
-	logprintf(log, LOG_DEBUG, "Incomplete line buffer contains %d bytes\n", *append_offset_p);
+	logprintf(LOG_DEBUG, "Incomplete line buffer contains %d bytes\n", *append_offset_p);
 	return -1;
 }
 

@@ -1,5 +1,5 @@
 //this code queries outbound routing information for a user
-MAILROUTE route_query(LOGGER log, DATABASE* database, char* user){
+MAILROUTE route_query(DATABASE* database, char* user){
 	MAILROUTE route = {
 		.router = NULL,
 		.argument = NULL
@@ -12,7 +12,7 @@ MAILROUTE route_query(LOGGER log, DATABASE* database, char* user){
 
 	status = sqlite3_bind_text(database->query_outbound_router, 1, user, -1, SQLITE_STATIC);
 	if(status != SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind user parameter to routing query: %s\n", sqlite3_errmsg(database->conn));
+		logprintf(LOG_ERROR, "Failed to bind user parameter to routing query: %s\n", sqlite3_errmsg(database->conn));
 		sqlite3_reset(database->query_outbound_router);
 		sqlite3_clear_bindings(database->query_outbound_router);
 		return route;
@@ -29,14 +29,14 @@ MAILROUTE route_query(LOGGER log, DATABASE* database, char* user){
 			}
 
 			if(!route.router){
-				logprintf(log, LOG_ERROR, "Failed to allocate memory for ROUTE structure\n");
+				logprintf(LOG_ERROR, "Failed to allocate memory for ROUTE structure\n");
 			}
 			break;
 		case SQLITE_DONE:
-			logprintf(log, LOG_ERROR, "Database contains no outbound router definition for %s\n", user);
+			logprintf(LOG_ERROR, "Database contains no outbound router definition for %s\n", user);
 			break;
 		default:
-			logprintf(log, LOG_WARNING, "Unhandled query return value: %s\n", sqlite3_errmsg(database->conn));
+			logprintf(LOG_WARNING, "Unhandled query return value: %s\n", sqlite3_errmsg(database->conn));
 			break;
 	}
 
@@ -60,7 +60,7 @@ void route_free(MAILROUTE* route){
 	}
 }
 
-int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* current_path){
+int route_local_path(DATABASE* database, MAIL* mail, MAILPATH* current_path){
 	int rv = 0;
 	USER_DATABASE* user_db;
 	char path_replacement[SMTP_MAX_PATH_LENGTH];
@@ -72,11 +72,11 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 		return -1;
 	}
 
-	logprintf(log, LOG_DEBUG, "Inbound router %s (%s) for %s\n", current_path->route.router, current_path->route.argument ? current_path->route.argument:"none", current_path->path);
+	logprintf(LOG_DEBUG, "Inbound router %s (%s) for %s\n", current_path->route.router, current_path->route.argument ? current_path->route.argument:"none", current_path->path);
 
 	if(!strcmp(current_path->route.router, "store")){
 		if(!(current_path->route.argument)){
-			logprintf(log, LOG_ERROR, "Path is assigned store router without argument, rejecting transaction\n");
+			logprintf(LOG_ERROR, "Path is assigned store router without argument, rejecting transaction\n");
 			//Fail the transaction permanently
 			rv = -1;
 		}
@@ -90,46 +90,46 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 					case SQLITE_ROW:
 						//check for a user database
 						if(sqlite3_column_text(database->query_authdata, 2)){
-							logprintf(log, LOG_DEBUG, "Fetching user database for user %s (%s)\n", current_path->route.argument, (char*)sqlite3_column_text(database->query_authdata, 2));	
-							user_db = database_userdb(log, database, (char*)sqlite3_column_text(database->query_authdata, 2));
+							logprintf(LOG_DEBUG, "Fetching user database for user %s (%s)\n", current_path->route.argument, (char*)sqlite3_column_text(database->query_authdata, 2));	
+							user_db = database_userdb(database, (char*)sqlite3_column_text(database->query_authdata, 2));
 
 							if(!user_db){
 								//try to refresh the user database set
-								database_refresh(log, database);
-								user_db = database_userdb(log, database, (char*)sqlite3_column_text(database->query_authdata, 2));
+								database_refresh(database);
+								user_db = database_userdb(database, (char*)sqlite3_column_text(database->query_authdata, 2));
 
 								if(!user_db){
 									//as last resort, store to master db
-									logprintf(log, LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->route.argument);
-									rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+									logprintf(LOG_WARNING, "Stored mail for user %s to master instead of defined database\n", current_path->route.argument);
+									rv = mail_store_inbox(database->mail_storage.mailbox_master, mail, current_path);
 								}
 								else{
-									logprintf(log, LOG_DEBUG, "Storing mail for %s to user database %s after database refresh\n", current_path->route.argument, user_db->file_name);
-									rv = mail_store_inbox(log, user_db->mailbox, mail, current_path);
+									logprintf(LOG_DEBUG, "Storing mail for %s to user database %s after database refresh\n", current_path->route.argument, user_db->file_name);
+									rv = mail_store_inbox(user_db->mailbox, mail, current_path);
 								}
 							}
 							else{
-								logprintf(log, LOG_DEBUG, "Storing mail for %s to user database %s\n", current_path->route.argument, user_db->file_name);
-								rv = mail_store_inbox(log, user_db->mailbox, mail, current_path);
+								logprintf(LOG_DEBUG, "Storing mail for %s to user database %s\n", current_path->route.argument, user_db->file_name);
+								rv = mail_store_inbox(user_db->mailbox, mail, current_path);
 							}
 
 						}
 						else{
 							//simply store to master
-							logprintf(log, LOG_DEBUG, "Storing mail for %s to master database\n", current_path->route.argument);
-							rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+							logprintf(LOG_DEBUG, "Storing mail for %s to master database\n", current_path->route.argument);
+							rv = mail_store_inbox(database->mail_storage.mailbox_master, mail, current_path);
 						}
 						break;
 					case SQLITE_DONE:
-						logprintf(log, LOG_ERROR, "Failed to resolve router argument %s to a user, failing transaction\n", current_path->route.argument);
+						logprintf(LOG_ERROR, "Failed to resolve router argument %s to a user, failing transaction\n", current_path->route.argument);
 						break;
 					default:
-						logprintf(log, LOG_ERROR, "Failed to execute user info query: %s\n", sqlite3_errmsg(database->conn));
+						logprintf(LOG_ERROR, "Failed to execute user info query: %s\n", sqlite3_errmsg(database->conn));
 						break;
 				}
 			}
 			else{
-				logprintf(log, LOG_ERROR, "Failed to bind user to user info query\n");
+				logprintf(LOG_ERROR, "Failed to bind user to user info query\n");
 			}
 
 			sqlite3_reset(database->query_authdata);
@@ -137,10 +137,10 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 
 			//if we could not store mail, retry with master
 			if(rv){
-				logprintf(log, LOG_ERROR, "Failed to store mail for %s (%d: %s), retrying one last time with master db\n", current_path->route.argument, rv, sqlite3_errmsg(database->conn));
-				rv = mail_store_inbox(log, database->mail_storage.mailbox_master, mail, current_path);
+				logprintf(LOG_ERROR, "Failed to store mail for %s (%d: %s), retrying one last time with master db\n", current_path->route.argument, rv, sqlite3_errmsg(database->conn));
+				rv = mail_store_inbox(database->mail_storage.mailbox_master, mail, current_path);
 				if(rv){
-					logprintf(log, LOG_ERROR, "Failed to store mail: %s\n", sqlite3_errmsg(database->conn));
+					logprintf(LOG_ERROR, "Failed to store mail: %s\n", sqlite3_errmsg(database->conn));
 				}
 			}
 		}
@@ -156,7 +156,7 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 			strncpy(path_replacement, current_path->path, current_path->delimiter_position);
 			path_replacement[current_path->delimiter_position] = 0;
 			if(common_strrepl(forward_path, sizeof(forward_path), "(to-local)", path_replacement) < 0){
-				logprintf(log, LOG_ERROR, "Failed to replace to-local variable in redirect router\n");
+				logprintf(LOG_ERROR, "Failed to replace to-local variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
 			}
@@ -165,7 +165,7 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 				common_strrepl(forward_path, sizeof(forward_path), "(to-domain)",
 				//this ensures that the variable always gets replaced, with an empty string if need be
 				current_path->path + current_path->delimiter_position + (current_path->path[current_path->delimiter_position] ? 1:0) ) < 0){
-				logprintf(log, LOG_ERROR, "Failed to replace to-domain variable in redirect router\n");
+				logprintf(LOG_ERROR, "Failed to replace to-domain variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
 			}
@@ -174,7 +174,7 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 				strncpy(path_replacement, mail->reverse_path.path, mail->reverse_path.delimiter_position);
 				path_replacement[mail->reverse_path.delimiter_position] = 0;
 				if(common_strrepl(forward_path, sizeof(forward_path), "(from-local)", path_replacement) < 0){
-					logprintf(log, LOG_ERROR, "Failed to replace from-local variable in redirect router\n");
+					logprintf(LOG_ERROR, "Failed to replace from-local variable in redirect router\n");
 					//fail the transaction
 					rv = -1;
 				}
@@ -183,18 +183,18 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 			if(!rv &&
 				common_strrepl(forward_path, sizeof(forward_path), "(from-domain)",
 				mail->reverse_path.path + mail->reverse_path.delimiter_position + (current_path->path[current_path->delimiter_position] ? 1:0)) < 0){
-				logprintf(log, LOG_ERROR, "Failed to replace from-domain variable in redirect router\n");
+				logprintf(LOG_ERROR, "Failed to replace from-domain variable in redirect router\n");
 				//fail the transaction
 				rv = -1;
 			}
 
 			//insert into outbound table
 			if(!rv){
-				rv = mail_store_outbox(log, database->mail_storage.outbox_master, NULL, forward_path, mail);
+				rv = mail_store_outbox(database->mail_storage.outbox_master, NULL, forward_path, mail);
 			}
 		}
 		else{
-			logprintf(log, LOG_ERROR, "Redirect router without argument, failing transaction\n");
+			logprintf(LOG_ERROR, "Redirect router without argument, failing transaction\n");
 			//fail the transaction permanently
 			rv = -1;
 		}
@@ -202,10 +202,10 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 	else if(!strcmp(current_path->route.router, "handoff")){
 		if(current_path->route.argument){
 			//insert into outbound table
-			rv = mail_store_outbox(log, database->mail_storage.outbox_master, current_path->route.argument, current_path->path, mail);
+			rv = mail_store_outbox(database->mail_storage.outbox_master, current_path->route.argument, current_path->path, mail);
 		}
 		else{
-			logprintf(log, LOG_ERROR, "Handoff router without argument, failing transaction\n");
+			logprintf(LOG_ERROR, "Handoff router without argument, failing transaction\n");
 			rv = -1;
 		}
 	}
@@ -225,7 +225,7 @@ int route_local_path(LOGGER log, DATABASE* database, MAIL* mail, MAILPATH* curre
 	}
 
 	if(rv>0){
-		logprintf(log, LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
+		logprintf(LOG_INFO, "Additional information: %s\n", sqlite3_errmsg(database->conn));
 	}
 
 	return rv;

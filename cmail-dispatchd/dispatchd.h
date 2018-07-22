@@ -21,7 +21,6 @@
 #include "../lib/auth.h"
 #include "../lib/network.h"
 
-#include "../lib/logger.c"
 #include "../lib/signal.c"
 #include "../lib/privileges.c"
 #include "../lib/config.c"
@@ -111,7 +110,6 @@ typedef struct /*_MTA_SETTINGS*/ {
 
 typedef struct /*_CONFIGURATION_AGGREG*/ {
 	DATABASE database;
-	LOGGER log;
 	USER_PRIVS privileges;
 	MTA_SETTINGS settings;
 	char* pid_file;

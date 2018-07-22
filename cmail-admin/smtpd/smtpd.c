@@ -1,13 +1,13 @@
-int sqlite_get_msa(LOGGER log, sqlite3* db, const char* username) {
+int sqlite_get_msa(sqlite3* db, const char* username) {
 	char* sql = "SELECT smtpd_user, smtpd_router, smtpd_route FROM smtpd WHERE smtpd_user LIKE ?";
 
-	sqlite3_stmt* stmt = database_prepare(log, db, sql);
+	sqlite3_stmt* stmt = database_prepare(db, sql);
 	if (!stmt) {
 		return 2;
 	}
 
 	if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK) {
-		logprintf(log, LOG_ERROR, "Cannot bind expression.\n");
+		logprintf(LOG_ERROR, "Cannot bind expression.\n");
 		return 3;
 	}
 
@@ -23,10 +23,10 @@ int sqlite_get_msa(LOGGER log, sqlite3* db, const char* username) {
 	return (status == SQLITE_DONE) ? 0:status;
 }
 
-int sqlite_update_msa(LOGGER log, sqlite3* db, const char* user, const char* router, const char* argument) {
+int sqlite_update_msa(sqlite3* db, const char* user, const char* router, const char* argument) {
 	char* sql = "UPDATE smtpd SET smtpd_router = ?, smtpd_route = ? WHERE smtpd_user = ?;";
 
-	sqlite3_stmt* stmt = database_prepare(log, db, sql);
+	sqlite3_stmt* stmt = database_prepare(db, sql);
 	if (!stmt) {
 		return 2;
 	}
@@ -36,13 +36,13 @@ int sqlite_update_msa(LOGGER log, sqlite3* db, const char* user, const char* rou
 	if (sqlite3_bind_text(stmt, 1, router, -1, SQLITE_STATIC) != SQLITE_OK
 			|| sqlite3_bind_text(stmt, 2, argument, -1, SQLITE_STATIC) != SQLITE_OK
 			|| sqlite3_bind_text(stmt, 3, user, -1, SQLITE_STATIC) != SQLITE_OK) {
-		logprintf(log, LOG_ERROR, "Failed to bind a statement parameter\n\n");
+		logprintf(LOG_ERROR, "Failed to bind a statement parameter\n\n");
 		sqlite3_finalize(stmt);
 		return 72;
 	}
 
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
-		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
+		logprintf(LOG_ERROR, "%s\n", sqlite3_errmsg(db));
 		rv = 5;
 	}
 
@@ -55,22 +55,22 @@ int sqlite_update_msa(LOGGER log, sqlite3* db, const char* user, const char* rou
 	return rv;
 }
 
-int sqlite_delete_msa(LOGGER log, sqlite3* db, const char* user) {
+int sqlite_delete_msa(sqlite3* db, const char* user) {
 	char* sql = "DELETE FROM smtpd WHERE smtpd_user = ?;";
 
-	sqlite3_stmt* stmt = database_prepare(log, db, sql);
+	sqlite3_stmt* stmt = database_prepare(db, sql);
 	if (!stmt) {
 		return 2;
 	}
 
 	if (sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC) != SQLITE_OK) {
-		logprintf(log, LOG_INFO, "Failed to bind a statement parameter\n");
+		logprintf(LOG_INFO, "Failed to bind a statement parameter\n");
 		sqlite3_finalize(stmt);
 		return 3;
 	}
 
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
-		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
+		logprintf(LOG_ERROR, "%s\n", sqlite3_errmsg(db));
 		sqlite3_finalize(stmt);
 		return 5;
 	}
@@ -83,11 +83,11 @@ int sqlite_delete_msa(LOGGER log, sqlite3* db, const char* user) {
 	return 0;
 }
 
-int sqlite_add_msa(LOGGER log, sqlite3* db, const char* user, const char* router, const char* argument) {
+int sqlite_add_msa(sqlite3* db, const char* user, const char* router, const char* argument) {
 	char* sql = router ? "INSERT INTO smtpd (smtpd_user, smtpd_router, smtpd_route) VALUES (?, ?, ?);":"INSERT INTO smtpd (smtpd_user) VALUES (?);";
-	logprintf(log, LOG_DEBUG, "Using statement %s\n", sql);
+	logprintf(LOG_DEBUG, "Using statement %s\n", sql);
 
-	sqlite3_stmt* stmt = database_prepare(log, db, sql);
+	sqlite3_stmt* stmt = database_prepare(db, sql);
 	if (!stmt) {
 		return 2;
 	}
@@ -95,13 +95,13 @@ int sqlite_add_msa(LOGGER log, sqlite3* db, const char* user, const char* router
 	if (sqlite3_bind_text(stmt, 1, user, -1, SQLITE_STATIC) != SQLITE_OK
 			|| (router && sqlite3_bind_text(stmt, 2, router, -1, SQLITE_STATIC) != SQLITE_OK)
 			|| (router && sqlite3_bind_text(stmt, 3, argument, -1, SQLITE_STATIC) != SQLITE_OK)) {
-		logprintf(log, LOG_ERROR, "Failed to bind a statement parameter\n");
+		logprintf(LOG_ERROR, "Failed to bind a statement parameter\n");
 		sqlite3_finalize(stmt);
 		return 3;
 	}
 
 	if (sqlite3_step(stmt) != SQLITE_DONE) {
-		logprintf(log, LOG_ERROR, "%s\n", sqlite3_errmsg(db));
+		logprintf(LOG_ERROR, "%s\n", sqlite3_errmsg(db));
 		sqlite3_finalize(stmt);
 		return 5;
 	}

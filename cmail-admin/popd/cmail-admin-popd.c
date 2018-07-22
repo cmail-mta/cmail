@@ -30,44 +30,44 @@ int usage(char* fn){
 
 #include "../lib/common.c"
 
-int mode_add(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_add(sqlite3* db, int argc, char* argv[]) {
 
 	if (argc < 2) {
-		logprintf(log, LOG_ERROR, "Missing user\n\n");
+		logprintf(LOG_ERROR, "Missing user\n\n");
 		return -1;
 	}
 
-	return sqlite_add_popd(log, db, argv[1]);
+	return sqlite_add_popd(db, argv[1]);
 
 }
 
-int mode_delete(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_delete(sqlite3* db, int argc, char* argv[]) {
 	if (argc < 2) {
-		logprintf(log, LOG_ERROR, "Missing user\n\n");
+		logprintf(LOG_ERROR, "Missing user\n\n");
 		return -1;
 	}
 
-	return sqlite_delete_popd(log, db, argv[1]);
+	return sqlite_delete_popd(db, argv[1]);
 }
 
-int mode_unlock(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_unlock(sqlite3* db, int argc, char* argv[]) {
 
 	if (argc < 2) {
-		logprintf(log, LOG_ERROR, "Missing user\n\n");
+		logprintf(LOG_ERROR, "Missing user\n\n");
 		return -1;
 	}
 
-	return sqlite_update_popd(log, db, argv[1], 0);
+	return sqlite_update_popd(db, argv[1], 0);
 }
 
-int mode_list(LOGGER log, sqlite3* db, int argc, char* argv[]) {
+int mode_list(sqlite3* db, int argc, char* argv[]) {
 	char* filter = "%";
 
 	if (argc > 1) {
 		filter = argv[1];
 	}
 
-	return sqlite_get_popd(log, db, filter);
+	return sqlite_get_popd(db, filter);
 }
 
 int main(int argc, char* argv[]) {
@@ -86,10 +86,7 @@ int main(int argc, char* argv[]) {
 	char* cmds[argc];
 	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
-	LOGGER log = {
-		.stream = stderr,
-		.verbosity = config.verbosity
-	};
+	log_verbosity(config.verbosity, false);
 
 	if (cmdsc < 0) {
 		return 1;
@@ -98,20 +95,20 @@ int main(int argc, char* argv[]) {
 	sqlite3* db = NULL;
 
 	if (!cmdsc) {
-		logprintf(log, LOG_ERROR, "No command specified\n\n");
+		logprintf(LOG_ERROR, "No command specified\n\n");
 		exit(usage(argv[0]));
 	}
 
-	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
-	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
+	logprintf(LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(config.dbpath, SQLITE_OPEN_READWRITE);
 
 	if (!db) {
 		exit(usage(argv[0]));
 	}
 
 	//check database version
-	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
-		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
+	if (database_schema_version(db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
 		sqlite3_close(db);
 		return 11;
 	}
@@ -119,13 +116,13 @@ int main(int argc, char* argv[]) {
 	int status = 20;
 
 	if (!strcmp(cmds[0], "enable")) {
-		status = mode_add(log, db, cmdsc, cmds);
+		status = mode_add(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "disable")) {
-		status = mode_delete(log, db, cmdsc, cmds);
+		status = mode_delete(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "unlock")) {
-		status = mode_unlock(log, db, cmdsc, cmds);
+		status = mode_unlock(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "list")) {
-		status = mode_list(log, db, cmdsc, cmds);
+		status = mode_list(db, cmdsc, cmds);
 	} else {
 
 		printf("Invalid or no arguments.\n");

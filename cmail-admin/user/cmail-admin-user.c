@@ -29,7 +29,7 @@ int generate_salt(char* out, unsigned chars) {
 	return 0;
 }
 
-int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
+int set_password(sqlite3* db, const char* user, char* password) {
 	unsigned salt_len = 10;
 
 	char salt[salt_len + 1];
@@ -42,22 +42,22 @@ int set_password(LOGGER log, sqlite3* db, const char* user, char* password) {
 
 	if(password){
 		if(generate_salt(salt, salt_len) < 0){
-			logprintf(log, LOG_ERROR, "Failed to generate a random salt\n");
+			logprintf(LOG_ERROR, "Failed to generate a random salt\n");
 			return 21;
 		}
 
-		logprintf(log, LOG_DEBUG, "Generated salt %s\n", salt);
+		logprintf(LOG_DEBUG, "Generated salt %s\n", salt);
 
 		if(auth_hash(password_hash, sizeof(password_hash), salt, strlen(salt), password, strlen(password)) < 0) {
-			logprintf(log, LOG_ERROR, "Error hashing password\n");
+			logprintf(LOG_ERROR, "Error hashing password\n");
 			return 21;
 		}
 
 		snprintf(auth_data, sizeof(auth_data), "%s:%s", salt, password_hash);
-		return sqlite_set_password(log, db, user, auth_data);
+		return sqlite_set_password(db, user, auth_data);
 	}
 	else{
-		return sqlite_set_password(log, db, user, NULL);
+		return sqlite_set_password(db, user, NULL);
 	}
 
 }
@@ -85,21 +85,21 @@ int usage(char* fn){
 
 #include "../lib/common.c"
 
-int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
+int mode_passwd(sqlite3* db, int argc, char** argv){
 	char password[MAX_PW_LENGTH];
 	char* pw = password;
 
 	memset(password, 0, sizeof(password));
 
 	if(argc < 2){
-		logprintf(log, LOG_ERROR, "Missing user name argument\n");
+		logprintf(LOG_ERROR, "Missing user name argument\n");
 		return -1;
 	}
 
 	else if(argc == 2){
 		fprintf(stderr, "Enter new password (leave blank to disable login): ");
 		if(ask_password(password, MAX_PW_LENGTH) < 0){
-			logprintf(log, LOG_ERROR, "Maximum password length is %d\n", MAX_PW_LENGTH);
+			logprintf(LOG_ERROR, "Maximum password length is %d\n", MAX_PW_LENGTH);
 			return 11;
 		}
 	}
@@ -108,64 +108,64 @@ int mode_passwd(LOGGER log, sqlite3* db, int argc, char** argv){
 		pw = argv[2];
 	}
 
-	return set_password(log, db, argv[1], pw[0] ? pw:NULL);
+	return set_password(db, argv[1], pw[0] ? pw:NULL);
 }
 
-int mode_add(LOGGER log, sqlite3* db, int argc, char** argv){
+int mode_add(sqlite3* db, int argc, char** argv){
 	if(argc < 2){
-		logprintf(log, LOG_ERROR, "Missing user name argument\n\n");
+		logprintf(LOG_ERROR, "Missing user name argument\n\n");
 		return -1;
 	}
 	else{
-		if(sqlite_add_user(log, db, argv[1], NULL)){
-			logprintf(log, LOG_ERROR, "Failed to create user\n");
+		if(sqlite_add_user(db, argv[1], NULL)){
+			logprintf(LOG_ERROR, "Failed to create user\n");
 			return -1;
 		}
-		return mode_passwd(log, db, argc, argv);
+		return mode_passwd(db, argc, argv);
 	}
 }
 
-int mode_userdb(LOGGER log, sqlite3* db, int argc, char** argv){
+int mode_userdb(sqlite3* db, int argc, char** argv){
 	if (argc < 2){
-		logprintf(log, LOG_ERROR, "Missing arguments\n");
+		logprintf(LOG_ERROR, "Missing arguments\n");
 	}
 
-	return sqlite_set_userdb(log, db, argv[1], (argc == 3 && strlen(argv[2]) > 1)?argv[2]:NULL);
+	return sqlite_set_userdb(db, argv[1], (argc == 3 && strlen(argv[2]) > 1)?argv[2]:NULL);
 }
 
-int mode_alias(LOGGER log, sqlite3* db, int argc, char** argv){
+int mode_alias(sqlite3* db, int argc, char** argv){
 	if (argc < 2){
-		logprintf(log, LOG_ERROR, "Missing arguments\n");
+		logprintf(LOG_ERROR, "Missing arguments\n");
 	}
 
-	return sqlite_set_alias(log, db, argv[1], (argc == 3 && strcmp(argv[1], argv[2]))?argv[2]:NULL);
+	return sqlite_set_alias(db, argv[1], (argc == 3 && strcmp(argv[1], argv[2]))?argv[2]:NULL);
 }
 
-int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv){
+int mode_revoke(sqlite3* db, int argc, char** argv){
 	if(argc != 2){
-		logprintf(log, LOG_ERROR, "No user name supplied\n");
+		logprintf(LOG_ERROR, "No user name supplied\n");
 		return -1;
 	}
 
-	return set_password(log, db, argv[1], NULL);
+	return set_password(db, argv[1], NULL);
 }
 
-int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv){
+int mode_delete(sqlite3* db, int argc, char** argv){
 	if(argc != 2){
-		logprintf(log, LOG_ERROR, "No user name supplied\n");
+		logprintf(LOG_ERROR, "No user name supplied\n");
 		return -1;
 	}
-	return sqlite_delete_user(log, db, argv[1]);
+	return sqlite_delete_user(db, argv[1]);
 }
 
-int mode_list(LOGGER log, sqlite3* db, int argc, char** argv){
+int mode_list(sqlite3* db, int argc, char** argv){
 	char* filter = "%";
 
 	if(argc >= 2){
 		filter = argv[1];
 	}
 
-	return sqlite_get(log, db, filter);
+	return sqlite_get(db, filter);
 }
 
 
@@ -185,10 +185,7 @@ int main(int argc, char* argv[]) {
 	char* cmds[argc];
 	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
-	LOGGER log = {
-		.stream = stderr,
-		.verbosity = config.verbosity
-	};
+	log_verbosity(config.verbosity, false);
 
 	if (cmdsc < 0) {
 		return 1;
@@ -199,48 +196,48 @@ int main(int argc, char* argv[]) {
 	sqlite3* db = NULL;
 
 	if(!cmdsc){
-		logprintf(log, LOG_ERROR, "No command specified\n\n");
+		logprintf(LOG_ERROR, "No command specified\n\n");
 		exit(usage(argv[0]));
 	}
 
-	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
-	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
+	logprintf(LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(config.dbpath, SQLITE_OPEN_READWRITE);
 	if(!db){
-		//logprintf(log, LOG_ERROR, "Failed to open database at %s, please check the path\n\n", dbpath);
+		//logprintf(LOG_ERROR, "Failed to open database at %s, please check the path\n\n", dbpath);
 		exit(usage(argv[0]));
 	}
 
 	//check database version
-	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
-		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
+	if (database_schema_version(db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
 		sqlite3_close(db);
 		return 11;
 	}
 
 	//select command
 	if(!strcmp(cmds[0], "add")){
-		status = mode_add(log, db, cmdsc, cmds);
+		status = mode_add(db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "delete")){
-		status = mode_delete(log, db, cmdsc, cmds);
+		status = mode_delete(db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "revoke")){
-		status = mode_revoke(log, db, cmdsc, cmds);
+		status = mode_revoke(db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "list")){
-		status = mode_list(log, db, cmdsc, cmds);
+		status = mode_list(db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "userdb")){
-		status = mode_userdb(log, db, cmdsc, cmds);
+		status = mode_userdb(db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "alias")){
-		status = mode_alias(log, db, cmdsc, cmds);
+		status = mode_alias(db, cmdsc, cmds);
 	}
 	else if(!strcmp(cmds[0], "password") || !strcmp(cmds[0], "passwd")){
-		status = mode_passwd(log, db, cmdsc, cmds);
+		status = mode_passwd(db, cmdsc, cmds);
 	}
 	else{
-		logprintf(log, LOG_WARNING, "Unknown command %s\n\n", cmds[0]);
+		logprintf(LOG_WARNING, "Unknown command %s\n\n", cmds[0]);
 		usage(argv[0]);
 	}
 

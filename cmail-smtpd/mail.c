@@ -1,44 +1,44 @@
-int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
+int mail_route(MAIL* mail, DATABASE* database){
 	unsigned i;
 	unsigned rv = 250;
 	struct timespec time_spec;
 
 	//generate a message id
 	if(clock_gettime(CLOCK_REALTIME_COARSE, &time_spec) < 0){
-		logprintf(log, LOG_ERROR, "Failed to get time for message id generation: %s\n", strerror(errno));
+		logprintf(LOG_ERROR, "Failed to get time for message id generation: %s\n", strerror(errno));
 		time_spec.tv_sec = time(NULL);
 	}
 
 	snprintf(mail->message_id, CMAIL_MESSAGEID_MAX, "%X%X.%X-%s", (unsigned)time_spec.tv_sec, (unsigned)time_spec.tv_nsec, rand(), mail->submitter);
-	logprintf(log, LOG_INFO, "Generated message ID %s\n", mail->message_id);
+	logprintf(LOG_INFO, "Generated message ID %s\n", mail->message_id);
 
 	//iterate over recipients
 	for(i = 0; mail->forward_paths[i]; i++){
-		logprintf(log, LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->route.router ? (mail->forward_paths[i]->route.router):"outbound");
+		logprintf(LOG_DEBUG, "Routing forward path %d: %s (%s)\n", i, mail->forward_paths[i]->path, mail->forward_paths[i]->route.router ? (mail->forward_paths[i]->route.router):"outbound");
 		if(mail->forward_paths[i]->route.router){
 			//inbound mail, apply inrouter
 			//TODO RFC5321 4.4 (P59) says partial accepted recipient list should 200 and send failure notifications
-			switch(route_local_path(log, database, mail, mail->forward_paths[i])){
+			switch(route_local_path(database, mail, mail->forward_paths[i])){
 				case 0:
 					break;
 				case 1:
-					logprintf(log, LOG_WARNING, "Failed to store inbound entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
+					logprintf(LOG_WARNING, "Failed to store inbound entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
 					return 400;
 				default:
-					logprintf(log, LOG_WARNING, "Failed to route path %d (%s) inbound, rejecting transaction\n", i, mail->forward_paths[i]->path);
+					logprintf(LOG_WARNING, "Failed to route path %d (%s) inbound, rejecting transaction\n", i, mail->forward_paths[i]->path);
 					return 500;
 			}
 		}
 		else{
 			//outbound mail, should have been authenticated so accept it automatically
-			switch(mail_store_outbox(log, database->mail_storage.outbox_master, NULL, mail->forward_paths[i]->path, mail)){
+			switch(mail_store_outbox(database->mail_storage.outbox_master, NULL, mail->forward_paths[i]->path, mail)){
 				case 0:
 					break;
 				case 1:
-					logprintf(log, LOG_WARNING, "Failed to store outbound entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
+					logprintf(LOG_WARNING, "Failed to store outbound entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
 					return 400;
 				default:
-					logprintf(log, LOG_WARNING, "Failed to route path %d (%s) outbound, rejecting transaction\n", i, mail->forward_paths[i]->path);
+					logprintf(LOG_WARNING, "Failed to route path %d (%s) outbound, rejecting transaction\n", i, mail->forward_paths[i]->path);
 					return 500;
 			}
 		}
@@ -47,7 +47,7 @@ int mail_route(LOGGER log, MAIL* mail, DATABASE* database){
 	return rv;
 }
 
-int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE* database){
+int mail_originate(char* user, MAIL* mail, MAILROUTE route, DATABASE* database){
 	int rv = 250, i;
 
 	//user has no routing entry, reject the mail
@@ -56,7 +56,7 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE
 		return 500;
 	}
 
-	logprintf(log, LOG_INFO, "Outbound router for connected user %s is %s (%s)\n", user, route.router, route.argument?route.argument:"none");
+	logprintf(LOG_INFO, "Outbound router for connected user %s is %s (%s)\n", user, route.router, route.argument?route.argument:"none");
 
 	if(!strcmp(route.router, "drop")){
 		//done.
@@ -65,22 +65,22 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE
 		if(route.argument){
 			for(i = 0; mail->forward_paths[i]; i++){
 				//insert into outbound table
-				logprintf(log, LOG_DEBUG, "Handing off path %d: %s\n", i, mail->forward_paths[i]->path);
-				switch(mail_store_outbox(log, database->mail_storage.outbox_master, route.argument, mail->forward_paths[i]->path, mail)){
+				logprintf(LOG_DEBUG, "Handing off path %d: %s\n", i, mail->forward_paths[i]->path);
+				switch(mail_store_outbox(database->mail_storage.outbox_master, route.argument, mail->forward_paths[i]->path, mail)){
 					case 0:
 						break;
 					case 1:
-						logprintf(log, LOG_WARNING, "Failed to store handoff entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
+						logprintf(LOG_WARNING, "Failed to store handoff entry for path %d (%s), deferring transaction\n", i, mail->forward_paths[i]->path);
 						return 400;
 					default:
-						logprintf(log, LOG_WARNING, "Failed to route path %d (%s) via handoff, rejecting transaction\n", i, mail->forward_paths[i]->path);
+						logprintf(LOG_WARNING, "Failed to route path %d (%s) via handoff, rejecting transaction\n", i, mail->forward_paths[i]->path);
 						return 500;
 				}
 			}
 		}
 	}
 	else{
-		rv = mail_route(log, mail, database);
+		rv = mail_route(mail, database);
 	}
 
 	//may check for invalid routers here
@@ -88,38 +88,38 @@ int mail_originate(LOGGER log, char* user, MAIL* mail, MAILROUTE route, DATABASE
 	return rv;
 }
 
-int mail_line(LOGGER log, MAIL* mail, char* line){
-	//logprintf(log, LOG_DEBUG, "Mail line is \"%s\"\n", line);
+int mail_line(MAIL* mail, char* line){
+	//logprintf(LOG_DEBUG, "Mail line is \"%s\"\n", line);
 	if(mail->data_max>0 && mail->data_offset >= mail->data_max){
-		logprintf(log, LOG_INFO, "Mail length (%d) exceeded data length limit (%d), truncating\n", mail->data_offset, mail->data_max);
+		logprintf(LOG_INFO, "Mail length (%d) exceeded data length limit (%d), truncating\n", mail->data_offset, mail->data_max);
 		return -1;
 	}
 
 	if(!mail->data || mail->data_allocated < mail->data_offset+strlen(line) + 3){
 		mail->data = realloc(mail->data, mail->data_allocated + strlen(line) + 3);
 		if(!mail->data){
-			logprintf(log, LOG_ERROR, "Failed to reallocate mail buffer\n");
+			logprintf(LOG_ERROR, "Failed to reallocate mail buffer\n");
 			return -1;
 		}
 		mail->data_allocated += strlen(line) + 3;
-		logprintf(log, LOG_DEBUG, "Reallocated mail data buffer to %d bytes\n", mail->data_allocated);
+		logprintf(LOG_DEBUG, "Reallocated mail data buffer to %d bytes\n", mail->data_allocated);
 	}
 
 	if(mail->data_offset != 0){
 		//insert crlf
-		logprintf(log, LOG_DEBUG, "Inserting newline into data buffer\n");
+		logprintf(LOG_DEBUG, "Inserting newline into data buffer\n");
 		mail->data[mail->data_offset++] = '\r';
 		mail->data[mail->data_offset++] = '\n';
 	}
 
 	//mind the terminator
-	logprintf(log, LOG_DEBUG, "Adding %d bytes to mail at index %d\n", strlen(line), mail->data_offset);
+	logprintf(LOG_DEBUG, "Adding %d bytes to mail at index %d\n", strlen(line), mail->data_offset);
 	strncpy(mail->data + mail->data_offset, line, strlen(line) + 1);
 	mail->data_offset += strlen(line);
 	return 0;
 }
 
-int mail_recvheader(LOGGER log, MAIL* mail, char* announce, bool suppress_submitter){
+int mail_recvheader(MAIL* mail, char* announce, bool suppress_submitter){
 	char time_buffer[SMTP_HEADER_LINE_MAX];
 	char* recv_header = NULL;
 	unsigned header_allocated = 0;
@@ -130,7 +130,7 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce, bool suppress_submit
 
 	//create timestring
 	if(common_tprintf("%a, %d %b %Y %T %z", time(NULL), time_buffer, sizeof(time_buffer) - 1) < 0){
-		logprintf(log, LOG_ERROR, "Failed to get current time, buffer length probably not suitable\n");
+		logprintf(LOG_ERROR, "Failed to get current time, buffer length probably not suitable\n");
 		snprintf(time_buffer, sizeof(time_buffer)-1, "Time failed");
 	}
 
@@ -145,11 +145,11 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce, bool suppress_submit
 			time_buffer);
 
 	if(!recv_header){
-		logprintf(log, LOG_ERROR, "Failed to allocate memory for Received: header\n");
+		logprintf(LOG_ERROR, "Failed to allocate memory for Received: header\n");
 		return -1;
 	}
 
-	logprintf(log, LOG_DEBUG, "%d bytes of header data: %s\n", header_allocated, recv_header);
+	logprintf(LOG_DEBUG, "%d bytes of header data: %s\n", header_allocated, recv_header);
 
 	for(i = 0; i <= header_allocated; i++){
 		if(recv_header[i] == ' '){
@@ -162,7 +162,7 @@ int mail_recvheader(LOGGER log, MAIL* mail, char* announce, bool suppress_submit
 			if(recv_header[i]){
 				recv_header[mark] = 0;
 			}
-			mail_line(log, mail, recv_header + off);
+			mail_line(mail, recv_header + off);
 			//un-terminate
 			recv_header[mark] = ' ';
 
@@ -228,7 +228,7 @@ int mail_reset(MAIL* mail){
 	return 0;
 }
 
-int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path){
+int mail_store_inbox(sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path){
 	//calling contract: 0 -> ok, -1 -> fail, 1 -> defer
 	int status;
 
@@ -239,7 +239,7 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 		|| sqlite3_bind_text(stmt, 5, mail->submitter, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_text(stmt, 6, mail->protocol, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_text(stmt, 7, mail->data, -1, SQLITE_STATIC) != SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
+		logprintf(LOG_ERROR, "Failed to bind mail storage parameter\n");
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);
 		return -1;
@@ -256,7 +256,7 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 			status = -1;
 			break;
 		default:
-			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
+			logprintf(LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
 			status = 1;
 	}
 
@@ -265,7 +265,7 @@ int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* curre
 	return status;
 }
 
-int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail){
+int mail_store_outbox(sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail){
 	//calling contract: 0 -> ok, -1 -> fail, 1 -> defer
 	int status;
 
@@ -274,7 +274,7 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 		|| sqlite3_bind_text(stmt, 3, envelope_to, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_text(stmt, 4, mail->submitter, -1, SQLITE_STATIC) != SQLITE_OK
 		|| sqlite3_bind_text(stmt, 5, mail->data, -1, SQLITE_STATIC) != SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind mail storage parameter\n");
+		logprintf(LOG_ERROR, "Failed to bind mail storage parameter\n");
 		sqlite3_reset(stmt);
 		sqlite3_clear_bindings(stmt);
 		return -1;
@@ -291,7 +291,7 @@ int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* e
 			status = -1;
 			break;
 		default:
-			logprintf(log, LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
+			logprintf(LOG_INFO, "Unhandled return value from insert statement: %d\n", status);
 			status = 1;
 			break;
 	}

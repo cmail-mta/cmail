@@ -6,22 +6,22 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 	if(!strcmp(directive, "user")){
 		user_info = getpwnam(params);
 		if(!user_info){
-			logprintf(config->log, LOG_ERROR, "Failed to get user info for %s\n", params);
+			logprintf(LOG_ERROR, "Failed to get user info for %s\n", params);
 			return -1;
 		}
 		config->privileges.uid = user_info->pw_uid;
 		config->privileges.gid = user_info->pw_gid;
-		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to uid %d gid %d\n", config->privileges.uid, config->privileges.gid);
+		logprintf(LOG_DEBUG, "Configured dropped privileges to uid %d gid %d\n", config->privileges.uid, config->privileges.gid);
 		return 0;
 	}
 	else if(!strcmp(directive, "group")){
 		group_info = getgrnam(params);
 		if(!group_info){
-			logprintf(config->log, LOG_ERROR, "Failed to get group info for %s\n", params);
+			logprintf(LOG_ERROR, "Failed to get group info for %s\n", params);
 			return -1;
 		}
 		config->privileges.gid = group_info->gr_gid;
-		logprintf(config->log, LOG_DEBUG, "Configured dropped privileges to gid %d\n", config->privileges.gid);
+		logprintf(LOG_DEBUG, "Configured dropped privileges to gid %d\n", config->privileges.gid);
 		return 0;
 	}
 	return -1;
@@ -29,11 +29,11 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 
 int config_database(CONFIGURATION* config, char* directive, char* params){
 	if(config->database.conn){
-		logprintf(config->log, LOG_ERROR, "Can not use %s as master database, another one is already attached\n", params);
+		logprintf(LOG_ERROR, "Can not use %s as master database, another one is already attached\n", params);
 		return -1;
 	}
 
-	config->database.conn = database_open(config->log, params, SQLITE_OPEN_READWRITE);
+	config->database.conn = database_open(params, SQLITE_OPEN_READWRITE);
 
 	return (config->database.conn) ? 0:-1;
 }
@@ -60,18 +60,18 @@ int config_bounceto(CONFIGURATION* config, char* directive, char* params){
 		if(bounce_rcpt){
 			config->settings.bounce_to = realloc(config->settings.bounce_to, (i + 2) * sizeof(char*));
 			if(!config->settings.bounce_to){
-				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for bounce_copy buffer\n");
+				logprintf(LOG_ERROR, "Failed to allocate memory for bounce_copy buffer\n");
 				return -1;
 			}
 
 			config->settings.bounce_to[i + 1] = NULL;
 			config->settings.bounce_to[i] = common_strdup(bounce_rcpt);
 			if(!config->settings.bounce_to[i]){
-				logprintf(config->log, LOG_ERROR, "Failed to allocate memory for bounce_copy buffer entry\n");
+				logprintf(LOG_ERROR, "Failed to allocate memory for bounce_copy buffer entry\n");
 				return -1;
 			}
 			else{
-				logprintf(config->log, LOG_INFO, "Added bounce copy recipient %d: %s\n", i, bounce_rcpt);
+				logprintf(LOG_INFO, "Added bounce copy recipient %d: %s\n", i, bounce_rcpt);
 			}
 			i++;
 		}
@@ -85,17 +85,17 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 	FILE* log_file;
 
 	if(!strcmp(directive, "verbosity")){
-		config->log.verbosity = strtoul(params, NULL, 10);
+		log_verbosity(strtoul(params, NULL, 10), true);
 		return 0;
 	}
 	else if(!strcmp(directive, "logfile")){
 		log_file = fopen(params, "a");
 		if(!log_file){
-			logprintf(config->log, LOG_ERROR, "Failed to open logfile %s for appending\n", params);
+			logprintf(LOG_ERROR, "Failed to open logfile %s for appending\n", params);
 			return -1;
 		}
-		config->log.stream = log_file;
-		config->log.log_secondary = true;
+		log_output(log_file);
+		log_verbosity(-1, true);
 		return 0;
 	}
 	return -1;
@@ -135,14 +135,14 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 
 			if(new_port.port){
 				#ifndef CMAIL_NO_TLS
-				logprintf(config->log, LOG_DEBUG, "Adding port %d: %d @ tls mode %s\n", num_ports, new_port.port, tls_modestring(new_port.tls_mode));
+				logprintf(LOG_DEBUG, "Adding port %d: %d @ tls mode %s\n", num_ports, new_port.port, tls_modestring(new_port.tls_mode));
 				#else
-				logprintf(config->log, LOG_DEBUG, "Adding port %d in position %d\n", new_port.port, num_ports);
+				logprintf(LOG_DEBUG, "Adding port %d in position %d\n", new_port.port, num_ports);
 				#endif
 
 				config->settings.port_list = realloc(config->settings.port_list, (num_ports + 1) * sizeof(REMOTE_PORT));
 				if(!config->settings.port_list){
-					logprintf(config->log, LOG_ERROR, "Failed to allocate memory for port list\n");
+					logprintf(LOG_ERROR, "Failed to allocate memory for port list\n");
 					return -1;
 				}
 				config->settings.port_list[num_ports] = new_port;
@@ -150,7 +150,7 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 				num_ports++;
 			}
 			else{
-				logprintf(config->log, LOG_WARNING, "Invalid port config stanza\n");
+				logprintf(LOG_WARNING, "Invalid port config stanza\n");
 			}
 		}
 
@@ -161,7 +161,7 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 	//add sentinel port
 	config->settings.port_list = realloc(config->settings.port_list, (num_ports + 1) * sizeof(REMOTE_PORT));
 	if(!config->settings.port_list){
-		logprintf(config->log, LOG_ERROR, "Failed to allocate memory for port list\n");
+		logprintf(LOG_ERROR, "Failed to allocate memory for port list\n");
 		return -1;
 	}
 	config->settings.port_list[num_ports] = empty_port;
@@ -171,14 +171,14 @@ int config_ports(CONFIGURATION* config, char* directive, char* params){
 
 int config_pidfile(CONFIGURATION* config, char* directive, char* params){
 	if(config->pid_file){
-		logprintf(config->log, LOG_ERROR, "Multiple pidfile stanzas read, aborting\n");
+		logprintf(LOG_ERROR, "Multiple pidfile stanzas read, aborting\n");
 		return -1;
 	}
 
 	config->pid_file = common_strdup(params);
 
 	if(!config->pid_file){
-		logprintf(config->log, LOG_ERROR, "Failed to allocate memory for pidfile path\n");
+		logprintf(LOG_ERROR, "Failed to allocate memory for pidfile path\n");
 		return -1;
 	}
 	return 0;
@@ -269,13 +269,13 @@ int config_line(void* config_data, char* line){
 		return config_pidfile(config, line, line + parameter);
 	}
 
-	logprintf(config->log, LOG_ERROR, "Unknown configuration directive %s\n", line);
+	logprintf(LOG_ERROR, "Unknown configuration directive %s\n", line);
 	return -1;
 }
 
 void config_free(CONFIGURATION* config){
 	unsigned i;
-	database_free(config->log, &(config->database));
+	database_free(&(config->database));
 
 	if(config->settings.helo_announce){
 		free(config->settings.helo_announce);
@@ -304,8 +304,9 @@ void config_free(CONFIGURATION* config){
 	gnutls_certificate_free_credentials(config->settings.tls_credentials);
 	#endif
 
-	if(config->log.stream != stderr){
-		fclose(config->log.stream);
-		config->log.stream = stderr;
+	if(log_output(NULL) != stderr){
+		fflush(log_output(NULL));
+		fclose(log_output(NULL));
+		log_output(stderr);
 	}
 }

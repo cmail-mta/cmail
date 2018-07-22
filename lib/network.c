@@ -4,7 +4,7 @@
  * For further information, consult LICENSE.txt
  */
 
-ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned bytes){
+ssize_t network_read(CONNECTION* client, char* buffer, unsigned bytes){
 	int status;
 
 	#ifndef CMAIL_NO_TLS
@@ -17,14 +17,14 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 			status = gnutls_handshake(client->tls_session);
 			if(status){
 				if(gnutls_error_is_fatal(status)){
-					logprintf(log, LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
+					logprintf(LOG_ERROR, "TLS Handshake reported fatal error: %s\n", gnutls_strerror(status));
 					return -2;
 				}
-				logprintf(log, LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
+				logprintf(LOG_WARNING, "TLS Handshake reported nonfatal error: %s\n", gnutls_strerror(status));
 				return -1;
 			}
 
-			logprintf(log, LOG_INFO, "TLS Handshake completed\n");
+			logprintf(LOG_INFO, "TLS Handshake completed\n");
 			return 0;
 		case TLS_ONLY:
 			//read with tls
@@ -34,11 +34,11 @@ ssize_t network_read(LOGGER log, CONNECTION* client, char* buffer, unsigned byte
 	return recv(client->fd, buffer, bytes, 0);
 	#endif
 
-	logprintf(log, LOG_ERROR, "Network read with invalid TLSMODE\n");
+	logprintf(LOG_ERROR, "Network read with invalid TLSMODE\n");
 	return -2;
 }
 
-int network_connect(LOGGER log, char* host, uint16_t port){
+int network_connect(char* host, uint16_t port){
 	int sockfd = -1, error;
 	char port_str[20];
 	struct addrinfo hints;
@@ -53,7 +53,7 @@ int network_connect(LOGGER log, char* host, uint16_t port){
 
 	error = getaddrinfo(host, port_str, &hints, &head);
 	if(error){
-		logprintf(log, LOG_WARNING, "getaddrinfo: %s\r\n", gai_strerror(error));
+		logprintf(LOG_WARNING, "getaddrinfo: %s\r\n", gai_strerror(error));
 		return -1;
 	}
 
@@ -76,19 +76,19 @@ int network_connect(LOGGER log, char* host, uint16_t port){
 	iter = NULL;
 
 	if(sockfd < 0){
-		logprintf(log, LOG_WARNING, "Failed to create client socket: %s\n", strerror(errno));
+		logprintf(LOG_WARNING, "Failed to create client socket: %s\n", strerror(errno));
 		return -1;
 	}
 
 	if(error != 0){
-		logprintf(log, LOG_WARNING, "Failed to connect: %s\n", strerror(errno));
+		logprintf(LOG_WARNING, "Failed to connect: %s\n", strerror(errno));
 		return -1;
 	}
 
 	return sockfd;
 }
 
-int network_listener(LOGGER log, char* bindhost, char* port){
+int network_listener(char* bindhost, char* port){
 	int fd = -1, status, yes = 1;
 	struct addrinfo hints;
 	struct addrinfo* info;
@@ -102,7 +102,7 @@ int network_listener(LOGGER log, char* bindhost, char* port){
 
 	status = getaddrinfo(bindhost, port, &hints, &info);
 	if(status){
-		logprintf(log, LOG_ERROR, "Failed to get socket info for %s port %s: %s\n", bindhost, port, gai_strerror(status));
+		logprintf(LOG_ERROR, "Failed to get socket info for %s port %s: %s\n", bindhost, port, gai_strerror(status));
 		return -1;
 	}
 
@@ -113,12 +113,12 @@ int network_listener(LOGGER log, char* bindhost, char* port){
 		}
 
 		if(setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&yes, sizeof(yes)) < 0){
-			logprintf(log, LOG_WARNING, "Failed to set IPV6_V6ONLY on socket for %s port %s: %s\n", bindhost, port, strerror(errno));
+			logprintf(LOG_WARNING, "Failed to set IPV6_V6ONLY on socket for %s port %s: %s\n", bindhost, port, strerror(errno));
 		}
 
 		yes = 1;
 		if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&yes, sizeof(yes)) < 0){
-			logprintf(log, LOG_WARNING, "Failed to set SO_REUSEADDR on socket\n");
+			logprintf(LOG_WARNING, "Failed to set SO_REUSEADDR on socket\n");
 		}
 
 		status = bind(fd, addr_it->ai_addr, addr_it->ai_addrlen);
@@ -133,13 +133,13 @@ int network_listener(LOGGER log, char* bindhost, char* port){
 	freeaddrinfo(info);
 
 	if(!addr_it){
-		logprintf(log, LOG_ERROR, "Failed to create listening socket for %s port %s\n", bindhost, port);
+		logprintf(LOG_ERROR, "Failed to create listening socket for %s port %s\n", bindhost, port);
 		return -1;
 	}
 
 	status = listen(fd, LISTEN_QUEUE_LENGTH);
 	if(status < 0){
-		logprintf(log, LOG_ERROR, "Failed to listen on socket: %s", strerror(errno));
+		logprintf(LOG_ERROR, "Failed to listen on socket: %s", strerror(errno));
 		close(fd);
 		return -1;
 	}

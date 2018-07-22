@@ -4,7 +4,6 @@
 #include "../lib/common.h"
 
 #include "../lib/common.c"
-#include "../lib/logger.c"
 
 // database functions
 #include "../lib/database.h"

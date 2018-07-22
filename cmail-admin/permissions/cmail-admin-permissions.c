@@ -32,110 +32,110 @@ int usage(char* fn){
 
 #include "../lib/common.c"
 
-int mode_grant(LOGGER log, sqlite3* db, int argc, char** argv) {
+int mode_grant(sqlite3* db, int argc, char** argv) {
 
 	if (argc < 3) {
-		logprintf(log, LOG_ERROR, "Not enough arguments for grant\n\n");
+		logprintf(LOG_ERROR, "Not enough arguments for grant\n\n");
 		return 20;
 	}
 
-	return sqlite_add_permission(log, db, argv[1], argv[2]);
+	return sqlite_add_permission(db, argv[1], argv[2]);
 }
 
-int mode_revoke(LOGGER log, sqlite3* db, int argc, char** argv) {
+int mode_revoke(sqlite3* db, int argc, char** argv) {
 	int status = 0;
 
 	if (argc < 2) {
-		logprintf(log, LOG_ERROR, "Not enough arguments for revoke\n\n");
+		logprintf(LOG_ERROR, "Not enough arguments for revoke\n\n");
 		return 20;
 	} else if (argc > 2) {
 		int i;
 		// for every permission
 		for (i = 2; i < argc; i++) {
 			if (!status) {
-				status = sqlite_delete_permission(log, db, argv[1], argv[i]);
+				status = sqlite_delete_permission(db, argv[1], argv[i]);
 			}
 		}
 	} else {
-		status = sqlite_delete_permissions(log, db, argv[1]);
+		status = sqlite_delete_permissions(db, argv[1]);
 	}
 	return status;
 }
 
-int mode_delete(LOGGER log, sqlite3* db, int argc, char** argv) {
+int mode_delete(sqlite3* db, int argc, char** argv) {
 	int status = 0;
 
 	if (argc < 4) {
-		logprintf(log, LOG_ERROR, "Not enough arguments for delete\n\n");
+		logprintf(LOG_ERROR, "Not enough arguments for delete\n\n");
 		return 20;
 	}
 
 	if (!strcmp(argv[1], "expression")) {
-		status = sqlite_delete_address_delegation(log, db, argv[2], argv[3]);
+		status = sqlite_delete_address_delegation(db, argv[2], argv[3]);
 	} else if (!strcmp(argv[1], "user")) {
-		status = sqlite_delete_user_delegation(log, db, argv[2], argv[3]);
+		status = sqlite_delete_user_delegation(db, argv[2], argv[3]);
 	} else {
-		logprintf(log, LOG_ERROR, "Mode %s not recognised\n\n", argv[1]);
+		logprintf(LOG_ERROR, "Mode %s not recognised\n\n", argv[1]);
 		return 120;
 	}
 	return status;
 }
 
-int mode_delegate(LOGGER log, sqlite3* db, int argc, char** argv) {
+int mode_delegate(sqlite3* db, int argc, char** argv) {
 	int status = 0;
 
 	if (argc < 2) {
-		status = sqlite_get_delegated(log, db, "%");
+		status = sqlite_get_delegated(db, "%");
 	// add delegated address
 	} else if (!strcmp(argv[1], "address")) {
 
 		// list delegated addresses
 		if (argc < 3) {
-			status = sqlite_get_delegated_addresses(log, db, "%");
+			status = sqlite_get_delegated_addresses(db, "%");
 		// list delegated addresses by user
 		} else if (argc < 4) {
-			status = sqlite_get_delegated_addresses(log, db, argv[2]);
+			status = sqlite_get_delegated_addresses(db, argv[2]);
 		// add delegated addresses
 		} else {
-			status = sqlite_delegate_address(log, db, argv[2], argv[3]);
+			status = sqlite_delegate_address(db, argv[2], argv[3]);
 		}
 	// add delegated user
 	} else if (!strcmp(argv[1], "user")) {
 
 		// list all delegated users
 		if (argc < 3) {
-			status = sqlite_get_delegated_users(log, db, "%");
+			status = sqlite_get_delegated_users(db, "%");
 		// list delegated users by username
 		} else if (argc < 4) {
-			status = sqlite_get_delegated_users(log, db, argv[2]);
+			status = sqlite_get_delegated_users(db, argv[2]);
 		// add delegation
 		} else {
-			status = sqlite_delegate_user(log, db, argv[2], argv[3]);
+			status = sqlite_delegate_user(db, argv[2], argv[3]);
 		}
 	} else {
-		status = sqlite_get_delegated(log, db, argv[1]);
+		status = sqlite_get_delegated(db, argv[1]);
 	}
 	return status;
 }
 
-int mode_list(LOGGER log, sqlite3* db, int argc, char** argv) {
+int mode_list(sqlite3* db, int argc, char** argv) {
 
 	char* filter = "%";
 	if (argc > 1) {
 		filter = argv[1];
 	}
 
-	return sqlite_get_permissions(log, db, filter);
+	return sqlite_get_permissions(db, filter);
 }
 
-int mode_rlist(LOGGER log, sqlite3* db, int argc, char** argv) {
+int mode_rlist(sqlite3* db, int argc, char** argv) {
 
 	if (argc < 2) {
-		logprintf(log, LOG_ERROR, "Permission to list is missing\n\n");
+		logprintf(LOG_ERROR, "Permission to list is missing\n\n");
 		return 20;
 	}
 
-	return sqlite_get_permissions_by_permission(log, db, argv[1]);
+	return sqlite_get_permissions_by_permission(db, argv[1]);
 }
 
 int main(int argc, char* argv[]) {
@@ -154,10 +154,7 @@ int main(int argc, char* argv[]) {
 	char* cmds[argc];
 	int cmdsc = eargs_parse(argc, argv, cmds, &config);
 
-	LOGGER log = {
-		.stream = stderr,
-		.verbosity = config.verbosity
-	};
+	log_verbosity(config.verbosity, false);
 
 	if (cmdsc < 0) {
 		return 1;
@@ -168,12 +165,12 @@ int main(int argc, char* argv[]) {
 
 
 	if (!cmdsc) {
-		logprintf(log, LOG_ERROR, "No command specified\n\n");
+		logprintf(LOG_ERROR, "No command specified\n\n");
 		return usage(argv[0]);
 	}
 
-	logprintf(log, LOG_INFO, "Opening database at %s\n", config.dbpath);
-	db = database_open(log, config.dbpath, SQLITE_OPEN_READWRITE);
+	logprintf(LOG_INFO, "Opening database at %s\n", config.dbpath);
+	db = database_open(config.dbpath, SQLITE_OPEN_READWRITE);
 
 	if (!db) {
 		usage(argv[0]);
@@ -181,26 +178,26 @@ int main(int argc, char* argv[]) {
 	}
 
 	//check database version
-	if (database_schema_version(log, db) != CMAIL_CURRENT_SCHEMA_VERSION) {
-		logprintf(log, LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
+	if (database_schema_version(db) != CMAIL_CURRENT_SCHEMA_VERSION) {
+		logprintf(LOG_ERROR, "The specified database (%s) is at an unsupported schema version.");
 		sqlite3_close(db);
 		return 11;
 	}
 
 	if (!strcmp(cmds[0], "grant")) {
-		status = mode_grant(log, db, cmdsc, cmds);
+		status = mode_grant(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "revoke")) {
-		status = mode_revoke(log, db, cmdsc, cmds);
+		status = mode_revoke(db, cmdsc, cmds);
 	} else if (!strcmp(cmds[0], "delete")) {
-		status = mode_delete(log, db, cmdsc, cmds);
+		status = mode_delete(db, cmdsc, cmds);
 	} else if (!strcmp(cmds[0], "delegate")) {
-		status = mode_delegate(log, db, cmdsc, cmds);
+		status = mode_delegate(db, cmdsc, cmds);
 	}  else if (!strcmp(cmds[0], "list")) {
-		status = mode_list(log, db, cmdsc, cmds);
+		status = mode_list(db, cmdsc, cmds);
 	} else if (!strcmp(cmds[0], "rlist")) {
-		status = mode_rlist(log, db, cmdsc, cmds);
+		status = mode_rlist(db, cmdsc, cmds);
 	} else {
-		logprintf(log, LOG_WARNING, "Unkown command %s\n\n", cmds[0]);
+		logprintf(LOG_WARNING, "Unkown command %s\n\n", cmds[0]);
 		usage(argv[0]);
 	}
 

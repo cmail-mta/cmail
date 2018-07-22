@@ -4,7 +4,7 @@
  * For further information, consult LICENSE.txt
  */
 
-int auth_base64decode(LOGGER log, char* in){
+int auth_base64decode(char* in){
 	uint32_t decode_buffer;
 	unsigned padded_bytes = 3;
 	int group, i;
@@ -15,7 +15,7 @@ int auth_base64decode(LOGGER log, char* in){
 	len = strlen(in);
 
 	if(len % 4 || len == 0){
-		logprintf(log, LOG_WARNING, "Input has invalid length for base64\n");
+		logprintf(LOG_WARNING, "Input has invalid length for base64\n");
 		return -1;
 	}
 
@@ -30,14 +30,14 @@ int auth_base64decode(LOGGER log, char* in){
 					padded_bytes = 3 - (len - i);
 					break;
 				default:
-					logprintf(log, LOG_WARNING, "Invalid number of padding bytes in base64\n");
+					logprintf(LOG_WARNING, "Invalid number of padding bytes in base64\n");
 					return -1;
 			}
 			//'=' is only allowed as trailing character, so fail if it is within valid base64
 			//this is marked MUST by some rfcs (5034)
 			for(; i < len; i++){
 				if(in[i] != '='){
-					logprintf(log, LOG_WARNING, "Input string contains = as non-trailing character\n");
+					logprintf(LOG_WARNING, "Input string contains = as non-trailing character\n");
 					return -1;
 				}
 
@@ -49,7 +49,7 @@ int auth_base64decode(LOGGER log, char* in){
 
 		idx = index(base64_alphabet, in[i]);
 		if(!idx){
-			logprintf(log, LOG_WARNING, "Input string contains invalid characters\n");
+			logprintf(LOG_WARNING, "Input string contains invalid characters\n");
 			return -1;
 		}
 		in[i] = idx - base64_alphabet;
@@ -73,7 +73,7 @@ int auth_base64decode(LOGGER log, char* in){
 }
 
 //CAVEAT: this reallocs the data buffer
-int auth_base64encode(LOGGER log, uint8_t** input, size_t data_len){
+int auth_base64encode(uint8_t** input, size_t data_len){
 	//doing this myself because i want it to be mostly in-place
 	//libnettle's API does not specify whether overlapping input/output regions are okay, so i guess not
 	uint32_t encode_buffer;
@@ -84,7 +84,7 @@ int auth_base64encode(LOGGER log, uint8_t** input, size_t data_len){
 	//reallocate buffer to encoded length
 	*input = realloc(*input, (encode_triplets * 4 + 1) * sizeof(uint8_t));
 	if(!(*input)){
-		logprintf(log, LOG_ERROR, "Failed to allocate memory for base64 encoding\n");
+		logprintf(LOG_ERROR, "Failed to allocate memory for base64 encoding\n");
 		return -1;
 	}
 	memset((*input) + data_len, 0, (encode_triplets * 4 + 1) - data_len);
@@ -137,7 +137,7 @@ int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, 
 	return BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE);
 }
 
-int auth_validate(LOGGER log, sqlite3_stmt* auth_data, char* user, char* password, char** authorized_identity){
+int auth_validate(sqlite3_stmt* auth_data, char* user, char* password, char** authorized_identity){
 	int status, rv = -1;
 	char* user_salt;
 	char* stored_hash;
@@ -149,10 +149,10 @@ int auth_validate(LOGGER log, sqlite3_stmt* auth_data, char* user, char* passwor
 	}
 
 	memset(digest_b16, 0, sizeof(digest_b16));
-	logprintf(log, LOG_DEBUG, "Trying to authenticate %s\n", user);
+	logprintf(LOG_DEBUG, "Trying to authenticate %s\n", user);
 
 	if(sqlite3_bind_text(auth_data, 1, user, -1, SQLITE_STATIC) != SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to bind auth data query parameter\n");
+		logprintf(LOG_ERROR, "Failed to bind auth data query parameter\n");
 		sqlite3_reset(auth_data);
 		sqlite3_clear_bindings(auth_data);
 		return -1;
@@ -165,7 +165,7 @@ int auth_validate(LOGGER log, sqlite3_stmt* auth_data, char* user, char* passwor
 			if(user_salt){
 				stored_hash = index(user_salt, ':');
 				if(!stored_hash){
-					logprintf(log, LOG_INFO, "Rejecting authentication for user %s, database entry invalid\n", user);
+					logprintf(LOG_INFO, "Rejecting authentication for user %s, database entry invalid\n", user);
 					break;
 				}
 
@@ -174,7 +174,7 @@ int auth_validate(LOGGER log, sqlite3_stmt* auth_data, char* user, char* passwor
 
 				if(!strcmp(stored_hash + 1, digest_b16)){
 					auth_id = (char*)sqlite3_column_text(auth_data, 1);
-					logprintf(log, LOG_INFO, "Credentials for user %s OK, authorized identity: %s\n", user, auth_id ? auth_id:user);
+					logprintf(LOG_INFO, "Credentials for user %s OK, authorized identity: %s\n", user, auth_id ? auth_id:user);
 
 					//handle aliasing
 					if(authorized_identity){
@@ -188,18 +188,18 @@ int auth_validate(LOGGER log, sqlite3_stmt* auth_data, char* user, char* passwor
 					rv = 0;
 				}
 				else{
-					logprintf(log, LOG_INFO, "Credentials check failed for user %s: %s\n", user, digest_b16);
+					logprintf(LOG_INFO, "Credentials check failed for user %s: %s\n", user, digest_b16);
 				}
 			}
 			else{
-				logprintf(log, LOG_INFO, "Rejecting authentication for user %s, not enabled in database\n", user);
+				logprintf(LOG_INFO, "Rejecting authentication for user %s, not enabled in database\n", user);
 			}
 			break;
 		case SQLITE_DONE:
-			logprintf(log, LOG_INFO, "Unknown user %s\n", user);
+			logprintf(LOG_INFO, "Unknown user %s\n", user);
 			break;
 		default:
-			logprintf(log, LOG_INFO, "Unhandled return value from auth data query: %d\n", status);
+			logprintf(LOG_INFO, "Unhandled return value from auth data query: %d\n", status);
 			break;
 	}
 

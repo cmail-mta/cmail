@@ -1,4 +1,4 @@
-int database_attach(LOGGER log, DATABASE* database, char* dbfile){
+int database_attach(DATABASE* database, char* dbfile){
 	char* INSERT_USER_MAILBOX = "INSERT INTO mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
 	unsigned slot;
 	USER_DATABASE* entry;
@@ -7,7 +7,7 @@ int database_attach(LOGGER log, DATABASE* database, char* dbfile){
 	if(!database->mail_storage.users){
 		database->mail_storage.users = calloc(1, sizeof(USER_DATABASE*));
 		if(!database->mail_storage.users){
-			logprintf(log, LOG_ERROR, "Failed to allocate memory for user storage database structure\n");
+			logprintf(LOG_ERROR, "Failed to allocate memory for user storage database structure\n");
 			return -1;
 		}
 	}
@@ -23,28 +23,28 @@ int database_attach(LOGGER log, DATABASE* database, char* dbfile){
 	if(!database->mail_storage.users[slot]){
 		database->mail_storage.users = realloc(database->mail_storage.users, (slot + 2) * sizeof(USER_DATABASE*));
 		if(!database->mail_storage.users){
-			logprintf(log, LOG_ERROR, "Failed to reallocate user storage database structure\n");
+			logprintf(LOG_ERROR, "Failed to reallocate user storage database structure\n");
 			return -1;
 		}
 		database->mail_storage.users[slot + 1] = NULL;
 		database->mail_storage.users[slot] = calloc(1, sizeof(USER_DATABASE));
 		if(!database->mail_storage.users[slot]){
-			logprintf(log, LOG_ERROR, "Failed to allocate user storage database structure\n");
+			logprintf(LOG_ERROR, "Failed to allocate user storage database structure\n");
 			return -1;
 		}
 	}
 
 	entry = database->mail_storage.users[slot];
-	entry->conn = database_open(log, dbfile, SQLITE_OPEN_READWRITE);
+	entry->conn = database_open(dbfile, SQLITE_OPEN_READWRITE);
 	if(!entry->conn){
 		//this automatically makes the slot reusable (conn = NULL)
-		logprintf(log, LOG_WARNING, "Failed to connect to user database file %s\n", dbfile);
+		logprintf(LOG_WARNING, "Failed to connect to user database file %s\n", dbfile);
 		return -1;
 	}
 
-	entry->mailbox = database_prepare(log, entry->conn, INSERT_USER_MAILBOX);
+	entry->mailbox = database_prepare(entry->conn, INSERT_USER_MAILBOX);
 	if(!entry->mailbox){
-		logprintf(log, LOG_ERROR, "Failed to create user mailbox insert query\n");
+		logprintf(LOG_ERROR, "Failed to create user mailbox insert query\n");
 		//close the database connection and return the slot
 		sqlite3_close(entry->conn);
 		entry->conn = NULL;
@@ -53,7 +53,7 @@ int database_attach(LOGGER log, DATABASE* database, char* dbfile){
 
 	entry->file_name = common_strdup(dbfile);
 	if(!entry->file_name){
-		logprintf(log, LOG_ERROR, "Failed to copy user storage file name\n");
+		logprintf(LOG_ERROR, "Failed to copy user storage file name\n");
 		//close the database connection and return the slot
 		sqlite3_finalize(entry->mailbox);
 		sqlite3_close(entry->conn);
@@ -64,7 +64,7 @@ int database_attach(LOGGER log, DATABASE* database, char* dbfile){
 	return 0;
 }
 
-int database_detach(LOGGER log, USER_DATABASE* db){
+int database_detach(USER_DATABASE* db){
 	USER_DATABASE empty_db = {
 		.conn = NULL,
 		.active = false,
@@ -84,7 +84,7 @@ int database_detach(LOGGER log, USER_DATABASE* db){
 	return 0;
 }
 
-USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
+USER_DATABASE* database_userdb(DATABASE* database, char* filename){
 	unsigned i;
 
 	if(!database->mail_storage.users){
@@ -97,19 +97,19 @@ USER_DATABASE* database_userdb(LOGGER log, DATABASE* database, char* filename){
 		}
 	}
 
-	logprintf(log, LOG_INFO, "User storage queried for unknown database %s\n", filename);
+	logprintf(LOG_INFO, "User storage queried for unknown database %s\n", filename);
 	return NULL;
 }
 
-int database_refresh(LOGGER log, DATABASE* database){
+int database_refresh(DATABASE* database){
 	int status, rv = 0;
 	unsigned i;
 
 	char* QUERY_USER_DATABASES = "SELECT user_database FROM main.users WHERE user_database NOT NULL GROUP BY user_database;";
 
-	sqlite3_stmt* select_dbs = database_prepare(log, database->conn, QUERY_USER_DATABASES);
+	sqlite3_stmt* select_dbs = database_prepare(database->conn, QUERY_USER_DATABASES);
 	if(!select_dbs){
-		logprintf(log, LOG_ERROR, "Failed to prepare user storage management statement\n");
+		logprintf(LOG_ERROR, "Failed to prepare user storage management statement\n");
 		return -1;
 	}
 
@@ -125,16 +125,16 @@ int database_refresh(LOGGER log, DATABASE* database){
 		switch(status){
 			case SQLITE_ROW:
 				//if not attached, attach
-				if(!database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 0))){
+				if(!database_userdb(database, (char*)sqlite3_column_text(select_dbs, 0))){
 					//attach
-					if(database_attach(log, database, (char*)sqlite3_column_text(select_dbs, 0)) < 0){
-						logprintf(log, LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
+					if(database_attach(database, (char*)sqlite3_column_text(select_dbs, 0)) < 0){
+						logprintf(LOG_ERROR, "Failed to attach database: %s\n", sqlite3_errmsg(database->conn));
 						status = SQLITE_ERROR;
 						rv = -1;
 					}
 					else{
 						//database seems to have been attached ok, mark it active
-						database_userdb(log, database, (char*)sqlite3_column_text(select_dbs, 0))->active = true;
+						database_userdb(database, (char*)sqlite3_column_text(select_dbs, 0))->active = true;
 					}
 				}
 				break;
@@ -142,7 +142,7 @@ int database_refresh(LOGGER log, DATABASE* database){
 				//traversed all databases
 				break;
 			default:
-				logprintf(log, LOG_ERROR, "User storage database initialization failed: %s\n", sqlite3_errmsg(database->conn));
+				logprintf(LOG_ERROR, "User storage database initialization failed: %s\n", sqlite3_errmsg(database->conn));
 				rv = -1;
 				break;
 		}
@@ -154,7 +154,7 @@ int database_refresh(LOGGER log, DATABASE* database){
 		for(i = 0; database->mail_storage.users[i]; i++){
 			if(!database->mail_storage.users[i]->active){
 				//FIXME check this for return value
-				database_detach(log, database->mail_storage.users[i]);
+				database_detach(database->mail_storage.users[i]);
 			}
 		}
 	}
@@ -163,7 +163,7 @@ int database_refresh(LOGGER log, DATABASE* database){
 	return rv;
 }
 
-int database_initialize(LOGGER log, DATABASE* database){
+int database_initialize(DATABASE* database){
 	char* QUERY_ADDRESS_INFO = "SELECT address_router, address_route FROM main.addresses WHERE ? LIKE address_expression ORDER BY address_order DESC;";
 	char* INSERT_MASTER_MAILBOX = "INSERT INTO main.mailbox (mail_user, mail_ident, mail_envelopeto, mail_envelopefrom, mail_submitter, mail_proto, mail_data) VALUES (?, ?, ?, ?, ?, ?, ?);";
 	char* INSERT_MASTER_OUTBOX = "INSERT INTO main.outbox (mail_remote, mail_envelopefrom, mail_envelopeto, mail_submitter, mail_data) VALUES (?, ?, ?, ?, ?);";
@@ -173,41 +173,41 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* QUERY_AUTHENTICATION_DATA = "SELECT user_authdata, user_alias, user_database FROM main.users WHERE user_name = ?;";
 
 	//check the database schema version
-	if(database_schema_version(log, database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
-		logprintf(log, LOG_ERROR, "The database schema is at another version than required for this build\n");
+	if(database_schema_version(database->conn)!=CMAIL_CURRENT_SCHEMA_VERSION){
+		logprintf(LOG_ERROR, "The database schema is at another version than required for this build\n");
 		return -1;
 	}
 
-	database->query_authdata = database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
-	database->query_address = database_prepare(log, database->conn, QUERY_ADDRESS_INFO);
-	database->query_outbound_router = database_prepare(log, database->conn, QUERY_ORIGINATING_ROUTER);
-	database->mail_storage.mailbox_master = database_prepare(log, database->conn, INSERT_MASTER_MAILBOX);
-	database->mail_storage.outbox_master = database_prepare(log, database->conn, INSERT_MASTER_OUTBOX);
+	database->query_authdata = database_prepare(database->conn, QUERY_AUTHENTICATION_DATA);
+	database->query_address = database_prepare(database->conn, QUERY_ADDRESS_INFO);
+	database->query_outbound_router = database_prepare(database->conn, QUERY_ORIGINATING_ROUTER);
+	database->mail_storage.mailbox_master = database_prepare(database->conn, INSERT_MASTER_MAILBOX);
+	database->mail_storage.outbox_master = database_prepare(database->conn, INSERT_MASTER_OUTBOX);
 
 	if(!database->query_authdata){
-		logprintf(log, LOG_ERROR, "Failed to prepare authentication data query\n");
+		logprintf(LOG_ERROR, "Failed to prepare authentication data query\n");
 		return -1;
 	}
 
 	if(!database->query_address){
-		logprintf(log, LOG_ERROR, "Failed to prepare address query statement\n");
+		logprintf(LOG_ERROR, "Failed to prepare address query statement\n");
 		return -1;
 	}
 
 	if(!database->query_outbound_router){
-		logprintf(log, LOG_ERROR, "Failed to prepare outbound router query statement\n");
+		logprintf(LOG_ERROR, "Failed to prepare outbound router query statement\n");
 		return -1;
 	}
 
 	if(!database->mail_storage.mailbox_master || !database->mail_storage.outbox_master){
-		logprintf(log, LOG_ERROR, "Failed to prepare mail storage statement\n");
+		logprintf(LOG_ERROR, "Failed to prepare mail storage statement\n");
 		return -1;
 	}
 
-	return database_refresh(log, database);
+	return database_refresh(database);
 }
 
-void database_free(LOGGER log, DATABASE* database){
+void database_free(DATABASE* database){
 	unsigned i;
 
 	//FIXME check for SQLITE_BUSY here
@@ -222,7 +222,7 @@ void database_free(LOGGER log, DATABASE* database){
 		if(database->mail_storage.users){
 			for(i = 0; database->mail_storage.users[i]; i++){
 				//FIXME user return value
-				database_detach(log, database->mail_storage.users[i]);
+				database_detach(database->mail_storage.users[i]);
 
 				free(database->mail_storage.users[i]);
 			}
