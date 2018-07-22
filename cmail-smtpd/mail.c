@@ -123,8 +123,7 @@ int mail_recvheader(MAIL* mail, char* announce, bool suppress_submitter){
 	char time_buffer[SMTP_HEADER_LINE_MAX];
 	char* recv_header = NULL;
 	size_t header_allocated = 0;
-
-	unsigned mark = 0, i, off = 0;
+	size_t mark = 0, i, off = 0;
 
 	MAILPATH* forward_path = (mail->forward_paths[1]) ? NULL:mail->forward_paths[0];
 

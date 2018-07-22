@@ -29,7 +29,7 @@ int common_rand(void* target, size_t bytes){
 	return data_read;
 }
 
-int common_strrepl(char* buffer, unsigned length, char* variable, char* replacement){
+int common_strrepl(char* buffer, size_t length, char* variable, char* replacement){
 	char* occurence = NULL;
 	unsigned offset = 0;
 	unsigned character_offset;
