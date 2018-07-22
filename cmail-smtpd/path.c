@@ -1,5 +1,5 @@
 //TODO test this thoroughly
-int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
+int path_parse(char* pathspec, MAILPATH* path){
 	//See http://cr.yp.to/smtp/address.html for hints on address parsing
 	bool quotes = false, done_parsing = false, comment = false;
 	unsigned out_pos = 0, in_pos = 0;
@@ -8,7 +8,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	for(; isspace(pathspec[0]); pathspec++){
 	}
 
-	logprintf(log, LOG_DEBUG, "Parsing path %s\n", pathspec);
+	logprintf(LOG_DEBUG, "Parsing path %s\n", pathspec);
 
 	for(in_pos = 0; !done_parsing && out_pos < (SMTP_MAX_PATH_LENGTH - 1) && pathspec[in_pos]; in_pos++){
 		if(!comment){
@@ -33,7 +33,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 							path->path[out_pos++] = pathspec[in_pos];
 						}
 						else{
-							logprintf(log, LOG_WARNING, "Multiple delimiters in path\n");
+							logprintf(LOG_WARNING, "Multiple delimiters in path\n");
 							return -1;
 						}
 					}
@@ -67,7 +67,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 					break;
 				case ')':
 					//comment closed without active comment context
-					logprintf(log, LOG_WARNING, "Path contained illegal parenthesis\n");
+					logprintf(LOG_WARNING, "Path contained illegal parenthesis\n");
 					return -1;
 				case '<':
 					if(!quotes){
@@ -97,7 +97,7 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 	path->path[out_pos] = 0;
 
 	if(comment){
-		logprintf(log, LOG_WARNING, "Path contains unterminated comment\n");
+		logprintf(LOG_WARNING, "Path contains unterminated comment\n");
 		return -1;
 	}
 
@@ -105,17 +105,17 @@ int path_parse(LOGGER log, char* pathspec, MAILPATH* path){
 		path->delimiter_position = strlen(path->path);
 	}
 
-	logprintf(log, LOG_DEBUG, "Result is %s, delimiter is at %d\n", path->path, path->delimiter_position);
+	logprintf(LOG_DEBUG, "Result is %s, delimiter is at %d\n", path->path, path->delimiter_position);
 	return 0;
 }
 
 // If originating_user is set, this checks if the user may use the path outbound
-int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originating_user, bool is_reverse){
+int path_resolve(MAILPATH* path, DATABASE* database, char* originating_user, bool is_reverse){
 	int status, rv = -1;
 
 	//this early exit should never have to be taken
 	if(path->route.router){
-		logprintf(log, LOG_WARNING, "Taking early exit for path %s, please notify the developers\n", path->path);
+		logprintf(LOG_WARNING, "Taking early exit for path %s, please notify the developers\n", path->path);
 		return 0;
 	}
 
@@ -149,7 +149,7 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 				}
 
 				if(!path->route.router){
-					logprintf(log, LOG_ERROR, "Failed to allocate storage for routing data\n");
+					logprintf(LOG_ERROR, "Failed to allocate storage for routing data\n");
 					//fail temporarily
 					rv = -1;
 					break;
@@ -172,18 +172,18 @@ int path_resolve(LOGGER log, MAILPATH* path, DATABASE* database, char* originati
 				//already handled during loop
 				break;
 			case SQLITE_DONE:
-				logprintf(log, LOG_INFO, "No address match found\n");
+				logprintf(LOG_INFO, "No address match found\n");
 				//continue with this path marked as non-local
 				rv = 0;
 				break;
 			default:
-				logprintf(log, LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database->conn));
+				logprintf(LOG_ERROR, "Failed to query wildcard: %s\n", sqlite3_errmsg(database->conn));
 				rv = -1;
 				break;
 		}
 	}
 	else{
-		logprintf(log, LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
+		logprintf(LOG_ERROR, "Failed to bind search parameter: %s\n", sqlite3_errmsg(database->conn));
 		rv = -1;
 	}
 

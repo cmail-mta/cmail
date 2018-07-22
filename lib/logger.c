@@ -4,68 +4,110 @@
  * For further information, consult LICENSE.txt
  */
 
-void logprintf(LOGGER log, unsigned level, char* fmt, ...){
+#include "logger.h"
+#include "common.h"
+
+struct /*_LOGGER*/ {
+	FILE* stream;
+	unsigned verbosity;
+	bool log_secondary;
+	bool print_timestamp;
+	#ifdef LOGGER_MT_SAFE
+	pthread_mutex_t* sync;
+	#endif
+} logger = {
+	.stream = NULL,
+	.verbosity = 0,
+	.log_secondary = false,
+	.print_timestamp = true
+};
+
+void logprintf(unsigned level, char* fmt, ...){
 	va_list args;
 	va_list copy;
 	char timestring[LOGGER_TIMESTRING_LEN];
 
 	va_start(args, fmt);
 
-	if(log.print_timestamp){
+	if(!logger.stream){
+		logger.stream = stderr;
+	}
+
+	if(logger.print_timestamp){
 		if(common_tprintf("%a, %d %b %Y %T %z", time(NULL), timestring, sizeof(timestring) - 1) < 0){
-			snprintf(timestring, sizeof(timestring)-1, "Time failed");
+			snprintf(timestring, sizeof(timestring) - 1, "Time failed");
 		}
 	}
 
-	if(log.log_secondary){
-		if(log.verbosity >= level){
+	if(logger.log_secondary){
+		if(logger.verbosity >= level){
 			va_copy(copy, args);
 			#ifdef LOGGER_MT_SAFE
-			if(log.sync){
+			if(logger.sync){
 				pthread_mutex_lock(log.sync);
 			}
 			#endif
-			if(log.print_timestamp){
+			if(logger.print_timestamp){
 				fprintf(stderr, "%s ", timestring);
 			}
 			vfprintf(stderr, fmt, copy);
 			fflush(stderr);
 			#ifdef LOGGER_MT_SAFE
-			if(log.sync){
-				pthread_mutex_unlock(log.sync);
+			if(logger.sync){
+				pthread_mutex_unlock(logger.sync);
 			}
 			#endif
 			va_end(copy);
 		}
 	}
 
-	if(log.verbosity >= level){
+	if(logger.verbosity >= level){
 		#ifdef LOGGER_MT_SAFE
-		if(log.sync){
-			pthread_mutex_lock(log.sync);
+		if(logger.sync){
+			pthread_mutex_lock(logger.sync);
 		}
 		#endif
-		if(log.print_timestamp){
-			fprintf(log.stream, "%s ", timestring);
+		if(logger.print_timestamp){
+			fprintf(logger.stream, "%s ", timestring);
 		}
-		vfprintf(log.stream, fmt, args);
-		fflush(log.stream);
+		vfprintf(logger.stream, fmt, args);
+		fflush(logger.stream);
 		#ifdef LOGGER_MT_SAFE
-		if(log.sync){
-			pthread_mutex_unlock(log.sync);
+		if(logger.sync){
+			pthread_mutex_unlock(logger.sync);
 		}
 		#endif
 	}
 	va_end(args);
 }
 
-void log_dump_buffer(LOGGER log, unsigned level, void* buffer, size_t bytes){
+void log_dump_buffer(unsigned level, void* buffer, size_t bytes){
 	uint8_t* data = (uint8_t*)buffer;
 	size_t i;
 
-	logprintf(log, level, "Buffer dump (%d bytes)\n", bytes);
+	logprintf(level, "Buffer dump (%d bytes)\n", bytes);
 
 	for(i = 0; i < bytes; i++){
-		logprintf(log, level, "Position %d: (%c, %02x)\n", i, isprint(data[i]) ? data[i]:'.', data[i]);
+		logprintf(level, "Position %d: (%c, %02x)\n", i, isprint(data[i]) ? data[i]:'.', data[i]);
 	}
+}
+
+void log_verbosity(int level, bool secondary){
+	if(level >= 0){
+		logger.verbosity = level;
+	}
+
+	logger.log_secondary = secondary;
+}
+
+FILE* log_output(FILE* stream){
+	if(stream){
+		logger.stream = stream;
+	}
+
+	if(!logger.stream){
+		logger.stream = stderr;
+	}
+
+	return logger.stream;
 }

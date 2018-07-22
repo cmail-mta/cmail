@@ -8,3 +8,4 @@ rtldumps/*
 *.pem
 *.gz
 tests/coverage
+*.o

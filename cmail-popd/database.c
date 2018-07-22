@@ -1,4 +1,4 @@
-int database_initialize(LOGGER log, DATABASE* database){
+int database_initialize(DATABASE* database){
 	char* QUERY_AUTHENTICATION_DATA = "SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
 	char* QUERY_USER_DATABASE = "SELECT user_database FROM main.users WHERE user_name = ? AND user_database NOT NULL;";
 	char* UPDATE_POP_LOCK = "UPDATE OR FAIL main.popd SET pop_lock=? WHERE pop_user = ? AND pop_lock = ?;";
@@ -15,8 +15,8 @@ int database_initialize(LOGGER log, DATABASE* database){
 	char* err_str = NULL;
 
 	//check the database schema version
-	if(database_schema_version(log, database->conn) != CMAIL_CURRENT_SCHEMA_VERSION){
-		logprintf(log, LOG_ERROR, "The database schema is at another version than required for this build\n");
+	if(database_schema_version(database->conn) != CMAIL_CURRENT_SCHEMA_VERSION){
+		logprintf(LOG_ERROR, "The database schema is at another version than required for this build\n");
 		return -1;
 	}
 
@@ -26,49 +26,49 @@ int database_initialize(LOGGER log, DATABASE* database){
 		case SQLITE_DONE:
 			break;
 		default:
-			logprintf(log, LOG_WARNING, "Non-completion response to temp table create statement\n");
+			logprintf(LOG_WARNING, "Non-completion response to temp table create statement\n");
 	}
 
 	if(err_str){
-		logprintf(log, LOG_ERROR, "Failed to create temporary deletion table: %s\n", err_str);
+		logprintf(LOG_ERROR, "Failed to create temporary deletion table: %s\n", err_str);
 		sqlite3_free(err_str);
 		return -1;
 	}
 
-	database->query_authdata = database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
-	database->query_userdatabase = database_prepare(log, database->conn, QUERY_USER_DATABASE);
-	database->update_lock = database_prepare(log, database->conn, UPDATE_POP_LOCK);
-	database->list_master = database_prepare(log, database->conn, LIST_MAILS_MASTER);
-	database->fetch_master = database_prepare(log, database->conn, FETCH_MAIL_MASTER);
+	database->query_authdata = database_prepare(database->conn, QUERY_AUTHENTICATION_DATA);
+	database->query_userdatabase = database_prepare(database->conn, QUERY_USER_DATABASE);
+	database->update_lock = database_prepare(database->conn, UPDATE_POP_LOCK);
+	database->list_master = database_prepare(database->conn, LIST_MAILS_MASTER);
+	database->fetch_master = database_prepare(database->conn, FETCH_MAIL_MASTER);
 
-	database->mark_deletion = database_prepare(log, database->conn, MARK_DELETION);
-	database->unmark_deletions = database_prepare(log, database->conn, UNMARK_DELETIONS);
-	database->delete_master = database_prepare(log, database->conn, DELETE_MAIL_MASTER);
+	database->mark_deletion = database_prepare(database->conn, MARK_DELETION);
+	database->unmark_deletions = database_prepare(database->conn, UNMARK_DELETIONS);
+	database->delete_master = database_prepare(database->conn, DELETE_MAIL_MASTER);
 
 	if(!database->query_authdata || !database->query_userdatabase){
-		logprintf(log, LOG_ERROR, "Failed to prepare user data query\n");
+		logprintf(LOG_ERROR, "Failed to prepare user data query\n");
 		return -1;
 	}
 
 	if(!database->update_lock){
-		logprintf(log, LOG_ERROR, "Failed to prepare lock modification statement\n");
+		logprintf(LOG_ERROR, "Failed to prepare lock modification statement\n");
 		return -1;
 	}
 
 	if(!database->list_master || !database->fetch_master){
-		logprintf(log, LOG_ERROR, "Failed to prepare mail data query\n");
+		logprintf(LOG_ERROR, "Failed to prepare mail data query\n");
 		return -1;
 	}
 
 	if(!database->mark_deletion || !database->unmark_deletions || !database->delete_master){
-		logprintf(log, LOG_ERROR, "Failed to prepare some deletion statements\n");
+		logprintf(LOG_ERROR, "Failed to prepare some deletion statements\n");
 		return -1;
 	}
 
 	return 0;
 }
 
-void database_free(LOGGER log, DATABASE* database){
+void database_free(DATABASE* database){
 	//FIXME check for SQLITE_BUSY here
 
 	if(database->conn){

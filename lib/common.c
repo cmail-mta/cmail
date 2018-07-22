@@ -4,62 +4,6 @@
  * For further information, consult LICENSE.txt
  */
 
-int common_base64decode(LOGGER log, char* in, bool strict_validation){
-	uint32_t decode_buffer;
-	int group, len, i;
-	char* idx;
-
-	char* base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	len = strlen(in);
-
-	if(len % 4 && strict_validation){
-		logprintf(log, LOG_WARNING, "Input has invalid length for base64\n");
-		return -1;
-	}
-
-	//decode to code point indices
-	for(i = 0; i < len; i++){
-		if(in[i] == '='){
-			//'=' is only allowed as trailing character, so fail if it is within valid base64
-			//this is marked MUST by some rfcs (5034)
-			for(; i < len; i++){
-				if(in[i] != '='){
-					logprintf(log, LOG_WARNING, "Input string contains = as non-trailing character\n");
-					return -1;
-				}
-
-				//need to decode all groups
-				in[i] = 0;
-			}
-			break;
-		}
-
-		idx = index(base64_alphabet, in[i]);
-		if(!idx){
-			logprintf(log, LOG_WARNING, "Input string contains invalid characters\n");
-			return -1;
-		}
-		in[i] = idx - base64_alphabet;
-	}
-
-	for(group = 0; group < ((len + 3) / 4); group++){
-		//stuff the buffer
-		logprintf(log, LOG_DEBUG, "Handling group %d for len %d\n", group, len);
-		decode_buffer = 0 | (in[group * 4] << 18);
-		decode_buffer |= (in[(group * 4) + 1] << 12);
-		decode_buffer |= (in[(group * 4) + 2] << 6);
-		decode_buffer |= (in[(group * 4) + 3]);
-
-		//read back decoded characters
-		in[(group * 3)] = (decode_buffer & 0xFF0000) >> 16;
-		in[(group * 3) + 1] = (decode_buffer & 0xFF00) >> 8;
-		in[(group * 3) + 2] = (decode_buffer & 0xFF);
-		in[(group * 3) + 3] = 0; //this termination is depended upon by some callers (modified utf-7 decoding in IMAP)
-	}
-
-	return (group * 3) + 3;
-}
-
 char* common_strdup(char* input){
 	char* duplicate = NULL;
 	size_t length = strlen(input);
@@ -212,7 +156,7 @@ ssize_t common_read_file(char* filename, uint8_t** out){
 	return file_size;
 }
 
-ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
+ssize_t common_next_line(char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
 	//This function needs to be called on a buffer until it returns 0,
 	//otherwise, the append_offset points to the end of the "olddata" buffer
 	size_t append_offset = *append_offset_p;
@@ -220,11 +164,11 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 	int i;
 
 	if(new_bytes < 0){
-		logprintf(log, LOG_ERROR, "common_next_line called with error condition in last read, bailing\n");
+		logprintf(LOG_ERROR, "common_next_line called with error condition in last read, bailing\n");
 		return 0;
 	}
 
-	logprintf(log, LOG_DEBUG, "Next line parser called with offset %d bytes %d\n", append_offset, new_bytes);
+	logprintf(LOG_DEBUG, "Next line parser called with offset %d bytes %d\n", append_offset, new_bytes);
 
 	if(append_offset > 1 && buffer[append_offset - 1] == 0 && buffer[append_offset - 2] == 0){
 		//copyback clearing of last line
@@ -236,7 +180,7 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 
 		append_offset = 0;
 
-		logprintf(log, LOG_DEBUG, "Copyback done, offset %d, first byte %02X, %d bytes\n", append_offset, buffer[0], new_bytes);
+		logprintf(LOG_DEBUG, "Copyback done, offset %d, first byte %02X, %d bytes\n", append_offset, buffer[0], new_bytes);
 	}
 
 	//scan new bytes for terminators
@@ -250,7 +194,7 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 			*append_offset_p = append_offset + i + 2; //append after the second \0
 			*new_bytes_p = new_bytes - i - 2;
 
-			logprintf(log, LOG_DEBUG, "Next line contains %d bytes\n", append_offset + i);
+			logprintf(LOG_DEBUG, "Next line contains %d bytes\n", append_offset + i);
 			return append_offset + i;
 		}
 	}
@@ -259,7 +203,7 @@ ssize_t common_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssiz
 	*append_offset_p = append_offset + new_bytes;
 	*new_bytes_p = 0;
 
-	logprintf(log, LOG_DEBUG, "Incomplete line buffer contains %d bytes\n", *append_offset_p);
+	logprintf(LOG_DEBUG, "Incomplete line buffer contains %d bytes\n", *append_offset_p);
 	return -1;
 }
 

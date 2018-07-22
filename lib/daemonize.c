@@ -6,10 +6,10 @@
 
 #include <unistd.h>
 
-int daemonize(LOGGER log, FILE* pidfile_handle){
+int daemonize(FILE* pidfile_handle){
 	int pid = fork();
 	if(pid < 0){
-		logprintf(log, LOG_ERROR, "Failed to fork\n");
+		logprintf(LOG_ERROR, "Failed to fork\n");
 		if(pidfile_handle){
 			fclose(pidfile_handle);
 		}

@@ -218,7 +218,8 @@
 		public function get($obj, $write = true) {
 
 			if (isset($obj["address_order"]) && !empty($obj["address_order"])) {
-				return $this->getByOrder($obj["address_order"], $filter);
+
+				return $this->getByOrder($obj["address_order"], $write);
 			}
 
 			if (isset($obj["address_expression"]) && !empty($obj["address_expression"])) {
@@ -413,10 +414,43 @@
 			return $id;
 		}
 
+		// checks the order
+		private function checkOrder($old, $new) {
+
+			// we can update entries with the same order.
+			if ($old === $new) {
+				return true;
+			}
+
+			// check if order is already in the database
+			$sql = "SELECT address_order FROM addresses WHERE address_order = :order";
+
+			$params = [
+				":order" => $new
+			];
+
+			$addresses = $this->c->getDB()->query($sql, $params, DB::F_ARRAY);
+
+			return count($addresses) === 0;
+		}
+
+		// updates an entry in the database
+		// the address object must contain this attributes:
+		// - address_expression
+		// - address_order
+		// - address_old_order
+		// - address_router
+		// it must contain the attribute "address_route" if the router needs an argument.
 		public function update($address) {
 
 			if (!isset($address["address_expression"])) {
 				$this->output->add("status", "We need an address expression.");
+				return false;
+			}
+
+			// this is needed because the order is the primary key
+			if (!isset($address["address_old_order"])) {
+				$this->output->add("status", "We want also the old order");
 				return false;
 			}
 
@@ -441,16 +475,22 @@
 				return false;
 			}
 
+			if (!$this->checkOrder($address["address_old_order"], $address["address_order"])) {
+				$this->output->add("status", "Duplicate order.");
+				return false;
+			}
+
 			if (in_array($address["address_router"], $this->routersWithArgs) && !isset($address["address_route"])) {
 				$this->output->add("status", "Address router needs an argument (address_route).");
 				return false;
 			}
 
-			$sql = "UPDATE addresses SET address_expression = :address_exp, address_order = :order, address_router = :router, address_route = :route  WHERE address_order = :order";
+			$sql = "UPDATE addresses SET address_expression = :address_exp, address_order = :order, address_router = :router, address_route = :route  WHERE address_order = :old_order";
 
 			$params = array(
 				":address_exp" => $address["address_expression"],
 				":order" => $address["address_order"],
+				":old_order" => $address["address_old_order"],
 				":router" => $address["address_router"],
 				":route" => isset($address["address_route"]) ? $address["address_route"] : null
 			);

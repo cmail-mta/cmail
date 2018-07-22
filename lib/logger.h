@@ -4,21 +4,12 @@
  * For further information, consult LICENSE.txt
  */
 
+#include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <ctype.h>
 #define LOGGER_TIMESTRING_LEN 80
-
-typedef struct /*_LOGGER*/ {
-	FILE* stream;
-	unsigned verbosity;
-	bool log_secondary;
-	bool print_timestamp;
-	#ifdef LOGGER_MT_SAFE
-	pthread_mutex_t* sync;
-	#endif
-} LOGGER;
 
 #define LOG_ERROR 	0
 #define LOG_WARNING 	0
@@ -26,4 +17,8 @@ typedef struct /*_LOGGER*/ {
 #define LOG_DEBUG 	3
 #define LOG_ALL_IO	4
 
-void logprintf(LOGGER log, unsigned level, char* fmt, ...);
+void logprintf(unsigned level, char* fmt, ...);
+void log_dump_buffer(unsigned level, void* buffer, size_t bytes);
+
+void log_verbosity(int level, bool secondary);
+FILE* log_output(FILE* stream);

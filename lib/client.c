@@ -4,7 +4,7 @@
  * For further information, consult LICENSE.txt
  */
 
-ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t bytes){
+ssize_t client_send_raw(CONNECTION* client, char* data, ssize_t bytes){
 	ssize_t bytes_sent = 0, bytes_written = 0, bytes_left;
 
 	//early bail saves some syscalls
@@ -16,7 +16,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 		bytes=strlen(data);
 	}
 
-	logprintf(log, LOG_DEBUG, "Sending %d raw bytes\n", bytes);
+	logprintf(LOG_DEBUG, "Sending %d raw bytes\n", bytes);
 
 	do{
 		bytes_left = bytes - bytes_sent;
@@ -29,7 +29,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 				bytes_written = send(client->fd, data + bytes_sent, bytes_left, 0);
 				break;
 			case TLS_NEGOTIATE:
-				logprintf(log, LOG_WARNING, "Not sending data while negotiation is in progress\n");
+				logprintf(LOG_WARNING, "Not sending data while negotiation is in progress\n");
 				return bytes_sent;
 			case TLS_ONLY:
 				bytes_written = gnutls_record_send(client->tls_session, data + bytes_sent, bytes_left);
@@ -40,7 +40,7 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 		#endif
 
 		if(bytes_written + bytes_sent < bytes){
-			logprintf(log, LOG_DEBUG, "Partial write (%d for %d/%d)\n", bytes_written, bytes_sent, bytes);
+			logprintf(LOG_DEBUG, "Partial write (%d for %d/%d)\n", bytes_written, bytes_sent, bytes);
 		}
 
 		if(bytes_written < 0){
@@ -48,14 +48,14 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 			if(client->tls_mode == TLS_NONE){
 			#endif
 			if(errno != EAGAIN){
-				logprintf(log, LOG_ERROR, "Write failed: %s\n", strerror(errno));
+				logprintf(LOG_ERROR, "Write failed: %s\n", strerror(errno));
 				break;
 			}
 			#ifndef CMAIL_NO_TLS
 			}
 			else{
 				if(bytes_written != GNUTLS_E_INTERRUPTED && bytes_written != GNUTLS_E_AGAIN){
-					logprintf(log, LOG_ERROR, "TLS Write failed: %s\n", gnutls_strerror(bytes_written));
+					logprintf(LOG_ERROR, "TLS Write failed: %s\n", gnutls_strerror(bytes_written));
 					break;
 				}
 			}
@@ -67,13 +67,13 @@ ssize_t client_send_raw(LOGGER log, CONNECTION* client, char* data, ssize_t byte
 	}
 	while(bytes_sent < bytes);
 
-	logprintf(log, LOG_ALL_IO, "<< %.*s", bytes, data);
-	logprintf(log, LOG_DEBUG, "Sent %d bytes of %d\n", bytes_sent, bytes);
+	logprintf(LOG_ALL_IO, "<< %.*s", bytes, data);
+	logprintf(LOG_DEBUG, "Sent %d bytes of %d\n", bytes_sent, bytes);
 
 	return bytes_sent;
 }
 
-int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
+int client_send(CONNECTION* client, char* fmt, ...){
 	va_list args, copy;
 	ssize_t bytes = 0;
 	char static_send_buffer[STATIC_SEND_BUFFER_LENGTH + 1];
@@ -89,7 +89,7 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	if(bytes >= STATIC_SEND_BUFFER_LENGTH){
 		dynamic_send_buffer = calloc(bytes + 2, sizeof(char));
 		if(!dynamic_send_buffer){
-			logprintf(log, LOG_ERROR, "Failed to allocate dynamic send buffer\n");
+			logprintf(LOG_ERROR, "Failed to allocate dynamic send buffer\n");
 			va_end(copy);
 			return -1;
 		}
@@ -99,11 +99,11 @@ int client_send(LOGGER log, CONNECTION* client, char* fmt, ...){
 	va_end(copy);
 
 	if(bytes < 0){
-		logprintf(log, LOG_ERROR, "Failed to render client output data string\n");
+		logprintf(LOG_ERROR, "Failed to render client output data string\n");
 		return -1;
 	}
 
-	bytes = client_send_raw(log, client, send_buffer, bytes);
+	bytes = client_send_raw(client, send_buffer, bytes);
 
 	if(dynamic_send_buffer){
 		free(dynamic_send_buffer);

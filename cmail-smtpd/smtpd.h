@@ -31,7 +31,6 @@
 #include "../lib/database.h"
 
 #include "../lib/common.c"
-#include "../lib/logger.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
 #include "../lib/signal.c"
@@ -141,7 +140,6 @@ typedef struct /*_DATABASE_CONNECTION*/ {
 typedef struct /*_CONF_META*/ {
 	CONNPOOL listeners;
 	USER_PRIVS privileges;
-	LOGGER log;
 	DATABASE database;
 	char* pid_file;
 } CONFIGURATION;
@@ -157,11 +155,11 @@ typedef struct /*_CONF_META*/ {
 
 //PROTOTYPES
 int client_close(CONNECTION* client);
-int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
-int mail_store_inbox(LOGGER log, sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path);
-int mail_store_outbox(LOGGER log, sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail);
+int client_send(CONNECTION* client, char* fmt, ...);
+int mail_store_inbox(sqlite3_stmt* stmt, MAIL* mail, MAILPATH* current_path);
+int mail_store_outbox(sqlite3_stmt* stmt, char* mail_remote, char* envelope_to, MAIL* mail);
 #ifndef CMAIL_NO_TLS
-int client_starttls(LOGGER log, CONNECTION* client);
+int client_starttls(CONNECTION* client);
 #endif
 
 #include "database.c"

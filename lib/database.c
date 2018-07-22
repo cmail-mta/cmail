@@ -52,7 +52,7 @@ void database_instr(sqlite3_context* context, int argc, sqlite3_value** argv){
 	sqlite3_result_int(context, N);
 }
 
-sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
+sqlite3_stmt* database_prepare(sqlite3* conn, char* query){
 	int status;
 	sqlite3_stmt* target = NULL;
 
@@ -60,24 +60,24 @@ sqlite3_stmt* database_prepare(LOGGER log, sqlite3* conn, char* query){
 
 	switch(status){
 		case SQLITE_OK:
-			logprintf(log, LOG_DEBUG, "Statement (%s) compiled ok\n", query);
+			logprintf(LOG_DEBUG, "Statement (%s) compiled ok\n", query);
 			return target;
 		default:
-			logprintf(log, LOG_ERROR, "Failed to prepare statement (%s): %s\n", query, sqlite3_errmsg(conn));
+			logprintf(LOG_ERROR, "Failed to prepare statement (%s): %s\n", query, sqlite3_errmsg(conn));
 	}
 
 	return NULL;
 }
 
-sqlite3* database_open(LOGGER log, const char* filename, int flags){
+sqlite3* database_open(const char* filename, int flags){
 	sqlite3* db = NULL;
 
 	switch(sqlite3_open_v2(filename, &db, flags, NULL)){
 		case SQLITE_OK:
-			logprintf(log, LOG_INFO, "Opened database %s\n", filename);
+			logprintf(LOG_INFO, "Opened database %s\n", filename);
 			break;
 		default:
-			logprintf(log, LOG_ERROR, "Failed to open database %s: %s\n", filename, sqlite3_errmsg(db));
+			logprintf(LOG_ERROR, "Failed to open database %s: %s\n", filename, sqlite3_errmsg(db));
 			sqlite3_close(db);
 			return NULL;
 	}
@@ -87,19 +87,19 @@ sqlite3* database_open(LOGGER log, const char* filename, int flags){
 		case SQLITE_DONE:
 			break;
 		default:
-			logprintf(log, LOG_ERROR, "Failed to enable foreign key support: %s\n", sqlite3_errmsg(db));
+			logprintf(LOG_ERROR, "Failed to enable foreign key support: %s\n", sqlite3_errmsg(db));
 			sqlite3_close(db);
 			return NULL;
 	}
 
 	if(sqlite3_create_function(db, "instr", 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, database_instr, NULL, NULL) != SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to register instr() with sqlite: %s\n", sqlite3_errmsg(db));
+		logprintf(LOG_ERROR, "Failed to register instr() with sqlite: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		return NULL;
 	}
 
 	if(sqlite3_busy_timeout(db, 500000) != SQLITE_OK){
-		logprintf(log, LOG_ERROR, "Failed to set sqlite busy timeout\n");
+		logprintf(LOG_ERROR, "Failed to set sqlite busy timeout\n");
 		sqlite3_close(db);
 		return NULL;
 	}
@@ -107,27 +107,27 @@ sqlite3* database_open(LOGGER log, const char* filename, int flags){
 	return db;
 }
 
-int database_schema_version(LOGGER log, sqlite3* conn){
+int database_schema_version(sqlite3* conn){
 	int status;
 	char* QUERY_SCHEMA_VERSION = "SELECT value FROM meta WHERE key='schema_version'";
-	sqlite3_stmt* query_version = database_prepare(log, conn, QUERY_SCHEMA_VERSION);
+	sqlite3_stmt* query_version = database_prepare(conn, QUERY_SCHEMA_VERSION);
 
 	if(!query_version){
-		logprintf(log, LOG_ERROR, "Failed to query the database schema version, your database file might not be a valid master database\n");
+		logprintf(LOG_ERROR, "Failed to query the database schema version, your database file might not be a valid master database\n");
 		return -1;
 	}
 
 	switch(sqlite3_step(query_version)){
 		case SQLITE_ROW:
 			status = strtoul((char*)sqlite3_column_text(query_version, 0), NULL, 10);
-			logprintf(log, LOG_INFO, "Database schema version is %d\n", status);
+			logprintf(LOG_INFO, "Database schema version is %d\n", status);
 			break;
 		case SQLITE_DONE:
-			logprintf(log, LOG_ERROR, "The database did not contain a schema_version key\n");
+			logprintf(LOG_ERROR, "The database did not contain a schema_version key\n");
 			status = -1;
 			break;
 		default:
-			logprintf(log, LOG_ERROR, "Failed to get schema version: %s\n", sqlite3_errmsg(conn));
+			logprintf(LOG_ERROR, "Failed to get schema version: %s\n", sqlite3_errmsg(conn));
 			status = -1;
 	}
 

@@ -23,7 +23,6 @@
 #include "../lib/database.h"
 
 #include "../lib/common.c"
-#include "../lib/logger.c"
 #include "../lib/signal.c"
 #include "../lib/privileges.c"
 #include "../lib/config.c"
@@ -100,7 +99,6 @@ typedef struct /*_ARGS_COMPOSITE*/ {
 typedef struct /*_CONFIGURATION_DATA*/ {
 	CONNPOOL listeners;
 	DATABASE database;
-	LOGGER log;
 	USER_PRIVS privileges;
 	char* pid_file;
 } CONFIGURATION;
@@ -135,10 +133,10 @@ typedef struct /*_POP3_LISTENER*/ {
 #include "../lib/tls.c"
 #endif
 
-int client_close(LOGGER log, CONNECTION* client, DATABASE* database);
-int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
+int client_close(CONNECTION* client, DATABASE* database);
+int client_send(CONNECTION* client, char* fmt, ...);
 #ifndef CMAIL_NO_TLS
-int client_starttls(LOGGER log, CONNECTION* client);
+int client_starttls(CONNECTION* client);
 #endif
 
 #include "database.c"

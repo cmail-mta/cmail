@@ -1,2 +1,3 @@
 support immediate queue handling with sighup
 all outer loops should terminate with abort_signaled
+some smtp_ functions directly call protocol_read, most should be replaced with protocol_expect
