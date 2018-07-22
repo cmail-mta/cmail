@@ -31,7 +31,7 @@ int common_rand(void* target, size_t bytes){
 	return data_read;
 }
 
-int common_strrepl(char* buffer, unsigned length, char* variable, char* replacement){
+int common_strrepl(char* buffer, size_t length, char* variable, char* replacement){
 	char* occurence = NULL;
 	unsigned offset = 0;
 	unsigned character_offset;
@@ -71,7 +71,7 @@ int common_strrepl(char* buffer, unsigned length, char* variable, char* replacem
 	return 0;
 }
 
-char* common_strappf(char* target, unsigned* target_allocated, char* fmt, ...){
+char* common_strappf(char* target, size_t* target_allocated, char* fmt, ...){
 	va_list args, copy;
 
 	size_t target_len = target ? strlen(target):0;
