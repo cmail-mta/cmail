@@ -25,8 +25,8 @@ int pop_capa(LOGGER log, CONNECTION* client, DATABASE* database){
 	#endif
 
 	client_send(log, client, "IMPLEMENTATION %s\r\n", VERSION);
-	client_send(log, client, "XYZZY\r\n", VERSION);
-	client_send(log, client, ".\r\n", VERSION);
+	client_send(log, client, "XYZZY\r\n");
+	client_send(log, client, ".\r\n");
 
 	return 0;
 }
