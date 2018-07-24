@@ -44,7 +44,7 @@ void logprintf(unsigned level, char* fmt, ...){
 			va_copy(copy, args);
 			#ifdef LOGGER_MT_SAFE
 			if(logger.sync){
-				pthread_mutex_lock(log.sync);
+				pthread_mutex_lock(logger.sync);
 			}
 			#endif
 			if(logger.print_timestamp){
