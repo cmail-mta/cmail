@@ -297,10 +297,4 @@ void config_free(CONFIGURATION* config){
 	if(config->pid_file){
 		free(config->pid_file);
 	}
-
-	if(log_output(NULL) != stderr){
-		fflush(log_output(NULL));
-		fclose(log_output(NULL));
-		log_output(stderr);
-	}
 }

@@ -41,6 +41,10 @@ int main(int argc, char** argv){
 		.pid_file = NULL
 	};
 
+	if(log_start()){
+		return 1;
+	}
+
 	if(argc < 2){
 		return usage(argv[0]);
 	}
@@ -133,5 +137,6 @@ int main(int argc, char** argv){
 	config_free(&config);
 	TLSSUPPORT(gnutls_global_deinit());
 
+	log_shutdown();
 	return 0;
 }
