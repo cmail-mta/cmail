@@ -183,7 +183,6 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 			return -1;
 		}
 		log_output(log_file);
-		log_verbosity(-1, true);
 		return 0;
 	}
 	return -1;
