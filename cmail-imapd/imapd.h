@@ -31,7 +31,6 @@
 #include "../lib/database.h"
 
 #include "../lib/common.c"
-#include "../lib/logger.c"
 #include "../lib/network.c"
 #include "../lib/connpool.c"
 #include "../lib/signal.c"
@@ -192,13 +191,11 @@ typedef struct /*_WORKER_CLIENT_DATA*/ {
 typedef struct /*_CONF_META*/ {
 	CONNPOOL listeners;
 	USER_PRIVS privileges;
-	LOGGER log;
 	DATABASE database;
 	char* pid_file;
 } CONFIGURATION;
 
 typedef struct /*_THREAD_PARAM*/ {
-	LOGGER log;
 	COMMAND_QUEUE* queue;
 	int feedback_pipe[2];
 	const char* master_db;
@@ -214,10 +211,10 @@ typedef struct /*_THREAD_PARAM*/ {
 #endif
 
 //PROTOTYPES
-int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue);
-int client_send(LOGGER log, CONNECTION* client, char* fmt, ...);
+int client_close(CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue);
+int client_send(CONNECTION* client, char* fmt, ...);
 #ifndef CMAIL_NO_TLS
-int client_starttls(LOGGER log, CONNECTION* client);
+int client_starttls(CONNECTION* client);
 #endif
 
 #include "arguments.c"

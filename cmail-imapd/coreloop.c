@@ -1,4 +1,4 @@
-int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
+int core_loop(CONNPOOL listeners, DATABASE* database){
 	fd_set readfds;
 	struct timeval select_timeout;
 	int maxfd;
@@ -8,7 +8,6 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	char feedback_pipe_buffer[FEEDBACK_PIPE_BUFFER];
 
 	THREAD_CONFIG thread_config = {
-		.log = log,
 		.feedback_pipe = {-1, -1},
 		.queue = NULL,
 		.master_db = sqlite3_db_filename(database->conn, "main")
@@ -30,8 +29,8 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	};
 
 	//initialize the command queue data structures
-	if(commandqueue_initialize(log, &command_queue) < 0){
-		logprintf(log, LOG_ERROR, "Failed to initialize command_queue\n");
+	if(commandqueue_initialize(&command_queue) < 0){
+		logprintf(LOG_ERROR, "Failed to initialize command_queue\n");
 		return -1;
 	}
 
@@ -39,7 +38,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 	//create feedback pipe to trigger command queue processing
 	if(pipe(thread_config.feedback_pipe) < 0){
-		logprintf(log, LOG_ERROR, "Failed to create queue worker feedback pipe: %s\n", strerror(errno));
+		logprintf(LOG_ERROR, "Failed to create queue worker feedback pipe: %s\n", strerror(errno));
 		commandqueue_free(&command_queue);
 		return -1;
 	}
@@ -48,7 +47,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	status = fcntl(thread_config.feedback_pipe[0], F_GETFL);
 	flags = fcntl(thread_config.feedback_pipe[1], F_GETFL);
 	if(status < 0 || flags < 0){
-		logprintf(log, LOG_ERROR, "Failed to fetch pipe descriptor flags\n");
+		logprintf(LOG_ERROR, "Failed to fetch pipe descriptor flags\n");
 		commandqueue_free(&command_queue);
 		close(thread_config.feedback_pipe[0]);
 		close(thread_config.feedback_pipe[1]);
@@ -57,7 +56,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	status |= O_NONBLOCK;
 	flags |= O_NONBLOCK;
 	if(fcntl(thread_config.feedback_pipe[0], F_SETFL, status) < 0 || fcntl(thread_config.feedback_pipe[1], F_SETFL, flags) < 0){
-		logprintf(log, LOG_ERROR, "Failed to set pipe descriptor flags\n");
+		logprintf(LOG_ERROR, "Failed to set pipe descriptor flags\n");
 		commandqueue_free(&command_queue);
 		close(thread_config.feedback_pipe[0]);
 		close(thread_config.feedback_pipe[1]);
@@ -66,7 +65,7 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 
 	//run the queue worker
 	if(pthread_create(&queue_worker, NULL, queueworker_coreloop, &thread_config) != 0){
-		logprintf(log, LOG_ERROR, "Failed to start queue worker thread\n");
+		logprintf(LOG_ERROR, "Failed to start queue worker thread\n");
 		commandqueue_free(&command_queue);
 		close(thread_config.feedback_pipe[0]);
 		close(thread_config.feedback_pipe[1]);
@@ -112,11 +111,11 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 		status = select(maxfd + 1, &readfds, NULL, NULL, &select_timeout);
 
 		if(status < 0){
-			logprintf(log, LOG_ERROR, "Core select: %s\n", strerror(errno));
+			logprintf(LOG_ERROR, "Core select: %s\n", strerror(errno));
 			break;
 		}
 		else{
-			logprintf(log, LOG_DEBUG, "Data on %d sockets\n", status);
+			logprintf(LOG_DEBUG, "Data on %d sockets\n", status);
 		}
 
 		//check client fds
@@ -125,12 +124,12 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 				if(FD_ISSET(clients.conns[i].fd, &readfds)){
 					//handle data
 					//FIXME handle return value
-					client_process(log, &(clients.conns[i]), database, &command_queue);
+					client_process(&(clients.conns[i]), database, &command_queue);
 				}
-				else if(client_timeout(log, &(clients.conns[i]))){
-					logprintf(log, LOG_WARNING, "Client timed out, disconnecting\n");
-					client_send(log, &(clients.conns[i]), "* BYE Client connection timed out due to inactivity\r\n");
-					client_close(log, &(clients.conns[i]), database, &command_queue);
+				else if(client_timeout(&(clients.conns[i]))){
+					logprintf(LOG_WARNING, "Client timed out, disconnecting\n");
+					client_send(&(clients.conns[i]), "* BYE Client connection timed out due to inactivity\r\n");
+					client_close(&(clients.conns[i]), database, &command_queue);
 				}
 			}
 		}
@@ -140,19 +139,19 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 			if(listeners.conns[i].fd >= 0 && FD_ISSET(listeners.conns[i].fd, &readfds)){
 				//handle new client
 				//FIXME handle return value
-				client_accept(log, &(listeners.conns[i]), &clients);
+				client_accept(&(listeners.conns[i]), &clients);
 			}
 		}
 
 		if(FD_ISSET(thread_config.feedback_pipe[0], &readfds)){
-			logprintf(log, LOG_DEBUG, "Queue worker initiated core loop queue run\n");
+			logprintf(LOG_DEBUG, "Queue worker initiated core loop queue run\n");
 
 			//read from pipefd
 			read(thread_config.feedback_pipe[0], feedback_pipe_buffer, sizeof(feedback_pipe_buffer));
 
 			//run queue completion checks
-			if(commandqueue_purge(log, &command_queue) < 0){
-				logprintf(log, LOG_ERROR, "Command queue purge operation reported an error\n");
+			if(commandqueue_purge(&command_queue) < 0){
+				logprintf(LOG_ERROR, "Command queue purge operation reported an error\n");
 			}
 		}
 	}
@@ -160,15 +159,15 @@ int core_loop(LOGGER log, CONNPOOL listeners, DATABASE* database){
 	//close connected clients
 	for(i = 0; i < clients.count; i++){
 		if(clients.conns[i].fd >= 0){
-			client_close(log, &(clients.conns[i]), database, &command_queue);
+			client_close(&(clients.conns[i]), database, &command_queue);
 		}
 	}
 
 	//join the worker thread
 	pthread_cond_signal(&(command_queue.queue_dirty));
-	logprintf(log, LOG_DEBUG, "Waiting for worker thread to terminate\n");
+	logprintf(LOG_DEBUG, "Waiting for worker thread to terminate\n");
 	pthread_join(queue_worker, NULL);
-	logprintf(log, LOG_DEBUG, "Worker thread terminated successfully\n");
+	logprintf(LOG_DEBUG, "Worker thread terminated successfully\n");
 
 	//TODO free connpool aux_data structures
 	connpool_free(&clients);

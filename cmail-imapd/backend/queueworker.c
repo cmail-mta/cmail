@@ -1,11 +1,11 @@
-int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_COMMAND* entry, WORKER_CLIENT* client){
+int queueworker_arbitrate_command(WORKER_DATABASE* master, QUEUED_COMMAND* entry, WORKER_CLIENT* client){
 	unsigned i;
 	int rv_user = 0, rv_master = 0, rv = 0;
 
-	logprintf(log, LOG_DEBUG, "Handling command [%s]: %s\n", entry->tag, entry->command);
+	logprintf(LOG_DEBUG, "Handling command [%s]: %s\n", entry->tag, entry->command);
 	if(entry->parameters){
 		for(i = 0; entry->parameters[i] > 0; i++){
-			logprintf(log, LOG_DEBUG, "Command parameter %d: %s\n", i, entry->backing_buffer + entry->parameters[i]);
+			logprintf(LOG_DEBUG, "Command parameter %d: %s\n", i, entry->backing_buffer + entry->parameters[i]);
 		}
 	}
 
@@ -20,9 +20,9 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 	}
 
 	else if(entry->parameters && !strcasecmp(entry->command, "create")){
-		rv_master = imap_create(log, master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		rv_master = imap_create(master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(client->user_database.conn){
-			rv_user = imap_create(log, &(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+			rv_user = imap_create(&(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		}
 		//TODO rollbacks on failure
 
@@ -36,10 +36,10 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		}
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "delete")){
-		logprintf(log, LOG_DEBUG, "hello\n");
-		rv_master = imap_delete(log, master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		logprintf(LOG_DEBUG, "hello\n");
+		rv_master = imap_delete(master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(client->user_database.conn){
-			rv_user = imap_delete(log, &(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+			rv_user = imap_delete(&(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		}
 
 		//TODO rollbacks on failure
@@ -55,10 +55,10 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "rename")){
 		//TODO implement rename
-		logprintf(log, LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
+		logprintf(LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
 	}
 	else if(entry->parameters && (!strcasecmp(entry->command, "examine") || !strcasecmp(entry->command, "select"))){
-		client->selection_master = database_query_mailbox(log, master, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+		client->selection_master = database_query_mailbox(master, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(client->selection_master < 0){
 			//FIXME this should probably detect internal errors
 			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
@@ -67,7 +67,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		}
 		else{
 			if(client->user_database.conn){
-				client->selection_user = database_query_mailbox(log, &(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0]);
+				client->selection_user = database_query_mailbox(&(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 				rv = (client->selection_user < 0) ? -1:0;
 			}
 
@@ -75,7 +75,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 				//select implies readwrite access
 				client->select_readwrite = (entry->command[0] == 's') ? true:false;
 
-				logprintf(log, LOG_DEBUG, "Client selected mailbox %d @ master, %d @ user for readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
+				logprintf(LOG_DEBUG, "Client selected mailbox %d @ master, %d @ user for readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
 				//TODO actually send required data back to client
 				//OK [UNSEEN]
 				//UIDVALIDITY
@@ -85,8 +85,8 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 						"* %d RECENT\r\n"
 						"* OK [PERMANENTFLAGS (\\Seen \\Answered \\Flagged \\Draft \\Deleted)] Done here\r\n" //is \Deleted a permanent flag?
 						"%s OK [%s] Selection now active\r\n",
-						imap_selection_count(log, master, client, NULL),
-						imap_selection_count(log, master, client, "\\Recent"),
+						imap_selection_count(master, client, NULL),
+						imap_selection_count(master, client, "\\Recent"),
 						entry->tag, client->select_readwrite ? "READ-WRITE":"READ-ONLY");
 				rv = 0;
 			}
@@ -103,18 +103,18 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 		//since SUBSCRIBE/UNSUBSCRIBE only seem to change the output of LSUB, we non-implement them for the time being
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"%s NO Command use-case not supported\r\n", entry->tag);
-		logprintf(log, LOG_DEBUG, "Non-implemented [UN]SUBSCRIBE logic invoked\n");
+		logprintf(LOG_DEBUG, "Non-implemented [UN]SUBSCRIBE logic invoked\n");
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "lsub")){
 		//since we did not implement SUBSCRIBE/UNSUBSCRIBE, LSUB always returns an empty set
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"%s OK LSUB empty list\r\n", entry->tag);
-		logprintf(log, LOG_DEBUG, "Client listed subscriptions\n");
+		logprintf(LOG_DEBUG, "Client listed subscriptions\n");
 	}
 	else if(!strcasecmp(entry->command, "xyzzy")){
 		//round-trip xyzzy
-		logprintf(log, LOG_DEBUG, "User database: %s\n", client->user_database.conn ? "attached":"none");
-		logprintf(log, LOG_DEBUG, "Selection: master %d, user %d, readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
+		logprintf(LOG_DEBUG, "User database: %s\n", client->user_database.conn ? "attached":"none");
+		logprintf(LOG_DEBUG, "Selection: master %d, user %d, readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
 		entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 				"* XYZZY Round-trip completed\r\n%s OK Incantation completed\r\n", entry->tag);
 	}
@@ -125,7 +125,7 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 	}
 
 	if(!entry->replies){
-		logprintf(log, LOG_ERROR, "Failed to allocate command reply or no reply generated\n");
+		logprintf(LOG_ERROR, "Failed to allocate command reply or no reply generated\n");
 		rv = -1;
 	}
 
@@ -136,7 +136,6 @@ int queueworker_arbitrate_command(LOGGER log, WORKER_DATABASE* master, QUEUED_CO
 
 void* queueworker_coreloop(void* param){
 	THREAD_CONFIG* thread_config = (THREAD_CONFIG*) param;
-	LOGGER log = thread_config->log;
 	COMMAND_QUEUE* queue = thread_config->queue;
 	QUEUED_COMMAND* head = NULL;
 	unsigned entries_done = 0, i;
@@ -151,8 +150,8 @@ void* queueworker_coreloop(void* param){
  	database_free_worker(&master);	
 
 	//attach master
-	if(database_init_worker(log, (char*)thread_config->master_db, &master, true) < 0){
-		logprintf(log, LOG_ERROR, "Failed to open master database in queue worker\n");
+	if(database_init_worker((char*)thread_config->master_db, &master, true) < 0){
+		logprintf(LOG_ERROR, "Failed to open master database in queue worker\n");
 		database_free_worker(&master);
 		abort_signaled = 1;
 	}
@@ -160,16 +159,16 @@ void* queueworker_coreloop(void* param){
 	//initialize per-client data
 	for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
 		client_data[i].user_database.conn = NULL;
-		workerdata_release(log, client_data + i, false);
+		workerdata_release(client_data + i, false);
 	}
 
 	pthread_mutex_lock(&(queue->queue_access));
-	logprintf(log, LOG_INFO, "Queue worker entering main loop\n");
+	logprintf(LOG_INFO, "Queue worker entering main loop\n");
 	while(!abort_signaled){
-		logprintf(log, LOG_DEBUG, "Queue worker running queue\n");
+		logprintf(LOG_DEBUG, "Queue worker running queue\n");
 
 		for(head = queue->head; head; head = head->next){
-			//log_dump_buffer(log, LOG_DEBUG, head, sizeof(QUEUED_COMMAND));
+			//log_dump_buffer(LOG_DEBUG, head, sizeof(QUEUED_COMMAND));
 			switch(head->queue_state){
 				case COMMAND_NEW:
 					//process queued command
@@ -177,7 +176,7 @@ void* queueworker_coreloop(void* param){
 					entries_done++;
 
 					//check for local client data
-					current_client = workerdata_get(log, client_data, &master, head->client);
+					current_client = workerdata_get(client_data, &master, head->client);
 					if(!current_client){
 						head->queue_state = COMMAND_INTERNAL_FAILURE;
 						break;
@@ -187,8 +186,8 @@ void* queueworker_coreloop(void* param){
 
 					//do the actual work
 					current_state = COMMAND_REPLY;
-					if(queueworker_arbitrate_command(log, &master, head, current_client) < 0){
-						logprintf(log, LOG_WARNING, "Command execution returned error in queue worker\n");
+					if(queueworker_arbitrate_command(&master, head, current_client) < 0){
+						logprintf(LOG_WARNING, "Command execution returned error in queue worker\n");
 						current_state = COMMAND_INTERNAL_FAILURE;
 					}
 
@@ -196,12 +195,12 @@ void* queueworker_coreloop(void* param){
 					head->queue_state = current_state;
 					break;
 				case COMMAND_SYSTEM:
-					logprintf(log, LOG_DEBUG, "Queue worker handled system message\n");
+					logprintf(LOG_DEBUG, "Queue worker handled system message\n");
 					//release worker client data
 					if(head->discard && head->client){
 						for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
 							if(client_data[i].client == head->client){
-								workerdata_release(log, client_data + i, true);
+								workerdata_release(client_data + i, true);
 							}
 						}
 					}
@@ -217,7 +216,7 @@ void* queueworker_coreloop(void* param){
 			}
 		}
 
-		logprintf(log, LOG_DEBUG, "Queue run handled %d items\n", entries_done);
+		logprintf(LOG_DEBUG, "Queue run handled %d items\n", entries_done);
 		if(entries_done > 0){
 			//notify feedback pipe
 			//FIXME might want to check the return value here
@@ -229,12 +228,12 @@ void* queueworker_coreloop(void* param){
 
 	pthread_mutex_unlock(&(queue->queue_access));
 
-	logprintf(log, LOG_DEBUG, "Queue worker shutting down\n");
+	logprintf(LOG_DEBUG, "Queue worker shutting down\n");
 
 	//release all allocated data
 	for(i = 0; i < CMAIL_MAX_CONCURRENT_CLIENTS; i++){
 		if(client_data[i].client){
-			workerdata_release(log, client_data + i, true);
+			workerdata_release(client_data + i, true);
 		}
 	}
 	database_free_worker(&master);

@@ -1,5 +1,5 @@
 //this function _will_ modify the input buffer
-/*ssize_t protocol_utf7_decode(LOGGER log, char* input){
+/*ssize_t protocol_utf7_decode(char* input){
 	size_t decode_pos, b64end, b64len;
 	size_t output_pos = 0;
 
@@ -29,29 +29,29 @@
 				}
 
 				if(!input[b64end]){
-					logprintf(log, LOG_ERROR, "Unterminated base64 in UTF7\n");
+					logprintf(LOG_ERROR, "Unterminated base64 in UTF7\n");
 					return -1;
 				}
 
 				input[b64end] = 0;
 				decode_pos++;
 
-				logprintf(log, LOG_DEBUG, "Base64 to decode: %s\n", input + decode_pos);
+				logprintf(LOG_DEBUG, "Base64 to decode: %s\n", input + decode_pos);
 
 				//run through base64 decoder
-				b64len = common_base64decode(log, input + decode_pos, false);
+				b64len = common_base64decode(input + decode_pos, false);
 				if(b64len < 0){
 					return -1;
 				}
-				log_dump_buffer(log, LOG_DEBUG, input + decode_pos, b64len);
-				//logprintf(log, LOG_DEBUG, "Base64 after decode: %s\n", input + decode_pos);
+				log_dump_buffer(LOG_DEBUG, input + decode_pos, b64len);
+				//logprintf(LOG_DEBUG, "Base64 after decode: %s\n", input + decode_pos);
 
 				//copy result back to output pointer and check that no invalid
 				//characters were encoded
 				for(b64len = 0; input[decode_pos + b64len]; b64len++){
 					//if((input[decode_pos + b64len] >= 0x20 && input[decode_pos + b64len] <= 0x25)
 					//		|| (input[decode_pos + b64len] >= 0x27 && input[decode_pos + b64len] <= 0x7e)){
-					//	logprintf(log, LOG_ERROR, "UTF-7 contained escaped literal characters (%c @ %d)\n", input[decode_pos + b64len], decode_pos + b64len);
+					//	logprintf(LOG_ERROR, "UTF-7 contained escaped literal characters (%c @ %d)\n", input[decode_pos + b64len], decode_pos + b64len);
 					//	return -1;
 					//}
 					//else{
@@ -60,9 +60,9 @@
 					//}
 				}
 
-				logprintf(log, LOG_DEBUG, "Decoded %d bytes of base64-encoded UTF-16\n", b64len);
+				logprintf(LOG_DEBUG, "Decoded %d bytes of base64-encoded UTF-16\n", b64len);
 				if(b64len % 2){
-					logprintf(log, LOG_ERROR, "Decoded data has odd length\n");
+					logprintf(LOG_ERROR, "Decoded data has odd length\n");
 					return -1;
 				}
 				decode_pos = b64end + 1;
@@ -169,7 +169,7 @@ ssize_t protocol_parse_astring(char* input, char** string_begin, char** data_end
 	return -1;
 }
 
-ssize_t protocol_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
+ssize_t protocol_next_line(char* buffer, size_t* append_offset_p, ssize_t* new_bytes_p){
 	//This function needs to be called on a buffer until it returns 0,
 	//otherwise, the append_offset points to the end of the "olddata" buffer
 
@@ -178,23 +178,23 @@ ssize_t protocol_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ss
 	int i;
 
 	if(new_bytes < 0){
-		logprintf(log, LOG_ERROR, "protocol_next_line called with error condition in last read, bailing\n");
+		logprintf(LOG_ERROR, "protocol_next_line called with error condition in last read, bailing\n");
 		return 0;
 	}
 
-	logprintf(log, LOG_DEBUG, "Next line parser called with offset %d bytes %d\n", append_offset, new_bytes);
+	logprintf(LOG_DEBUG, "Next line parser called with offset %d bytes %d\n", append_offset, new_bytes);
 
 	//this condition still works within the IMAP literal string syntax because
 	//CHAR8 explicitly forbids \0 (RFC 3501 9: CHAR8)
 	if(append_offset > 1 && buffer[append_offset - 1] == 0 && buffer[append_offset - 2] == 0){
 		//copyback clearing of last line
 		for(i = 0; i < new_bytes; i++){
-			//logprintf(log, LOG_DEBUG, "Moving character %02X from position %d to %d\n", client_data->recv_buffer[client_data->recv_offset+i+1+c], client_data->recv_offset+i+1+c, c);
+			//logprintf(LOG_DEBUG, "Moving character %02X from position %d to %d\n", client_data->recv_buffer[client_data->recv_offset+i+1+c], client_data->recv_offset+i+1+c, c);
 			buffer[i] = buffer[append_offset + i];
 		}
 		append_offset = 0;
 
-		logprintf(log, LOG_DEBUG, "Copyback done, offset %d, first byte %02X, %d bytes\n", append_offset, buffer[0], new_bytes);
+		logprintf(LOG_DEBUG, "Copyback done, offset %d, first byte %02X, %d bytes\n", append_offset, buffer[0], new_bytes);
 	}
 
 	//scan new bytes for terminators
@@ -217,7 +217,7 @@ ssize_t protocol_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ss
 				*append_offset_p = append_offset + i + 1;
 				*new_bytes_p = new_bytes - i - 2; //should always be 0
 
-				logprintf(log, LOG_DEBUG, "Next line parser detected literal string opening, requesting continuation\n");
+				logprintf(LOG_DEBUG, "Next line parser detected literal string opening, requesting continuation\n");
 				return -2;
 			}
 
@@ -229,7 +229,7 @@ ssize_t protocol_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ss
 			*append_offset_p = append_offset + i + 2; //append after the second \0
 			*new_bytes_p = new_bytes - i - 2;
 
-			logprintf(log, LOG_DEBUG, "Next line contains %d bytes\n", append_offset + i);
+			logprintf(LOG_DEBUG, "Next line contains %d bytes\n", append_offset + i);
 			return append_offset + i;
 		}
 	}
@@ -238,11 +238,11 @@ ssize_t protocol_next_line(LOGGER log, char* buffer, size_t* append_offset_p, ss
 	*append_offset_p = append_offset + new_bytes;
 	*new_bytes_p = 0;
 
-	logprintf(log, LOG_DEBUG, "Incomplete line buffer contains %d bytes\n", *append_offset_p);
+	logprintf(LOG_DEBUG, "Incomplete line buffer contains %d bytes\n", *append_offset_p);
 	return -1;
 }
 
-char* protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigned maxparam, char** parameters){
+char* protocol_split_parameters(char* inputfmt, char* input, unsigned maxparam, char** parameters){
 	unsigned param = 0, offset = 0;
 	int astring_length = 0;
 	char* data_offset = input;
@@ -252,11 +252,11 @@ char* protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigne
 			case 'a':
 			case 'l':
 				//parse astring / list-mailbox string
-				logprintf(log, LOG_DEBUG, "Parsing %cstring at offset %d: %s\n", inputfmt[offset], data_offset - input, data_offset);
+				logprintf(LOG_DEBUG, "Parsing %cstring at offset %d: %s\n", inputfmt[offset], data_offset - input, data_offset);
 				astring_length = protocol_parse_astring(data_offset, parameters + param, &data_offset, (inputfmt[offset] == 'a') ? NULL:"(){\\\"");
 				if(astring_length < 0){
 					//failed to parse astring
-					logprintf(log, LOG_ERROR, "Failed to parse astring in command parameter\n");
+					logprintf(LOG_ERROR, "Failed to parse astring in command parameter\n");
 					return NULL;
 				}
 				else{
@@ -265,7 +265,7 @@ char* protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigne
 						if(*data_offset != ' ' && *data_offset != 0){
 							//astring-char sequence contained illegal character, return failure
 							//this hack-fixes a similar problem in protocol_parse_astring
-							logprintf(log, LOG_WARNING, "Failing parameter decode because parameters were not space-separated\n");
+							logprintf(LOG_WARNING, "Failing parameter decode because parameters were not space-separated\n");
 							return NULL;
 						}
 						//parameter trailed by SP
@@ -275,7 +275,7 @@ char* protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigne
 					else{
 						//this is a bit harder
 						//FIXME terminate parameter strings when not separated with space
-						logprintf(log, LOG_ERROR, "Implementation dead end hit: need to terminate parameters after parsing\n");
+						logprintf(LOG_ERROR, "Implementation dead end hit: need to terminate parameters after parsing\n");
 						return NULL;
 					}
 				}
@@ -285,7 +285,7 @@ char* protocol_split_parameters(LOGGER log, char* inputfmt, char* input, unsigne
 				//skip this
 				break;
 			default:
-				logprintf(log, LOG_WARNING, "Unknown parameter format specifier %c\n", inputfmt[offset]);
+				logprintf(LOG_WARNING, "Unknown parameter format specifier %c\n", inputfmt[offset]);
 				break;
 		}
 	}

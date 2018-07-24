@@ -1,4 +1,4 @@
-int imapstate_sasl(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+int imapstate_sasl(COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int sasl_status = SASL_OK;
 	char* sasl_challenge = NULL;
@@ -7,15 +7,15 @@ int imapstate_sasl(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND senten
 	unsigned i;
 
 	if(!strcmp(client_data->recv_buffer, "*")){
-		logprintf(log, LOG_INFO, "Client requested SASL cancellation\n");
+		logprintf(LOG_INFO, "Client requested SASL cancellation\n");
 		sasl_cancel(&(client_data->auth.ctx));
-		client_send(log, client, "%s BAD Authentication request cancelled\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:"*");
+		client_send(client, "%s BAD Authentication request cancelled\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:"*");
 		auth_reset(&(client_data->auth));
 		client_data->state = STATE_NEW;
 	}
 	else if(client_data->auth.method != IMAP_AUTHENTICATE && sentence.command && !strcasecmp(sentence.command, "authenticate")){
 		if(!sentence.parameters){
-			logprintf(log, LOG_WARNING, "Client tried AUTHENTICATE without supplying method\n");
+			logprintf(LOG_WARNING, "Client tried AUTHENTICATE without supplying method\n");
 			sasl_status = SASL_UNKNOWN_METHOD;
 		}
 		else{
@@ -28,13 +28,13 @@ int imapstate_sasl(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND senten
 				sasl_ir = sentence.parameters + i + 1;
 			}
 
-			logprintf(log, LOG_DEBUG, "Beginning SASL with method %s\n", sentence.parameters, NULL);
-			sasl_status = sasl_begin(log, &(client_data->auth.ctx), &(client_data->auth.user), sentence.parameters, sasl_ir, &sasl_challenge);
+			logprintf(LOG_DEBUG, "Beginning SASL with method %s\n", sentence.parameters, NULL);
+			sasl_status = sasl_begin(&(client_data->auth.ctx), &(client_data->auth.user), sentence.parameters, sasl_ir, &sasl_challenge);
 			client_data->auth.auth_tag = common_strdup(sentence.tag);
 			if(!client_data->auth.auth_tag){
-				logprintf(log, LOG_ERROR, "Failed to allocate memory to store authentication request tag\n");
+				logprintf(LOG_ERROR, "Failed to allocate memory to store authentication request tag\n");
 				auth_reset(&(client_data->auth));
-				client_send(log, client, "%s BAD Internal Error\r\n", sentence.tag);
+				client_send(client, "%s BAD Internal Error\r\n", sentence.tag);
 				return 0;
 			}
 			else{
@@ -44,66 +44,66 @@ int imapstate_sasl(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND senten
 		}
 	}
 	else{
-		sasl_status = sasl_continue(log, &(client_data->auth.ctx), client_data->recv_buffer, &sasl_challenge);
+		sasl_status = sasl_continue(&(client_data->auth.ctx), client_data->recv_buffer, &sasl_challenge);
 	}
 
 	switch(sasl_status){
 		case SASL_OK:
-			logprintf(log, LOG_ERROR, "SASL reply could not be handled by any branch\n");
+			logprintf(LOG_ERROR, "SASL reply could not be handled by any branch\n");
 			client_data->state = STATE_NEW;
-			client_send(log, client, "%s BAD Invalid SASL state\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
+			client_send(client, "%s BAD Invalid SASL state\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
 			auth_reset(&(client_data->auth));
 			return -1;
 		case SASL_ERROR_PROCESSING:
-			logprintf(log, LOG_ERROR, "SASL processing error\r\n");
-			client_send(log, client, "%s BAD Failed processing the SASL request\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
+			logprintf(LOG_ERROR, "SASL processing error\r\n");
+			client_send(client, "%s BAD Failed processing the SASL request\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
 			client_data->state = STATE_NEW;
 			auth_reset(&(client_data->auth));
 			return -1;
 		case SASL_ERROR_DATA:
-			logprintf(log, LOG_ERROR, "SASL failed to parse data\r\n");
-			client_send(log, client, "%s BAD Invalid data provided\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
+			logprintf(LOG_ERROR, "SASL failed to parse data\r\n");
+			client_send(client, "%s BAD Invalid data provided\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
 			client_data->state = STATE_NEW;
 			auth_reset(&(client_data->auth));
 			return -1;
 		case SASL_UNKNOWN_METHOD:
-			logprintf(log, LOG_ERROR, "Client tried unknown SASL method\r\n");
-			client_send(log, client, "%s NO Unknown SASL method\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
+			logprintf(LOG_ERROR, "Client tried unknown SASL method\r\n");
+			client_send(client, "%s NO Unknown SASL method\r\n", client_data->auth.auth_tag ? client_data->auth.auth_tag:sentence.tag);
 			auth_reset(&(client_data->auth));
 			client_data->state = STATE_NEW;
 			return -1;
 		case SASL_CONTINUE:
-			logprintf(log, LOG_INFO, "Asking for SASL continuation\r\n");
-			client_send(log, client, "+ %s\r\n", sasl_challenge ? sasl_challenge:"");
+			logprintf(LOG_INFO, "Asking for SASL continuation\r\n");
+			client_send(client, "+ %s\r\n", sasl_challenge ? sasl_challenge:"");
 			return 0;
 		case SASL_DATA_OK:
 			sasl_reset_ctx(&(client_data->auth.ctx), true);
 
 			//check provided authentication data
-			if(!sasl_challenge || auth_validate(log, database->query_authdata, client_data->auth.user.authenticated, sasl_challenge, &(client_data->auth.user.authorized)) < 0){
+			if(!sasl_challenge || auth_validate(database->query_authdata, client_data->auth.user.authenticated, sasl_challenge, &(client_data->auth.user.authorized)) < 0){
 				//login failed
-				logprintf(log, LOG_INFO, "Client failed to authenticate\n");
-				client_send(log, client, "%s NO Authentication failed\r\n", client_data->auth.auth_tag);
+				logprintf(LOG_INFO, "Client failed to authenticate\n");
+				client_send(client, "%s NO Authentication failed\r\n", client_data->auth.auth_tag);
 				auth_reset(&(client_data->auth));
 				return -1;
 			}
 
 			if(!client_data->auth.user.authorized){
-				logprintf(log, LOG_ERROR, "Failed to allocate memory for authorized user\n");
-				client_send(log, client, "%s BAD Internal allocation error\r\n", client_data->auth.auth_tag);
+				logprintf(LOG_ERROR, "Failed to allocate memory for authorized user\n");
+				client_send(client, "%s BAD Internal allocation error\r\n", client_data->auth.auth_tag);
 				auth_reset(&(client_data->auth));
 				return 0;
 			}
 
-			logprintf(log, LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
+			logprintf(LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
 
 			//enqueue command to acquire connection specific data
 			//as the command sentence may be split in this case, re-build a sentence that is valid in any case
 			temporary_command.backing_buffer_length = (strlen(client_data->auth.auth_tag) + strlen("AUTHENTICATE") + 2) * sizeof(char);
 			temporary_command.backing_buffer = calloc(temporary_command.backing_buffer_length, sizeof(char));
 			if(!temporary_command.backing_buffer){
-				logprintf(log, LOG_ERROR, "Failed to allocate memory for temporary command\n");
-				client_send(log, client, "%s BAD Internal allocation error\r\n", client_data->auth.auth_tag);
+				logprintf(LOG_ERROR, "Failed to allocate memory for temporary command\n");
+				client_send(client, "%s BAD Internal allocation error\r\n", client_data->auth.auth_tag);
 				auth_reset(&(client_data->auth));
 				return 0;
 			}
@@ -113,17 +113,17 @@ int imapstate_sasl(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND senten
 			temporary_command.command = temporary_command.backing_buffer + strlen(client_data->auth.auth_tag) + 1;
 			temporary_command.parameters = NULL;
 			//enqueue it
-			commandqueue_enqueue_command(log, command_queue, client, temporary_command, NULL);
+			commandqueue_enqueue_command(command_queue, client, temporary_command, NULL);
 			//clean it up again
 			free(temporary_command.backing_buffer);
 			return 1;
 	}
 
-	logprintf(log, LOG_ERROR, "Invalid branch reached in state SASL\n");
+	logprintf(LOG_ERROR, "Invalid branch reached in state SASL\n");
 	return -1;
 }
 
-int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+int imapstate_new(COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
 	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	LISTENER* listener_data = (LISTENER*)client_data->listener->aux_data;
@@ -133,7 +133,7 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
-		state = imap_capability(log, sentence, client, database);
+		state = imap_capability(sentence, client, database);
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
@@ -141,11 +141,11 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
 		//this is kind of a hack as it bypasses the default command state responder
-		return imap_logout(log, sentence, client, database, command_queue);
+		return imap_logout(sentence, client, database, command_queue);
 	}
 	else if(!strcasecmp(sentence.command, "xyzzy")){
 		state_reason = "Incantation performed";
-		state = imap_xyzzy(log, sentence, client, database);
+		state = imap_xyzzy(sentence, client, database);
 	}
 
 	//actual NEW commands as per RFC 3501 6.2
@@ -153,7 +153,7 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 	else if(!strcasecmp(sentence.command, "starttls")){
 		//accept only when offered, reject when already negotiated
 		if(client->tls_mode != TLS_NONE){
-			logprintf(log, LOG_WARNING, "Client with active TLS session tried to negotiate\n");
+			logprintf(LOG_WARNING, "Client with active TLS session tried to negotiate\n");
 
 			state_reason = "TLS session already negotiated";
 			state = COMMAND_BAD;
@@ -162,7 +162,7 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 		}
 
 		if(client_data->listener->tls_mode != TLS_NEGOTIATE){
-			logprintf(log, LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
+			logprintf(LOG_WARNING, "Client tried to negotiate TLS with non-negotiable listener\n");
 
 			state_reason = "TLS not possible now";
 			state = COMMAND_BAD;
@@ -171,13 +171,13 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 		}
 
 		if(state == COMMAND_UNHANDLED){
-			logprintf(log, LOG_INFO, "Client wants to negotiate TLS\n");
-			client_send(log, client, "%s OK Begin TLS negotiation\r\n", sentence.tag);
+			logprintf(LOG_INFO, "Client wants to negotiate TLS\n");
+			client_send(client, "%s OK Begin TLS negotiation\r\n", sentence.tag);
 
 			client->tls_mode = TLS_NEGOTIATE;
 
 			//this is somewhat dodgy and should probably be replaced by a proper conditional
-			return tls_init_serverpeer(log, client, listener_data->tls_priorities, listener_data->tls_cert);
+			return tls_init_serverpeer(client, listener_data->tls_priorities, listener_data->tls_cert);
 		}
 
 		state = COMMAND_BAD;
@@ -195,14 +195,14 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 		else if((listener_data->auth_offer == AUTH_ANY) ||
 				(listener_data->auth_offer == AUTH_TLSONLY && client->tls_mode == TLS_ONLY)){
 			if(client_data->auth.auth_tag){
-				logprintf(log, LOG_INFO, "Client tried to run multiple AUTHENTICATE commands\n");
+				logprintf(LOG_INFO, "Client tried to run multiple AUTHENTICATE commands\n");
 				state_reason = "Authentication in progress";
 				state = COMMAND_BAD;
 				rv = -1;
 			}
 			else{
 				//call out to state_sasl for actual negotiation
-				return imapstate_sasl(log, command_queue, sentence, client, database);
+				return imapstate_sasl(command_queue, sentence, client, database);
 			}
 		}
 		else{
@@ -245,21 +245,21 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 						login_password[i] = 0;
 					}
 					else{
-						logprintf(log, LOG_WARNING, "Failed to parse password astring\n");
+						logprintf(LOG_WARNING, "Failed to parse password astring\n");
 					}
 				}
 				else{
-					logprintf(log, LOG_WARNING, "Invalid delimiter between arguments: %02X\n", astring_data_end[0]);
+					logprintf(LOG_WARNING, "Invalid delimiter between arguments: %02X\n", astring_data_end[0]);
 				}
 			}
 			else{
-				logprintf(log, LOG_WARNING, "Failed to parse user name astring\n");
+				logprintf(LOG_WARNING, "Failed to parse user name astring\n");
 			}
 
 			if(login_user && login_password){
-				if(auth_validate(log, database->query_authdata, login_user, login_password, &(client_data->auth.user.authorized)) < 0){
+				if(auth_validate(database->query_authdata, login_user, login_password, &(client_data->auth.user.authorized)) < 0){
 					//failed to authenticate
-					logprintf(log, LOG_INFO, "Failed to authenticate client\n");
+					logprintf(LOG_INFO, "Failed to authenticate client\n");
 					auth_reset(&(client_data->auth));
 
 					state_reason = "Failed to authenticate";
@@ -271,7 +271,7 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 				else{
 					client_data->auth.user.authenticated = common_strdup(login_user);
 					if(!client_data->auth.user.authenticated){
-						logprintf(log, LOG_ERROR, "Failed to allocate memory for authentication user name\n");
+						logprintf(LOG_ERROR, "Failed to allocate memory for authentication user name\n");
 						auth_reset(&(client_data->auth));
 
 						state_reason = "Internal error";
@@ -279,12 +279,12 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 					}
 					else{
 						client_data->auth.method = IMAP_LOGIN;
-						logprintf(log, LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
+						logprintf(LOG_INFO, "Client authenticated as user %s\n", client_data->auth.user.authenticated);
 
 						state = COMMAND_NOREPLY;
 						rv = 1;
 						//enqueue command to acquire connection specific data
-						commandqueue_enqueue_command(log, command_queue, client, sentence, NULL);
+						commandqueue_enqueue_command(command_queue, client, sentence, NULL);
 					}
 				}
 			}
@@ -303,39 +303,39 @@ int imapstate_new(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentenc
 
 	switch(state){
 		case COMMAND_UNHANDLED:
-			logprintf(log, LOG_WARNING, "Unhandled command %s in state NEW\n", sentence.command);
-			client_send(log, client, "%s BAD Command not recognized\r\n", sentence.tag); //FIXME is this correct
+			logprintf(LOG_WARNING, "Unhandled command %s in state NEW\n", sentence.command);
+			client_send(client, "%s BAD Command not recognized\r\n", sentence.tag); //FIXME is this correct
 			return -1;
 		case COMMAND_OK:
-			client_send(log, client, "%s OK %s\r\n", sentence.tag, state_reason ? state_reason:"Command completed");
+			client_send(client, "%s OK %s\r\n", sentence.tag, state_reason ? state_reason:"Command completed");
 			return rv;
 		case COMMAND_BAD:
-			client_send(log, client, "%s BAD %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
+			client_send(client, "%s BAD %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
 			return rv;
 		case COMMAND_NO:
-			client_send(log, client, "%s NO %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
+			client_send(client, "%s NO %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
 			return rv;
 		case COMMAND_NOREPLY:
 			return rv;
 	}
 
-	logprintf(log, LOG_ERROR, "Illegal branch reached in state NEW\n");
+	logprintf(LOG_ERROR, "Illegal branch reached in state NEW\n");
 	return -2;
 }
 
-int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
+int imapstate_authenticated(COMMAND_QUEUE* command_queue, IMAP_COMMAND sentence, CONNECTION* client, DATABASE* database){
 	IMAP_COMMAND_STATE state = COMMAND_UNHANDLED;
 	char* state_reason = NULL;
 	int rv = 0;
 
 	//commands valid in any state as per RFC 3501 6.1
 	if(!strcasecmp(sentence.command, "capability")){
-		state = imap_capability(log, sentence, client, database);
+		state = imap_capability(sentence, client, database);
 	}
 	else if(!strcasecmp(sentence.command, "noop")){
 		//this one is easy
-		if(commandqueue_enqueue_command(log, command_queue, client, sentence, NULL) < 0){
-			logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+		if(commandqueue_enqueue_command(command_queue, client, sentence, NULL) < 0){
+			logprintf(LOG_ERROR, "Failed to enqueue command\n");
 			state = COMMAND_BAD;
 			state_reason = "Failed to enqueue command";
 		}
@@ -346,12 +346,12 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	}
 	else if(!strcasecmp(sentence.command, "logout")){
 		//this is kind of a hack as it bypasses the default command state responder
-		return imap_logout(log, sentence, client, database, command_queue);
+		return imap_logout(sentence, client, database, command_queue);
 	}
 	else if(!strcasecmp(sentence.command, "xyzzy")){
 		//no error handling here, beware of the dragons
-		imap_xyzzy(log, sentence, client, database);
-		commandqueue_enqueue_command(log, command_queue, client, sentence, NULL);
+		imap_xyzzy(sentence, client, database);
+		commandqueue_enqueue_command(command_queue, client, sentence, NULL);
 		state = COMMAND_NOREPLY;
 	}
 
@@ -367,14 +367,14 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		else{
 			//params astring mboxname
 			char* parameters[2] = {NULL, NULL};
-			if(!protocol_split_parameters(log, "a", sentence.parameters, 1, parameters)){
+			if(!protocol_split_parameters("a", sentence.parameters, 1, parameters)){
 				state = COMMAND_BAD;
 				state_reason = "Failed to parse parameters";
 				rv = -1;
 			}
 			else{
-				if(commandqueue_enqueue_command(log, command_queue, client, sentence, parameters) < 0){
-					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+				if(commandqueue_enqueue_command(command_queue, client, sentence, parameters) < 0){
+					logprintf(LOG_ERROR, "Failed to enqueue command\n");
 					state = COMMAND_BAD;
 					state_reason = "Failed to enqueue command";
 				}
@@ -394,14 +394,14 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		else{
 			//params astring from, astring to
 			char* parameters[3] = {NULL, NULL, NULL};
-			if(!protocol_split_parameters(log, "a a", sentence.parameters, 2, parameters)){
+			if(!protocol_split_parameters("a a", sentence.parameters, 2, parameters)){
 				state = COMMAND_BAD;
 				state_reason = "Failed to parse parameters";
 				rv = -1;
 			}
 			else{
-				if(commandqueue_enqueue_command(log, command_queue, client, sentence, parameters) < 0){
-					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+				if(commandqueue_enqueue_command(command_queue, client, sentence, parameters) < 0){
+					logprintf(LOG_ERROR, "Failed to enqueue command\n");
 					state = COMMAND_BAD;
 					state_reason = "Failed to enqueue command";
 				}
@@ -421,14 +421,14 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 		else{
 			//params astring refname, list-mbx mbxname
 			char* parameters[3] = {NULL, NULL, NULL};
-			if(!protocol_split_parameters(log, "a l", sentence.parameters, 2, parameters)){
+			if(!protocol_split_parameters("a l", sentence.parameters, 2, parameters)){
 				state = COMMAND_BAD;
 				state_reason = "Failed to parse parameters";
 				rv = -1;
 			}
 			else{
-				if(commandqueue_enqueue_command(log, command_queue, client, sentence, parameters) < 0){
-					logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+				if(commandqueue_enqueue_command(command_queue, client, sentence, parameters) < 0){
+					logprintf(LOG_ERROR, "Failed to enqueue command\n");
 					state = COMMAND_BAD;
 					state_reason = "Failed to enqueue command";
 				}
@@ -450,8 +450,8 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 	//else if(MBX_SELECTED){
 		if(!strcasecmp(sentence.command, "check") || !strcasecmp(sentence.command, "close")
 				|| !strcasecmp(sentence.command, "expunge")){
-			if(commandqueue_enqueue_command(log, command_queue, client, sentence, NULL) < 0){
-				logprintf(log, LOG_ERROR, "Failed to enqueue command\n");
+			if(commandqueue_enqueue_command(command_queue, client, sentence, NULL) < 0){
+				logprintf(LOG_ERROR, "Failed to enqueue command\n");
 				state = COMMAND_BAD;
 				state_reason = "Failed to enqueue command";
 			}
@@ -478,22 +478,22 @@ int imapstate_authenticated(LOGGER log, COMMAND_QUEUE* command_queue, IMAP_COMMA
 
 	switch(state){
 		case COMMAND_UNHANDLED:
-			logprintf(log, LOG_WARNING, "Unhandled command %s in state AUTHENTICATED\n", sentence.command);
-			client_send(log, client, "%s BAD Command not recognized\r\n", sentence.tag); //FIXME is this correct
+			logprintf(LOG_WARNING, "Unhandled command %s in state AUTHENTICATED\n", sentence.command);
+			client_send(client, "%s BAD Command not recognized\r\n", sentence.tag); //FIXME is this correct
 			return -1;
 		case COMMAND_OK:
-			client_send(log, client, "%s OK %s\r\n", sentence.tag, state_reason ? state_reason:"Command completed");
+			client_send(client, "%s OK %s\r\n", sentence.tag, state_reason ? state_reason:"Command completed");
 			return rv;
 		case COMMAND_BAD:
-			client_send(log, client, "%s BAD %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
+			client_send(client, "%s BAD %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
 			return rv;
 		case COMMAND_NO:
-			client_send(log, client, "%s NO %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
+			client_send(client, "%s NO %s\r\n", sentence.tag, state_reason ? state_reason:"Command failed");
 			return rv;
 		case COMMAND_NOREPLY:
 			return rv;
 	}
 
-	logprintf(log, LOG_ERROR, "Illegal branch reached in state AUTHENTICATED\n");
+	logprintf(LOG_ERROR, "Illegal branch reached in state AUTHENTICATED\n");
 	return -2;
 }

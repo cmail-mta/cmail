@@ -1,4 +1,4 @@
-int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
+int client_parse(IMAP_COMMAND* sentence, char* client_line){
 	unsigned i;
 
 	//reset structure before parsing
@@ -18,12 +18,12 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 	sentence->tag = sentence->backing_buffer;
 
 	if(strlen(sentence->tag) < 1){
-		logprintf(log, LOG_DEBUG, "Invalid tag provided\n");
+		logprintf(LOG_DEBUG, "Invalid tag provided\n");
 		return -1;
 	}
 
 	if(i + 1 >= sentence->backing_buffer_length){
-		logprintf(log, LOG_DEBUG, "Client sentence contained only tag\n");
+		logprintf(LOG_DEBUG, "Client sentence contained only tag\n");
 		return -1;
 	}
 
@@ -35,7 +35,7 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 	sentence->backing_buffer[i] = 0;
 
 	if(strlen(sentence->command) < 1){
-		logprintf(log, LOG_DEBUG, "Invalid command provided\n");
+		logprintf(LOG_DEBUG, "Invalid command provided\n");
 		return -1;
 	}
 
@@ -46,34 +46,34 @@ int client_parse(LOGGER log, IMAP_COMMAND* sentence, char* client_line){
 	return 0;
 }
 
-int client_line(LOGGER log, COMMAND_QUEUE* command_queue, CONNECTION* client, DATABASE* database){
+int client_line(COMMAND_QUEUE* command_queue, CONNECTION* client, DATABASE* database){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 
-	logprintf(log, LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
+	logprintf(LOG_ALL_IO, ">> %s\n", client_data->recv_buffer);
 
-	if(client_parse(log, &(client_data->sentence), client_data->recv_buffer) < 0){
+	if(client_parse(&(client_data->sentence), client_data->recv_buffer) < 0){
 		if(client_data->state != STATE_SASL){ //except continuation commands...
 			//failed to properly parse input
-			client_send(log, client, "* NO Error in received command\r\n"); //FIXME should this be a BAD?
+			client_send(client, "* NO Error in received command\r\n"); //FIXME should this be a BAD?
 			return -1;
 		}
 	}
 
-	logprintf(log, LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command ? client_data->sentence.command:"-none-", client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
+	logprintf(LOG_DEBUG, "Tag: %s, Command: %s, Params: %s\n", client_data->sentence.tag, client_data->sentence.command ? client_data->sentence.command:"-none-", client_data->sentence.parameters ? client_data->sentence.parameters:"-none-");
 	switch(client_data->state){
 		case STATE_NEW:
-			return imapstate_new(log, command_queue, client_data->sentence, client, database);
+			return imapstate_new(command_queue, client_data->sentence, client, database);
 		case STATE_SASL:
-			return imapstate_sasl(log, command_queue, client_data->sentence, client, database);
+			return imapstate_sasl(command_queue, client_data->sentence, client, database);
 		case STATE_AUTHENTICATED:
-			return imapstate_authenticated(log, command_queue, client_data->sentence, client, database);
+			return imapstate_authenticated(command_queue, client_data->sentence, client, database);
 	}
 
-	logprintf(log, LOG_ERROR, "Unhandled state in client_line\n");
+	logprintf(LOG_ERROR, "Unhandled state in client_line\n");
 	return -1;
 }
 
-int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
+int client_accept(CONNECTION* listener, CONNPOOL* clients){
 	int client_slot = -1, flags, status;
 	CLIENT empty_data = {
 		.listener = listener,
@@ -101,14 +101,14 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	LISTENER* listener_data = (LISTENER*)listener->aux_data;
 
 	if(connpool_active(*clients) >= CMAIL_MAX_CONCURRENT_CLIENTS){
-		logprintf(log, LOG_INFO, "Not accepting new client, limit reached\n");
+		logprintf(LOG_INFO, "Not accepting new client, limit reached\n");
 		return 1;
 	}
 
 	client_slot = connpool_add(clients, accept(listener->fd, NULL, NULL));
 
 	if(client_slot < 0){
-		logprintf(log, LOG_ERROR, "Failed to pool client socket\n");
+		logprintf(LOG_ERROR, "Failed to pool client socket\n");
 		return -1;
 	}
 
@@ -119,13 +119,13 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	}
 	status = fcntl(clients->conns[client_slot].fd, F_SETFL, flags | O_NONBLOCK);
 	if(status < 0){
-		logprintf(log, LOG_ERROR, "Failed to make client socket nonblocking: %s\n", strerror(errno));
+		logprintf(LOG_ERROR, "Failed to make client socket nonblocking: %s\n", strerror(errno));
 	}
 
 	if(!(clients->conns[client_slot].aux_data)){
 		clients->conns[client_slot].aux_data = malloc(sizeof(CLIENT));
 		if(!clients->conns[client_slot].aux_data){
-			logprintf(log, LOG_ERROR, "Failed to allocate client data set\n");
+			logprintf(LOG_ERROR, "Failed to allocate client data set\n");
 			return -1;
 		}
 	}
@@ -143,7 +143,7 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 		//FIXME this should probably respect aliases
 		actual_data->auth.user.authorized = common_strdup(listener_data->fixed_user);
 		if(!actual_data->auth.user.authenticated || !actual_data->auth.user.authorized){
-			logprintf(log, LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
+			logprintf(LOG_ERROR, "Failed to allocate memory for fixed user authentication data\n");
 			//TODO fail this connection
 		}
 		else{
@@ -154,35 +154,35 @@ int client_accept(LOGGER log, CONNECTION* listener, CONNPOOL* clients){
 	#ifndef CMAIL_NO_TLS
 	//if on tlsonly port, immediately wait for negotiation
 	if(listener->tls_mode == TLS_ONLY){
-		logprintf(log, LOG_INFO, "Listen socket is TLSONLY, waiting for negotiation...\n");
+		logprintf(LOG_INFO, "Listen socket is TLSONLY, waiting for negotiation...\n");
 		clients->conns[client_slot].tls_mode = TLS_NEGOTIATE;
-		return tls_init_serverpeer(log, &(clients->conns[client_slot]), listener_data->tls_priorities, listener_data->tls_cert);
+		return tls_init_serverpeer(&(clients->conns[client_slot]), listener_data->tls_priorities, listener_data->tls_cert);
 	}
 	#endif
 
 	if(actual_data->auth.user.authenticated){
-		client_send(log, &(clients->conns[client_slot]), "* PREAUTH IMAP4rev1 server ready with user %s\r\n", actual_data->auth.user.authorized);
+		client_send(&(clients->conns[client_slot]), "* PREAUTH IMAP4rev1 server ready with user %s\r\n", actual_data->auth.user.authorized);
 	}
 	else{
-		client_send(log, &(clients->conns[client_slot]), "* OK IMAP4rev1 server ready\r\n");
+		client_send(&(clients->conns[client_slot]), "* OK IMAP4rev1 server ready\r\n");
 	}
 	return 0;
 }
 
-bool client_timeout(LOGGER log, CONNECTION* client){
+bool client_timeout(CONNECTION* client){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int delta = time(NULL) - client_data->last_action;
 
 	if(delta < 0){
-		logprintf(log, LOG_ERROR, "Time reported an error or skipped ahead: %s\n", strerror(errno));
+		logprintf(LOG_ERROR, "Time reported an error or skipped ahead: %s\n", strerror(errno));
 		return false;
 	}
 
-	logprintf(log, LOG_DEBUG, "Client has activity delta %d seconds\n", delta);
+	logprintf(LOG_DEBUG, "Client has activity delta %d seconds\n", delta);
 	return delta > IMAP_CLIENT_TIMEOUT;
 }
 
-int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue){
+int client_close(CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	QUEUED_COMMAND* queue_entry = NULL;
 	unsigned i;
@@ -195,7 +195,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUE
 				queue_entry->queue_state = COMMAND_CANCELED;
 			}
 			else{
-				logprintf(log, LOG_INFO, "Closed client has active command queue entry\n");
+				logprintf(LOG_INFO, "Closed client has active command queue entry\n");
 				//probably should wait until command completion here, but that would open up a DoS vector
 				//instead, discard this entry at queue responder
 				queue_entry->discard = true;
@@ -211,7 +211,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUE
 			command_queue->system_entries[i].last_enqueue = time(NULL);
 			command_queue->system_entries[i].client = client;
 			command_queue->system_entries[i].queue_state = COMMAND_SYSTEM;
-			commandqueue_enqueue(log, command_queue, command_queue->system_entries + i);
+			commandqueue_enqueue(command_queue, command_queue->system_entries + i);
 			break;
 		}
 	}
@@ -241,7 +241,7 @@ int client_close(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUE
 	return 0;
 }
 
-int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue){
+int client_process(CONNECTION* client, DATABASE* database, COMMAND_QUEUE* command_queue){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	ssize_t left, bytes, line_length;
 	int i;
@@ -255,13 +255,13 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 		//unterminated line
 		//FIXME this might be kind of a harsh response
 		//if we're changing this, need to reset recv_*
-		logprintf(log, LOG_WARNING, "Line too long, closing client connection\n");
-		client_send(log, client, "* BYE Command line too long\r\n");
-		client_close(log, client, database, command_queue);
+		logprintf(LOG_WARNING, "Line too long, closing client connection\n");
+		client_send(client, "* BYE Command line too long\r\n");
+		client_close(client, database, command_queue);
 		return 0;
 	}
 
-	bytes = network_read(log, client, client_data->recv_buffer + client_data->recv_offset, left);
+	bytes = network_read(client, client_data->recv_buffer + client_data->recv_offset, left);
 
 	//failed to read from socket
 	if(bytes < 0){
@@ -271,11 +271,11 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 		#endif
 		switch(errno){
 			case EAGAIN:
-				logprintf(log, LOG_WARNING, "Read signaled, but blocked\n");
+				logprintf(LOG_WARNING, "Read signaled, but blocked\n");
 				return 0;
 			default:
-				logprintf(log, LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
-				client_close(log, client, database, command_queue);
+				logprintf(LOG_ERROR, "Failed to read from client: %s\n", strerror(errno));
+				client_close(client, database, command_queue);
 				return -1;
 		}
 		#ifndef CMAIL_NO_TLS
@@ -283,18 +283,18 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 			case TLS_NEGOTIATE:
 				//errors during TLS negotiation
 				if(bytes == -2){
-					client_close(log, client, database, command_queue);
+					client_close(client, database, command_queue);
 				}
 				return 0;
 			case TLS_ONLY:
 				switch(bytes){
 					case GNUTLS_E_INTERRUPTED:
 					case GNUTLS_E_AGAIN:
-						logprintf(log, LOG_WARNING, "TLS read signaled, but blocked\n");
+						logprintf(LOG_WARNING, "TLS read signaled, but blocked\n");
 						return 0;
 					default:
-						logprintf(log, LOG_ERROR, "GnuTLS reported an error while reading: %s\n", gnutls_strerror(bytes));
-						client_close(log, client, database, command_queue);
+						logprintf(LOG_ERROR, "GnuTLS reported an error while reading: %s\n", gnutls_strerror(bytes));
+						client_close(client, database, command_queue);
 						return -1;
 				}
 		}
@@ -311,24 +311,24 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 				if(client_data->listener->tls_mode == TLS_ONLY){
 					//send greeting if listener is tlsonly
 					if(client_data->auth.user.authenticated){
-						client_send(log, client, "* PREAUTH IMAP4rev1 server ready with user %s\r\n", client_data->auth.user.authorized);
+						client_send(client, "* PREAUTH IMAP4rev1 server ready with user %s\r\n", client_data->auth.user.authorized);
 					}
 					else{
-						client_send(log, client, "* OK IMAP4rev1 server ready\r\n");
+						client_send(client, "* OK IMAP4rev1 server ready\r\n");
 					}
 				}
 				break;
 			default:
 		#endif
-		logprintf(log, LOG_INFO, "Client has disconnected\n");
-		client_close(log, client, database, command_queue);
+		logprintf(LOG_INFO, "Client has disconnected\n");
+		client_close(client, database, command_queue);
 		#ifndef CMAIL_NO_TLS
 		}
 		#endif
 		return 0;
 	}
 
-	logprintf(log, LOG_DEBUG, "Received %d bytes of data, recv_offset is %d, recv_literal_bytes is %d\n", bytes, client_data->recv_offset, client_data->recv_literal_bytes);
+	logprintf(LOG_DEBUG, "Received %d bytes of data, recv_offset is %d, recv_literal_bytes is %d\n", bytes, client_data->recv_offset, client_data->recv_literal_bytes);
 
 	do{
 		//process literal byte reception
@@ -345,25 +345,25 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 			}
 		}
 
-		line_length = protocol_next_line(log, client_data->recv_buffer, &(client_data->recv_offset), &bytes);
+		line_length = protocol_next_line(client_data->recv_buffer, &(client_data->recv_offset), &bytes);
 		if(line_length >= 0){
 			if(line_length >= CMAIL_MAX_IMAP_LINE - 2){
-				logprintf(log, LOG_WARNING, "Line too long, ignoring\n");
-				client_send(log, client, "* BAD Command line too long\r\n");
-				//client_line(log, client, database);
+				logprintf(LOG_WARNING, "Line too long, ignoring\n");
+				client_send(client, "* BAD Command line too long\r\n");
+				//client_line(client, database);
 				//FIXME might handle this more sensibly
 			}
 			else{
 				//update last action timestamp
 				client_data->last_action = time(NULL);
 
-				client_data->connection_score += client_line(log, command_queue, client, database);
+				client_data->connection_score += client_line(command_queue, client, database);
 
 				//kick the client after too many failed commands
 				if(client_data->connection_score < CMAIL_FAILSCORE_LIMIT){
-					logprintf(log, LOG_WARNING, "Disconnecting client because of bad connection score\n");
-					client_send(log, client, "* BYE Too many failed commands\r\n");
-					client_close(log, client, database, command_queue);
+					logprintf(LOG_WARNING, "Disconnecting client because of bad connection score\n");
+					client_send(client, "* BYE Too many failed commands\r\n");
+					client_close(client, database, command_queue);
 					return 0;
 				}
 			}
@@ -385,7 +385,7 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 
 				//FIXME this test might not be quite correct
 				if(client_data->recv_literal_bytes >= left){
-					client_send(log, client, "* BAD Literal too long\r\n"); //FIXME this should probably be a tagged response
+					client_send(client, "* BAD Literal too long\r\n"); //FIXME this should probably be a tagged response
 					client_data->recv_literal_bytes = 0;
 					client_data->recv_offset = 0; //FIXME is this enough to reset the read buffer?
 				}
@@ -394,12 +394,12 @@ int client_process(LOGGER log, CONNECTION* client, DATABASE* database, COMMAND_Q
 				}
 				else{
 					//request continuation
-					client_send(log, client, "+ Continue transmission of %d bytes\r\n", client_data->recv_literal_bytes);
+					client_send(client, "+ Continue transmission of %d bytes\r\n", client_data->recv_literal_bytes);
 				}
 			}
 			else{
 				//bad literal length, reject
-				client_send(log, client, "* BAD Literal length invalid\r\n"); //FIXME this should probably be a tagged response
+				client_send(client, "* BAD Literal length invalid\r\n"); //FIXME this should probably be a tagged response
 				client_data->recv_offset = 0; //FIXME is this enough to reset the read buffer?
 			}
 		}

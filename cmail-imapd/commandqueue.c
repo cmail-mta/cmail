@@ -41,7 +41,7 @@ void commandqueue_reset_entry(QUEUED_COMMAND* entry, bool keep_allocations){
 	return;
 }
 
-int commandqueue_initialize(LOGGER log, COMMAND_QUEUE* command_queue){
+int commandqueue_initialize(COMMAND_QUEUE* command_queue){
 	size_t i;
 
 	//allocate initial queue entry buffer
@@ -58,7 +58,7 @@ int commandqueue_initialize(LOGGER log, COMMAND_QUEUE* command_queue){
 }
 
 //The next 2 functions require the queue_access mutex to be held by the calling thread
-int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, QUEUED_COMMAND* entry){
+int commandqueue_enqueue(COMMAND_QUEUE* queue, QUEUED_COMMAND* entry){
 	//insert entry into queue
 	if(!queue->head && !queue->tail){
 		queue->head = entry;
@@ -70,7 +70,7 @@ int commandqueue_enqueue(LOGGER log, COMMAND_QUEUE* queue, QUEUED_COMMAND* entry
 		queue->tail = entry;
 	}
 	else{
-		logprintf(log, LOG_ERROR, "Queue pointers in invalid state (head %s tail %s)\n", queue->head ? "active":"NULL", queue->tail ? "active":"NULL");
+		logprintf(LOG_ERROR, "Queue pointers in invalid state (head %s tail %s)\n", queue->head ? "active":"NULL", queue->tail ? "active":"NULL");
 		return -1;
 	}
 	return 0;
@@ -92,7 +92,7 @@ void commandqueue_dequeue(COMMAND_QUEUE* queue, QUEUED_COMMAND* entry){
 	}
 }
 
-int commandqueue_enqueue_command(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* client, IMAP_COMMAND command, char** parameters){
+int commandqueue_enqueue_command(COMMAND_QUEUE* queue, CONNECTION* client, IMAP_COMMAND command, char** parameters){
 	size_t entry;
 	int rv = 0;
 	unsigned i;
@@ -108,7 +108,7 @@ int commandqueue_enqueue_command(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* c
 
 	if(entry >= queue->entries_length){
 		//reallocate queue
-		logprintf(log, LOG_WARNING, "Command queue exhausted\n");
+		logprintf(LOG_WARNING, "Command queue exhausted\n");
 		//pthread_mutex_lock(&(queue->queue_access));
 		//this can only happen if no entry is currently IN_PROGRESS in order to avoid dangling pointers
 		//this also needs to update all next/previous/head/tail pointers
@@ -136,7 +136,7 @@ int commandqueue_enqueue_command(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* c
 	if(queue->entries[entry].backing_buffer_length < command.backing_buffer_length){
 		queue->entries[entry].backing_buffer = realloc(queue->entries[entry].backing_buffer, command.backing_buffer_length * sizeof(char));
 		if(!queue->entries[entry].backing_buffer){
-			logprintf(log, LOG_ERROR, "Failed to allocate memory for queue entry backing buffer\n");
+			logprintf(LOG_ERROR, "Failed to allocate memory for queue entry backing buffer\n");
 			return -1;
 		}
 		queue->entries[entry].backing_buffer_length = command.backing_buffer_length;
@@ -158,7 +158,7 @@ int commandqueue_enqueue_command(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* c
 			//reallocate parameters array
 			queue->entries[entry].parameters = realloc(queue->entries[entry].parameters, (i + 1) * sizeof(int));
 			if(!queue->entries[entry].parameters){
-				logprintf(log, LOG_ERROR, "Failed to allocate memory for command queue entry parameter array\n");
+				logprintf(LOG_ERROR, "Failed to allocate memory for command queue entry parameter array\n");
 				return -1;
 			}
 			queue->entries[entry].parameters_length = i + 1;
@@ -179,14 +179,14 @@ int commandqueue_enqueue_command(LOGGER log, COMMAND_QUEUE* queue, CONNECTION* c
 	queue->entries[entry].queue_state = COMMAND_NEW;
 
 	//FIXME might want to errorcheck this
-	commandqueue_enqueue(log, queue, queue->entries + entry);
+	commandqueue_enqueue(queue, queue->entries + entry);
 
 	pthread_cond_signal(&(queue->queue_dirty));
 	pthread_mutex_unlock(&(queue->queue_access));
 	return rv;
 }
 
-int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
+int commandqueue_purge(COMMAND_QUEUE* queue){
 	QUEUED_COMMAND* head = NULL;
 	QUEUED_COMMAND* current = NULL;
 	unsigned entries_removed = 0;
@@ -199,13 +199,13 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 		while(head){
 			switch(head->queue_state){
 				case COMMAND_INTERNAL_FAILURE:
-					client_send(log, head->client, "%s BAD Internal failure\r\n", head->tag);
+					client_send(head->client, "%s BAD Internal failure\r\n", head->tag);
 					head->discard = true;
 					//fall through
 				case COMMAND_REPLY:
 					//send reply
 					if(head->replies && head->replies[0] && !head->discard){
-						client_send_raw(log, head->client, head->replies, strlen(head->replies));
+						client_send_raw(head->client, head->replies, strlen(head->replies));
 					}
 					if(head->command && (!strcasecmp(head->command, "authenticate") || !strcasecmp(head->command, "login"))){
 						//this relies on the fallthrough from COMMAND_INTERNAL_FAILURE
@@ -220,7 +220,7 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 					}
 					//fall through
 				case COMMAND_CANCEL_ACK:
-					logprintf(log, LOG_DEBUG, "Current entry has RTT %d\n", time(NULL) - head->last_enqueue);
+					logprintf(LOG_DEBUG, "Current entry has RTT %d\n", time(NULL) - head->last_enqueue);
 					//remove command from queue
 					head->active = false;
 					current = head;
@@ -235,7 +235,7 @@ int commandqueue_purge(LOGGER log, COMMAND_QUEUE* queue){
 	}
 
 	pthread_mutex_unlock(&(queue->queue_access));
-	logprintf(log, LOG_DEBUG, "Purged %d entries from the command queue\n", entries_removed);
+	logprintf(LOG_DEBUG, "Purged %d entries from the command queue\n", entries_removed);
 	return 0;
 }
 

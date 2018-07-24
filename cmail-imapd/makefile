@@ -1,11 +1,16 @@
-.PHONY: clean run
-CFLAGS?=-Wall -g
-LDLIBS=-lsqlite3 -lgnutls -lnettle -lpthread
+.PHONY: all clean run
+CFLAGS ?= -Wall -g
+LDLIBS = -lsqlite3 -lgnutls -lnettle -lpthread
 
-all: imapd
-	mv imapd cmail-imapd
+LIB = $(wildcard ../lib/*.c) $(wildcard ../lib/*.h)
+HEADERS = $(wildcard *.h)
+SOURCES = imapd.c $(filter-out imapd.c,$(wildcard *.c))
+LIBOBJ = ../lib/logger.o
 
-imapd: imapd.c
+all: cmail-imapd
+
+cmail-imapd: $(SOURCES) $(HEADERS) $(LIB) $(LIBOBJ)
+	$(CC) $(CFLAGS) $< $(LIBOBJ) $(LDLIBS) -o $@
 
 run: all
 	valgrind --leak-check=full ./cmail-imapd devel-imapd.conf nodetach
@@ -15,3 +20,4 @@ helgrind: all
 
 clean:
 	$(RM) cmail-imapd
+	$(RM) $(LIBOBJ)

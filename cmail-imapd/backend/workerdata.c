@@ -1,4 +1,4 @@
-int workerdata_release(LOGGER log, WORKER_CLIENT* client, bool data_valid){
+int workerdata_release(WORKER_CLIENT* client, bool data_valid){
 	WORKER_CLIENT empty = {
 		.client = NULL,
 		.user_database = {
@@ -20,7 +20,7 @@ int workerdata_release(LOGGER log, WORKER_CLIENT* client, bool data_valid){
 	return 0;
 }
 
-int workerdata_acquire(LOGGER log, WORKER_DATABASE* master, CONNECTION* client, WORKER_CLIENT* worker_client){
+int workerdata_acquire(WORKER_DATABASE* master, CONNECTION* client, WORKER_CLIENT* worker_client){
 	CLIENT* client_data = (CLIENT*)client->aux_data;
 	int rv = -1;
 	char* dbfile = NULL;
@@ -28,7 +28,7 @@ int workerdata_acquire(LOGGER log, WORKER_DATABASE* master, CONNECTION* client, 
 	//copy over authorized user
 	worker_client->authorized_user = common_strdup(client_data->auth.user.authorized);
 	if(!worker_client->authorized_user){
-		logprintf(log, LOG_ERROR, "Failed to allocate memory for user name\n");
+		logprintf(LOG_ERROR, "Failed to allocate memory for user name\n");
 		return -1;
 	}
 
@@ -38,10 +38,10 @@ int workerdata_acquire(LOGGER log, WORKER_DATABASE* master, CONNECTION* client, 
 			case SQLITE_ROW:
 				//attach user database
 				dbfile = (char*)sqlite3_column_text(master->query_userdatabase, 0);
-				logprintf(log, LOG_INFO, "User %s has user database %s\n", worker_client->authorized_user, dbfile);
+				logprintf(LOG_INFO, "User %s has user database %s\n", worker_client->authorized_user, dbfile);
 
-				if(database_init_worker(log, dbfile, &(worker_client->user_database), false) < 0){
-					logprintf(log, LOG_ERROR, "Failed to open user database for %s in queue worker\n", worker_client->authorized_user);
+				if(database_init_worker(dbfile, &(worker_client->user_database), false) < 0){
+					logprintf(LOG_ERROR, "Failed to open user database for %s in queue worker\n", worker_client->authorized_user);
 					database_free_worker(&(worker_client->user_database));
 				}
 				else{
@@ -50,15 +50,15 @@ int workerdata_acquire(LOGGER log, WORKER_DATABASE* master, CONNECTION* client, 
 				break;
 			case SQLITE_DONE:
 				//no user database
-				logprintf(log, LOG_INFO, "User %s has no user database\n", worker_client->authorized_user);
+				logprintf(LOG_INFO, "User %s has no user database\n", worker_client->authorized_user);
 				rv = 0;
 				break;
 			default:
-				logprintf(log, LOG_WARNING, "Failed to query for user database for user %s: %s\n", worker_client->authorized_user, sqlite3_errmsg(master->conn));
+				logprintf(LOG_WARNING, "Failed to query for user database for user %s: %s\n", worker_client->authorized_user, sqlite3_errmsg(master->conn));
 		}
 	}
 	else{
-		logprintf(log, LOG_ERROR, "Failed to bind user name parameter to user database query\n");
+		logprintf(LOG_ERROR, "Failed to bind user name parameter to user database query\n");
 	}
 
 	sqlite3_reset(master->query_userdatabase);
@@ -74,7 +74,7 @@ int workerdata_acquire(LOGGER log, WORKER_DATABASE* master, CONNECTION* client, 
 	return rv;
 }
 
-WORKER_CLIENT* workerdata_get(LOGGER log, WORKER_CLIENT* clients, WORKER_DATABASE* master, CONNECTION* client){
+WORKER_CLIENT* workerdata_get(WORKER_CLIENT* clients, WORKER_DATABASE* master, CONNECTION* client){
 	int last_slot = -1;
 	size_t i;
 
@@ -89,15 +89,15 @@ WORKER_CLIENT* workerdata_get(LOGGER log, WORKER_CLIENT* clients, WORKER_DATABAS
 
 	if(i >= CMAIL_MAX_CONCURRENT_CLIENTS){
 		if(last_slot >= 0){
-			if(workerdata_acquire(log, master, client, clients + last_slot) < 0){
-				logprintf(log, LOG_ERROR, "Failed to gather client data for background processing\n");
+			if(workerdata_acquire(master, client, clients + last_slot) < 0){
+				logprintf(LOG_ERROR, "Failed to gather client data for background processing\n");
 				return NULL;
 			}
 			i = last_slot;
 		}
 		else{
 			//should never happen
-			logprintf(log, LOG_ERROR, "Ran out of worker client slots\n");
+			logprintf(LOG_ERROR, "Ran out of worker client slots\n");
 			return NULL;
 		}
 	}

@@ -1,23 +1,23 @@
-int database_initialize(LOGGER log, DATABASE* database){
+int database_initialize(DATABASE* database){
 	char* QUERY_AUTHENTICATION_DATA = "SELECT user_authdata, user_alias FROM main.users WHERE user_name = ?;";
 
 	//check the database schema version
-	if(database_schema_version(log, database->conn) != CMAIL_CURRENT_SCHEMA_VERSION){
-		logprintf(log, LOG_ERROR, "The database schema is at another version than required for this build\n");
+	if(database_schema_version(database->conn) != CMAIL_CURRENT_SCHEMA_VERSION){
+		logprintf(LOG_ERROR, "The database schema is at another version than required for this build\n");
 		return -1;
 	}
 
-	database->query_authdata = database_prepare(log, database->conn, QUERY_AUTHENTICATION_DATA);
+	database->query_authdata = database_prepare(database->conn, QUERY_AUTHENTICATION_DATA);
 
 	if(!database->query_authdata){
-		logprintf(log, LOG_ERROR, "Failed to prepare user data query\n");
+		logprintf(LOG_ERROR, "Failed to prepare user data query\n");
 		return -1;
 	}
 
 	return 0;
 }
 
-int database_aggregate_query(LOGGER log, int* result, sqlite3_stmt* stmt, unsigned params, ...){
+int database_aggregate_query(int* result, sqlite3_stmt* stmt, unsigned params, ...){
 	va_list args;
 	unsigned u;
 
@@ -31,20 +31,20 @@ int database_aggregate_query(LOGGER log, int* result, sqlite3_stmt* stmt, unsign
 		switch(va_arg(args, int)){
 			case ARG_INTEGER:
 				if(sqlite3_bind_int(stmt, u + 1, va_arg(args, int)) != SQLITE_OK){
-					logprintf(log, LOG_ERROR, "Failed to bind integer argument to aggregate query in position %d\n", u + 1);
+					logprintf(LOG_ERROR, "Failed to bind integer argument to aggregate query in position %d\n", u + 1);
 					va_end(args);
 					return -1;
 				}
 				break;
 			case ARG_STRING:
 				if(sqlite3_bind_text(stmt, u + 1, va_arg(args, char*), -1, SQLITE_STATIC) != SQLITE_OK){
-					logprintf(log, LOG_ERROR, "Failed to bind string argument to aggregate query in position %d\n", u + 1);
+					logprintf(LOG_ERROR, "Failed to bind string argument to aggregate query in position %d\n", u + 1);
 					va_end(args);
 					return -1;
 				}
 				break;
 			default:
-				logprintf(log, LOG_ERROR, "Invalid argument type to database_aggregate_query\n");
+				logprintf(LOG_ERROR, "Invalid argument type to database_aggregate_query\n");
 				va_end(args);
 				return -1;
 		}
@@ -53,7 +53,7 @@ int database_aggregate_query(LOGGER log, int* result, sqlite3_stmt* stmt, unsign
 	va_end(args);
 
 	if(sqlite3_step(stmt) != SQLITE_ROW){
-		logprintf(log, LOG_ERROR, "Failed to execute aggregate query\n");
+		logprintf(LOG_ERROR, "Failed to execute aggregate query\n");
 		return -1;
 	}
 
@@ -62,11 +62,11 @@ int database_aggregate_query(LOGGER log, int* result, sqlite3_stmt* stmt, unsign
 	sqlite3_clear_bindings(stmt);
 	sqlite3_reset(stmt);
 
-	logprintf(log, LOG_DEBUG, "Aggregate result is %d\n", *result);
+	logprintf(LOG_DEBUG, "Aggregate result is %d\n", *result);
 	return 0;
 }
 
-int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox){
+int database_query_mailbox(WORKER_DATABASE* db, char* user, char* mailbox){
 	int rv = -1;
 	int result;
 
@@ -82,16 +82,16 @@ int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* ma
 			result = sqlite3_step(db->mailbox_find);
 			switch(result){
 				case SQLITE_DONE:
-					logprintf(log, LOG_DEBUG, "Mailbox %s does not exist for user %s\n", mailbox, user);
+					logprintf(LOG_DEBUG, "Mailbox %s does not exist for user %s\n", mailbox, user);
 					break;
 				case SQLITE_ROW:
 					rv = sqlite3_column_int(db->mailbox_find, 0);
-					logprintf(log, LOG_DEBUG, "Mailbox %s for user %s has ID %d\n", mailbox, user, rv);
+					logprintf(LOG_DEBUG, "Mailbox %s for user %s has ID %d\n", mailbox, user, rv);
 					//break out of the loop
 					result = SQLITE_DONE;
 					break;
 				default:
-					logprintf(log, LOG_ERROR, "Failed to query for mailbox: %s\n", sqlite3_errmsg(db->conn));
+					logprintf(LOG_ERROR, "Failed to query for mailbox: %s\n", sqlite3_errmsg(db->conn));
 					rv = -2;
 					break;
 			}
@@ -99,7 +99,7 @@ int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* ma
 		while(result == SQLITE_ROW);
 	}
 	else{
-		logprintf(log, LOG_ERROR, "Failed to bind parameter to mailbox search query\n");
+		logprintf(LOG_ERROR, "Failed to bind parameter to mailbox search query\n");
 	}
 
 	sqlite3_clear_bindings(db->mailbox_find);
@@ -108,7 +108,7 @@ int database_query_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* ma
 	return rv;
 }
 
-int database_create_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* mailbox, int parent){
+int database_create_mailbox(WORKER_DATABASE* db, char* user, char* mailbox, int parent){
 	int rv = -1;
 
 	//creating inbox is always an error
@@ -123,16 +123,16 @@ int database_create_mailbox(LOGGER log, WORKER_DATABASE* db, char* user, char* m
 			case SQLITE_DONE:
 			case SQLITE_OK:
 				rv = sqlite3_last_insert_rowid(db->conn);
-				logprintf(log, LOG_DEBUG, "Mailbox %s with parent %d created for user %s, id %d\n", mailbox, parent, user, rv);
+				logprintf(LOG_DEBUG, "Mailbox %s with parent %d created for user %s, id %d\n", mailbox, parent, user, rv);
 				break;
 			default:
-				logprintf(log, LOG_ERROR, "Failed to create mailbox: %s\n", sqlite3_errmsg(db->conn));
+				logprintf(LOG_ERROR, "Failed to create mailbox: %s\n", sqlite3_errmsg(db->conn));
 				rv = -2;
 				break;
 		}
 	}
 	else{
-		logprintf(log, LOG_ERROR, "Failed to bind parameter to mailbox create query\n");
+		logprintf(LOG_ERROR, "Failed to bind parameter to mailbox create query\n");
 	}
 
 	sqlite3_clear_bindings(db->mailbox_create);
@@ -253,7 +253,7 @@ int database_delete_mailbox(WORKER_DATABASE* db, int mailbox, char* user){
 	return rv;
 }
 
-int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool is_master){
+int database_init_worker(char* filename, WORKER_DATABASE* db, bool is_master){
 	char* FIND_MAILBOX = "SELECT mailbox_id, mailbox_parent FROM mailbox_names WHERE mailbox_name = ? AND mailbox_user = ?;";
 	char* FIND_MAILBOX_INFERIORS = "SELECT mailbox_id FROM mailbox_names WHERE mailbox_name LIKE (SELECT mailbox_name FROM mailbox_names WHERE mailbox_id = ?) || '/\%' AND mailbox_user = ?;";
 	char* CREATE_MAILBOX = "INSERT INTO mailbox_names (mailbox_name, mailbox_parent, mailbox_user) VALUES (?, ?, ?);";
@@ -267,46 +267,46 @@ int database_init_worker(LOGGER log, char* filename, WORKER_DATABASE* db, bool i
 	char* SELECTION_RECENT = "SELECT COUNT(*) FROM mailbox_mapping WHERE mailbox_id = ? AND mail_id NOT IN (SELECT (mail_id) FROM flags);";
 	char* INBOX_RECENT = "SELECT COUNT(*) FROM mailbox WHERE mail_user = ? AND mail_id NOT IN (SELECT (mail_id) FROM flags) AND mail_id NOT IN (SELECT (mail_id) FROM mailbox_mapping);";
 
-	db->conn = database_open(log, filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX);
+	db->conn = database_open(filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX);
 
 	if(!db->conn){
-		logprintf(log, LOG_ERROR, "Failed to open database file %s\n", filename);
+		logprintf(LOG_ERROR, "Failed to open database file %s\n", filename);
 		return -1;
 	}
 
-	db->mailbox_find = database_prepare(log, db->conn, FIND_MAILBOX);
-	db->mailbox_find_inferiors = database_prepare(log, db->conn, FIND_MAILBOX_INFERIORS);
-	db->mailbox_create = database_prepare(log, db->conn, CREATE_MAILBOX);
-	db->mailbox_delete = database_prepare(log, db->conn, DELETE_MAILBOX);
-	db->mailbox_delete_contents = database_prepare(log, db->conn, DELETE_MAILBOX_CONTENTS);
-	db->fetch = database_prepare(log, db->conn, FETCH_MAIL);
+	db->mailbox_find = database_prepare(db->conn, FIND_MAILBOX);
+	db->mailbox_find_inferiors = database_prepare(db->conn, FIND_MAILBOX_INFERIORS);
+	db->mailbox_create = database_prepare(db->conn, CREATE_MAILBOX);
+	db->mailbox_delete = database_prepare(db->conn, DELETE_MAILBOX);
+	db->mailbox_delete_contents = database_prepare(db->conn, DELETE_MAILBOX_CONTENTS);
+	db->fetch = database_prepare(db->conn, FETCH_MAIL);
 
-	db->selection_exists = database_prepare(log, db->conn, SELECTION_EXISTS);
-	db->inbox_exists = database_prepare(log, db->conn, INBOX_EXISTS);
-	db->selection_recent = database_prepare(log, db->conn, SELECTION_RECENT);
-	db->inbox_recent = database_prepare(log, db->conn, INBOX_RECENT);
+	db->selection_exists = database_prepare(db->conn, SELECTION_EXISTS);
+	db->inbox_exists = database_prepare(db->conn, INBOX_EXISTS);
+	db->selection_recent = database_prepare(db->conn, SELECTION_RECENT);
+	db->inbox_recent = database_prepare(db->conn, INBOX_RECENT);
 
 	if(is_master){
-		db->query_userdatabase = database_prepare(log, db->conn, QUERY_USER_DATABASE);
+		db->query_userdatabase = database_prepare(db->conn, QUERY_USER_DATABASE);
 
 		if(!db->query_userdatabase){
-			logprintf(log, LOG_ERROR, "Failed to prepare user database location query\n");
+			logprintf(LOG_ERROR, "Failed to prepare user database location query\n");
 			return -1;
 		}
 	}
 
 	if(!db->mailbox_find){
-		logprintf(log, LOG_ERROR, "Failed to prepare mailbox search query\n");
+		logprintf(LOG_ERROR, "Failed to prepare mailbox search query\n");
 		return -1;
 	}
 
 	if(!db->mailbox_create || !db->mailbox_delete){
-		logprintf(log, LOG_ERROR, "Failed to prepare mailbox management queries\n");
+		logprintf(LOG_ERROR, "Failed to prepare mailbox management queries\n");
 		return -1;
 	}
 
 	if(!db->fetch){
-		logprintf(log, LOG_ERROR, "Failed to prepare mail data query\n");
+		logprintf(LOG_ERROR, "Failed to prepare mail data query\n");
 		return -1;
 	}
 	return 0;
@@ -345,7 +345,7 @@ void database_free_worker(WORKER_DATABASE* db){
 	*db = empty;
 }
 
-void database_free(LOGGER log, DATABASE* database){
+void database_free(DATABASE* database){
 	//FIXME check for SQLITE_BUSY here
 
 	if(database->conn){
