@@ -18,7 +18,7 @@ struct /*_LOGGER*/ {
 } logger = {
 	.stream = NULL,
 	.verbosity = 0,
-	.log_secondary = false,
+	.log_secondary = true,
 	.print_timestamp = true
 };
 
@@ -39,7 +39,7 @@ void logprintf(unsigned level, char* fmt, ...){
 		}
 	}
 
-	if(logger.log_secondary){
+	if(logger.log_secondary && logger.stream && logger.stream != stderr){
 		if(logger.verbosity >= level){
 			va_copy(copy, args);
 			#ifdef LOGGER_MT_SAFE
