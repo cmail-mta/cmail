@@ -41,6 +41,10 @@ int main(int argc, char** argv){
 		.pid_file = NULL
 	};
 
+	if(log_start()){
+		return 1;
+	}
+
 	//parse arguments
 	if(!arguments_parse(&args, argc - 1, argv + 1)){
 		arguments_free(&args);
@@ -142,5 +146,6 @@ int main(int argc, char** argv){
 	config_free(&config);
 	TLSSUPPORT(gnutls_global_deinit());
 
+	log_shutdown();
 	return EXIT_SUCCESS;
 }

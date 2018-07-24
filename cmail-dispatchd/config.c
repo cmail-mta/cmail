@@ -303,10 +303,4 @@ void config_free(CONFIGURATION* config){
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_free_credentials(config->settings.tls_credentials);
 	#endif
-
-	if(log_output(NULL) != stderr){
-		fflush(log_output(NULL));
-		fclose(log_output(NULL));
-		log_output(stderr);
-	}
 }

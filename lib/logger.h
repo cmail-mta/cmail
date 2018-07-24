@@ -22,3 +22,6 @@ void log_dump_buffer(unsigned level, void* buffer, size_t bytes);
 
 void log_verbosity(int level, bool secondary);
 FILE* log_output(FILE* stream);
+
+int log_start();
+void log_shutdown();

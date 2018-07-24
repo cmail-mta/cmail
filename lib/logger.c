@@ -111,3 +111,32 @@ FILE* log_output(FILE* stream){
 
 	return logger.stream;
 }
+
+int log_start(){
+	#ifdef LOGGER_MT_SAFE
+	logger.sync = calloc(1, sizeof(pthread_mutex_t));
+	if(!logger.sync){
+		fprintf(stderr, "Failed to allocate memory\n");
+		return 1;
+	}
+	pthread_mutex_init(logger.sync, NULL);
+	#endif
+	logger.stream = stderr;
+	return 0;
+}
+
+void log_shutdown(){
+	if(logger.stream != stderr){
+		fflush(logger.stream);
+		fclose(logger.stream);
+		logger.stream = stderr;
+	}
+
+	#ifdef LOGGER_MT_SAFE
+	if(logger.sync){
+		pthread_mutex_destroy(logger.sync);
+		free(logger.sync);
+		logger.sync = NULL;
+	}
+	#endif
+}
