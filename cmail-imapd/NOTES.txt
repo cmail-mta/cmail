@@ -59,4 +59,4 @@ Flags
 	noting this, however it does nothing to clarify. Section 6.3.1 implies that flags MAY be defined on a
 	per-mailbox basis, however if that means whether we should return flags that are actually APPLIED to mails
 	in the mailbox or if there is some sort of scoping mechanism is left open (other than saying to return those
-	which are "applicable" to a mailbox.
+	which are "applicable" to a mailbox).
