@@ -25,8 +25,8 @@ Client state
 	Most other mail protocols are simple state machines, where the server just needs to keep track of
 	which state a client is in and maybe what data it already sent for a command. IMAP has that as well
 	as per-user (who may or may not have multiple concurrent connections to a server) state and per-command
-	(of which there may be multiple in-flight) state, all of which serves to just form an absolute nightmare
-	of a state machine.
+	(of which there may be multiple in-flight for every connection) state, all of which serves to just form
+	an absolute nightmare of a state machine.
 
 Mailbox hierarchy structure
 	The implications of the DELETE command forbid a purely graph-based view of mailboxes, similar to
@@ -47,3 +47,16 @@ Subscriptions
 	commands dealing with subscriptions and never explained or used in any useful contexts.
 	Also note that this has nothing to do with the "selected" mailbox as set by EXAMINE/SELECT.
 
+Flags
+	Mulitple semi-related concepts rolled into one functionality. We learn that flags can be either stored
+	permanently or have only session lifetime (which is fine by me), and that there are several system flags,
+	whose mapping into this binary is never really clarified. Some of these special flags are extra special,
+	so they have their own special untagged responses including the number of mails tagged with them.
+	This maybe might have been nicer to do in a generic way (which also exists, but is different), but what do
+	I know. Some of the more special flags also do not only adorn messages, but also trigger system actions such
+	as deletion. The later parts of 2.3.2 also seem to refer to user-defined flags as 'keywords' (which at that
+	point also may refer to something else entirely, who knows with this document). There is even a clarification
+	noting this, however it does nothing to clarify. Section 6.3.1 implies that flags MAY be defined on a
+	per-mailbox basis, however if that means whether we should return flags that are actually APPLIED to mails
+	in the mailbox or if there is some sort of scoping mechanism is left open (other than saying to return those
+	which are "applicable" to a mailbox.
