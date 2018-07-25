@@ -1,0 +1,22 @@
+Notes on the IMAP protocol
+--------------------------
+
+Mailbox hierarchy structure
+	The implications of the DELETE command forbid a purely graph-based implementations
+	as you would expect coming from a file-system analogy, as it is possible to delete a
+	mailbox having inferiors without deleting those inferiors, effectively creating a dangling
+	branch (with the deleted part being marked NOSELECT in IMAP parlance).
+
+	This also has implications on rename, 1) also renames any hierarchical children of a mailbox
+	and 2) does not allow renaming to an already existing mailbox name. In combination with the braindead
+	hierarchy concept this means we cannot simply check that the root node to be renamed does not exist and
+	assume that we can safely rename the child nodes, too. Instead we have to scan for all children (or
+	inferiors, in IMAP parlance) and see if renaming them would conflict with some existing mailbox.
+
+Subscriptions
+	What do they even do? My best guess is that they were some kind of mechanism to subscribe to newsgroups,
+	which of course is totally irrelevant when implementing a basic mail server. Note that the concept of
+	a set of "active" or "subscribed" mailboxes is introduced in 6.3.6, which is only ever used in the three
+	commands dealing with subscriptions and never explained or used in any useful contexts.
+	Also note that this has nothing to do with the "selected" mailbox as set by EXAMINE/SELECT.
+
