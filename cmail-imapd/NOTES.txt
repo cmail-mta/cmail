@@ -3,7 +3,28 @@ Notes on the IMAP protocol
 
 These notes are mainly based on my reading of RFC 3501. They document thoughts and issues I had while implementing
 a server conforming to IMAP4rev1 (whatever that means), and I'd be more than happy to update this file with hints and
-notes received from others.
+notes received from others. It probably will grow in step with my blood pressure while implementing this abomination
+of a protocol.
+
+Mailbox names
+	The entire section 5.1 should IMO be subject to a major rewrite, shortening and general un-f*cking.
+	It's a product of its time (I love 7bit ASCII, too, I get it), but UTF-7 is idiotic enough as specified,
+	no need mess with the alphabet just because (and what if I want my hierarchy separator to be ','. huh?).
+	Spending an entire printed page on how the encoding differs from the standard UTF-7 encoding might have
+	just warranted creating a new encoding and being done with it.
+	Noting that any character being an 'ATOM-SPECIAL' is, well, special is fine, but referring people to a
+	syntax spec spanning several printed pages just sucks for implementors. Also, noting that control and
+	wildcard characters in a mailbox name is a bad idea but not forbidding it seems weird to me.
+	I can live with 'INBOX' being a special name, but did it have to be case-insensitive too?
+	And what use do namespaces (the word shows up twice in the document aside from the section introducing
+	the concept, and one of those is a clarification) have in a protocol which NO ONE USES FOR NEWSGROUPS?
+
+Client state
+	Most other mail protocols are simple state machines, where the server just needs to keep track of
+	which state a client is in and maybe what data it already sent for a command. IMAP has that as well
+	as per-user (who may or may not have multiple concurrent connections to a server) state and per-command
+	(of which there may be multiple in-flight) state, all of which serves to just form an absolute nightmare
+	of a state machine.
 
 Mailbox hierarchy structure
 	The implications of the DELETE command forbid a purely graph-based view of mailboxes, similar to
