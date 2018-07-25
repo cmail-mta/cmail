@@ -1,17 +1,21 @@
 Notes on the IMAP protocol
 --------------------------
 
-Mailbox hierarchy structure
-	The implications of the DELETE command forbid a purely graph-based implementations
-	as you would expect coming from a file-system analogy, as it is possible to delete a
-	mailbox having inferiors without deleting those inferiors, effectively creating a dangling
-	branch (with the deleted part being marked NOSELECT in IMAP parlance).
+These notes are mainly based on my reading of RFC 3501. They document thoughts and issues I had while implementing
+a server conforming to IMAP4rev1 (whatever that means), and I'd be more than happy to update this file with hints and
+notes received from others.
 
-	This also has implications on rename, 1) also renames any hierarchical children of a mailbox
-	and 2) does not allow renaming to an already existing mailbox name. In combination with the braindead
+Mailbox hierarchy structure
+	The implications of the DELETE command forbid a purely graph-based view of mailboxes, similar to
+	a file-system, as it is possible to delete a mailbox having children (inferiors in IMAP parlance)
+	without deleting those inferiors (the deleted mailbox is to be marked NOSELECT thereafter), effectively
+	creating a dangling branch in the graph.
+
+	This also has implications on RENAME, as 1) it also renames any hierarchical children of a mailbox
+	and 2) does not allow renaming to an already existing mailbox. In combination with the braindead
 	hierarchy concept this means we cannot simply check that the root node to be renamed does not exist and
-	assume that we can safely rename the child nodes, too. Instead we have to scan for all children (or
-	inferiors, in IMAP parlance) and see if renaming them would conflict with some existing mailbox.
+	assume that we can safely rename the child nodes, too. Instead we have to scan for all inferiors and see
+	if renaming them would conflict with some existing mailbox.
 
 Subscriptions
 	What do they even do? My best guess is that they were some kind of mechanism to subscribe to newsgroups,
