@@ -8,13 +8,15 @@ of a protocol.
 
 Mailbox names
 	The entire section 5.1 should IMO be subject to a major rewrite, shortening and general un-f*cking.
-	It's a product of its time (I love 7bit ASCII, too, I get it), but UTF-7 is idiotic enough as specified,
-	no need mess with the alphabet just because (and what if I want my hierarchy separator to be ','. huh?).
+	It's a product of its time (I love 7bit ASCII too, I get it), but UTF-7 is idiotic enough as specified,
+	no need to mess with the alphabet just because (and what if I want my hierarchy separator to be ','. huh?).
 	Spending an entire printed page on how the encoding differs from the standard UTF-7 encoding might have
 	just warranted creating a new encoding and being done with it.
 	Noting that any character being an 'ATOM-SPECIAL' is, well, special is fine, but referring people to a
-	syntax spec spanning several printed pages just sucks for implementors. Also, noting that control and
-	wildcard characters in a mailbox name is a bad idea but not forbidding it seems weird to me.
+	syntax spec spanning several printed pages just sucks for implementors (and having to track down an ABNF
+	reference 8 levels deep is just no fun).
+	Also, noting that control and wildcard characters in a mailbox name is a bad idea but not forbidding it
+	seems weird to me.
 	I can live with 'INBOX' being a special name, but did it have to be case-insensitive too?
 	And what use do namespaces (the word shows up twice in the document aside from the section introducing
 	the concept, and one of those is a clarification) have in a protocol which NO ONE USES FOR NEWSGROUPS?
