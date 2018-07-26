@@ -17,3 +17,11 @@ Design:
 
 User INBOX UIDVALIDITY in users table
 Remove the parent field from IMAP mailbox table, as relations can only be properly assessed from the name anyway...
+Restructure command response handling / pass a command_response structure to be filled
+	This allows discards when another function fails the transaction
+	Might also include a tag for function identification
+	This could also include returning a failscore modifier
+Refactor backend command handling
+	handlers -> Process queue entries, arbitrate between databases, decide about responses
+	commands -> Implement single-database actions
+Rename imapfunctions

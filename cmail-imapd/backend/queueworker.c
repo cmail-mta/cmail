@@ -1,6 +1,6 @@
 int queueworker_arbitrate_command(WORKER_DATABASE* master, QUEUED_COMMAND* entry, WORKER_CLIENT* client){
 	unsigned i;
-	int rv_user = 0, rv_master = 0, rv = 0;
+	int rv_user = 0, rv_master = 0, rv = 0, mbx_master = -1, mbx_user = -1;
 
 	logprintf(LOG_DEBUG, "Handling command [%s]: %s\n", entry->tag, entry->command);
 	if(entry->parameters){
@@ -36,14 +36,14 @@ int queueworker_arbitrate_command(WORKER_DATABASE* master, QUEUED_COMMAND* entry
 		}
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "delete")){
-		logprintf(LOG_DEBUG, "hello\n");
+		//FIXME failures in one database are recoverable, thus the imap_* handler functions should _not_ write out their own responses
 		rv_master = imap_delete(master, entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		if(client->user_database.conn){
 			rv_user = imap_delete(&(client->user_database), entry, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
 		}
 
 		//TODO rollbacks on failure
-
+		//TODO this might lead to responses like "X NO Failed\r\nX OK Deleted\r\n"
 		if((client->user_database.conn && (rv_user == 0 || rv_master == 0)) || rv_master == 0){
 			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
 					"%s OK Mailbox deleted\r\n", entry->tag);
@@ -54,8 +54,22 @@ int queueworker_arbitrate_command(WORKER_DATABASE* master, QUEUED_COMMAND* entry
 		}
 	}
 	else if(entry->parameters && !strcasecmp(entry->command, "rename")){
-		//TODO implement rename
-		logprintf(LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
+		mbx_master = database_query_mailbox(master, client->authorized_user, entry->backing_buffer + entry->parameters[0]); 
+		if(client->user_database.conn){
+			mbx_user = database_query_mailbox(&(client->user_database), client->authorized_user, entry->backing_buffer + entry->parameters[0]); 
+		}
+
+		//if both databases are active, one of them must have the mailbox, else the master must have it
+		if((!client->user_database.conn && mbx_master < 0) || (mbx_user < 0 && mbx_master < 0)){
+			//mailbox to be renamed must exist
+			entry->replies = common_strappf(entry->replies, &(entry->replies_length),
+					"%s NO Mailbox must exist\r\n", entry->tag);
+			rv = 0;
+		}
+		else{
+			//TODO check if target exists, if not rename
+			logprintf(LOG_DEBUG, "Renaming %s to %s\n", entry->backing_buffer + entry->parameters[0], entry->backing_buffer + entry->parameters[1]);
+		}
 	}
 	else if(entry->parameters && (!strcasecmp(entry->command, "examine") || !strcasecmp(entry->command, "select"))){
 		client->selection_master = database_query_mailbox(master, client->authorized_user, entry->backing_buffer + entry->parameters[0]);
@@ -73,7 +87,7 @@ int queueworker_arbitrate_command(WORKER_DATABASE* master, QUEUED_COMMAND* entry
 
 			if(rv == 0){
 				//select implies readwrite access
-				client->select_readwrite = (entry->command[0] == 's') ? true:false;
+				client->select_readwrite = (tolower(entry->command[0]) == 's') ? true:false;
 
 				logprintf(LOG_DEBUG, "Client selected mailbox %d @ master, %d @ user for readwrite %s\n", client->selection_master, client->selection_user, client->select_readwrite ? "true":"false");
 				//TODO actually send required data back to client
