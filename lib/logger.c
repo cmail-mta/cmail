@@ -7,7 +7,7 @@
 #include "logger.h"
 #include "common.h"
 
-struct /*_LOGGER*/ {
+static struct /*_LOGGER*/ {
 	FILE* stream;
 	unsigned verbosity;
 	bool log_secondary;

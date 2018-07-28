@@ -92,9 +92,6 @@ As for conventional code style questions
 Conventions
 -----------
 We try to avoid global variables whereever possible, passing structs where necessary.
-Sometimes this has been taken to extremes that may be alleviated further down the road,
-such as the logging structure.
-
 Common functionality should be factored out into the shared "lib" folder.
 
 Functions return 0 upon success, unless otherwise noted in an appropriate comment,
