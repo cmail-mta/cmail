@@ -1,10 +1,14 @@
-export PREFIX?=/usr
-export MKDIR?=mkdir -p
-export DOCDIR?=$(DESTDIR)$(PREFIX)/share/man
-LOGDIR?=$(DESTDIR)/var/log/cmail
-CONFDIR?=$(DESTDIR)/etc/cmail
-DBDIR?=$(DESTDIR)$(CONFDIR)/databases
-BANNER?=$(shell hostname)
+export PREFIX ?= /usr
+export MKDIR ?= mkdir -p
+export DOCDIR ?= $(DESTDIR)$(PREFIX)/share/man
+LOGDIR ?= $(DESTDIR)/var/log/cmail
+CONFDIR ?= $(DESTDIR)/etc/cmail
+DBDIR ?= $(DESTDIR)$(CONFDIR)/databases
+
+BANNER ?= $(shell hostname)
+TLSKEY ?= temp.key
+TLSCERT ?= temp.cert
+
 .PHONY: clean install init tls-init rtldumps
 
 all:
@@ -67,12 +71,14 @@ tls-init: init
 	@printf "\n*** Creating certificate storage directory in %s/keys\n" "$(CONFDIR)"
 	$(MKDIR) "$(CONFDIR)/keys"
 	chmod 700 "$(CONFDIR)/keys"
-	@printf "\n*** Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
-	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
+	ifeq ($(TLSKEY),temp.key)
+		@printf "\n*** Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
+		openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
+	endif
 	chmod 600 "$(CONFDIR)/keys"/*
 	@printf "\n*** Updating the configuration files in %s\n" "$(CONFDIR)"
-	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/smtpd.conf"
-	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/temp.cert,' -e 's,TLSKEY,$(CONFDIR)/keys/temp.key,' -e 's,#cert,cert,g' "$(CONFDIR)/popd.conf"
+	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/$(TLSCERT),' -e 's,TLSKEY,$(CONFDIR)/keys/$(TLSKEY),' -e 's,#cert,cert,g' "$(CONFDIR)/smtpd.conf"
+	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/$(TLSCERT),' -e 's,TLSKEY,$(CONFDIR)/keys/$(TLSKEY),' -e 's,#cert,cert,g' "$(CONFDIR)/popd.conf"
 
 uninit:
 	@printf "\n*** Removing databases from %s\n" "$(DBDIR)"

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+cmail-smtpd /etc/cmail/smtpd.conf nodetach | logger -t smtpd &
+cmail-dispatchd /etc/cmail/dispatchd.conf nodetach | logger -t dispatchd &
+cmail-popd /etc/cmail/popd.conf nodetach | logger -t popd &
+
+wait
