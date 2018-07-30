@@ -18,7 +18,7 @@ WORKDIR /root
 RUN apt-get -y update && \
 	apt-get -y --no-install-recommends install build-essential git ca-certificates curl man-db manpages && \
 	apt-get -y --no-install-recommends install libsqlite3-dev nettle-dev libgnutls28-dev libadns1-dev && \
-	apt-get -y --no-install-recommends install sqlite3 openssl && \
+	apt-get -y --no-install-recommends install sqlite3 openssl procps && \
 	apt-get clean
 RUN git clone https://github.com/cmail-mta/cmail
 WORKDIR /root/cmail
