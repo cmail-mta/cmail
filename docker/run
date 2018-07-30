@@ -1,7 +1,13 @@
 #!/bin/sh
 
-cmail-smtpd /etc/cmail/smtpd.conf nodetach | logger -t smtpd &
-cmail-dispatchd /etc/cmail/dispatchd.conf nodetach | logger -t dispatchd &
-cmail-popd /etc/cmail/popd.conf nodetach | logger -t popd &
+cmail-smtpd /etc/cmail/smtpd.conf
+cmail-dispatchd /etc/cmail/dispatchd.conf 
+cmail-popd /etc/cmail/popd.conf
 
-wait
+while true; do
+	PROCS=$(ps aux | grep cmail-)
+	if [ "$PROCS" -lt "3" ]; then
+		exit 1
+	fi
+	sleep 5
+done
