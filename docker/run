@@ -5,8 +5,8 @@ cmail-dispatchd /etc/cmail/dispatchd.conf
 cmail-popd /etc/cmail/popd.conf
 
 while true; do
-	PROCS=$(ps aux | grep cmail-)
-	if [ "$PROCS" -lt "3" ]; then
+	PROCS=$(ps aux | grep cmail- | wc -l)
+	if [ "$PROCS" -lt "4" ]; then
 		exit 1
 	fi
 	sleep 5
