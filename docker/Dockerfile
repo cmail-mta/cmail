@@ -13,9 +13,6 @@ LABEL \
     org.label-schema.schema-version="1.0"
 
 ENV BANNER=$ANNOUNCE
-ENV TLSKEY=$TLSKEY
-ENV TLSCERT=$TLSCERT
-ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /root
 RUN apt-get -y update && \
@@ -25,6 +22,9 @@ RUN apt-get -y update && \
 	apt-get clean
 RUN git clone https://github.com/cmail-mta/cmail
 WORKDIR /root/cmail
+ENV TLSKEY=$TLSKEY
+ENV TLSCERT=$TLSCERT
+ENV DEBIAN_FRONTEND=noninteractive
 RUN make
 RUN make install
 RUN make tls-init

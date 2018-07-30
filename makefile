@@ -75,7 +75,7 @@ ifeq ($(TLSKEY),temp.key)
 	@printf "\n*** Creating temporary TLS certificate in %s/keys\n" "$(CONFDIR)"
 	openssl req -x509 -newkey rsa:8192 -keyout "$(CONFDIR)/keys/temp.key" -out "$(CONFDIR)/keys/temp.cert" -days 100 -nodes
 endif
-	chmod 600 "$(CONFDIR)/keys"/*
+	-chmod 600 "$(CONFDIR)/keys"/*
 	@printf "\n*** Updating the configuration files in %s\n" "$(CONFDIR)"
 	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/$(TLSCERT),' -e 's,TLSKEY,$(CONFDIR)/keys/$(TLSKEY),' -e 's,#cert,cert,g' "$(CONFDIR)/smtpd.conf"
 	sed -i -e 's,TLSCERT,$(CONFDIR)/keys/$(TLSCERT),' -e 's,TLSKEY,$(CONFDIR)/keys/$(TLSKEY),' -e 's,#cert,cert,g' "$(CONFDIR)/popd.conf"
