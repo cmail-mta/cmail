@@ -30,6 +30,7 @@ BEGIN TRANSACTION;
 		address_route		TEXT
 	);
 
+	-- We frequently query routers for address expressions, so we better index this
 	CREATE INDEX idx_addr_router ON addresses (
 		address_router,
 		address_route
@@ -79,6 +80,15 @@ BEGIN TRANSACTION;
 		smtpd_route		TEXT
 	);
 
+	-- The outbox table contains all mail queued to be sent out from the server, such as originated mail and bounce notifications.
+	-- It needs to be cross-referenced with faillog to yield information as to the state of the queued mail.
+	--		mail_id			A unique identifier for originated mail
+	--		mail_remote		NULL if delivery is made via resolving MX records of the envelope destination, an MX to connect otherwise
+	--		mail_envelopefrom	Envelope sender
+	--		mail_envelopeto		Envelope destination
+	--		mail_submission		Timestamp of entry into the delivery queue
+	--		mail_submitter		Originating user
+	--		mail_data		Mail contents
 	CREATE TABLE outbox (
 		mail_id			INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
 		mail_remote		TEXT,
@@ -89,6 +99,10 @@ BEGIN TRANSACTION;
 		mail_data		TEXT
 	);
 
+	-- The POP3 spec requires that only one connection to a maildrop (which maps to one user in our model) be open at any time.
+	-- The pop daemon sets the pop_lock flag to 1 when a connection is active.
+	--		pop_user	POP maildrop user name
+	--		pop_lock	Flag indicating lock status
 	CREATE TABLE popd (
 		pop_user		TEXT PRIMARY KEY NOT NULL UNIQUE REFERENCES users (user_name) ON DELETE CASCADE ON UPDATE CASCADE,
 		pop_lock		BOOLEAN NOT NULL DEFAULT (0)
@@ -112,6 +126,12 @@ BEGIN TRANSACTION;
 		CONSTRAINT api_user_delegate UNIQUE ( api_user, api_delegate ) ON CONFLICT FAIL
 	);
 
+	-- The faillog table contains delivery attempt information for mails in the outbox table.
+	-- Entries are written by the dispatch daemon when attempts at delivery are made.
+	--		fail_mail	Outbound mail queue identifier
+	--		fail_message	(Optional) Server response for failed attempt
+	--		fail_time	Timestamp of delivery attempt
+	--		fail_fatal	Flag indicating whether this attempt returned a permanent failure code
 	CREATE TABLE faillog (
 		fail_mail		INTEGER NOT NULL REFERENCES outbox (mail_id) ON DELETE CASCADE ON UPDATE CASCADE,
 		fail_message		TEXT,
@@ -119,6 +139,19 @@ BEGIN TRANSACTION;
 		fail_fatal		BOOLEAN NOT NULL DEFAULT (0)
 	);
 
+	-- This view correlates the outbox and faillog tables.
+	-- The dispatch daemon will periodically scan this view for mail eligible for delivery (ie, not yet delivered or previously failed temporarily),
+	-- attempt to deliver it and, upon failure, either generate bounce notifications or insert a temporary failure entry into faillog
+	--		mail_id			See outbox
+	--		mail_remote		See outbox
+	--		mail_envelopefrom	See outbox
+	--		mail_envelopeto		See outbox
+	--		mail_submission		See outbox
+	--		mail_submitter		See outbox
+	--		mail_data		See outbox
+	--		mail_failcount		Number of failed delivery attempts
+	--		mail_lasttry		Timestamp of last delivery attempt
+	--		mail_fatality		Flag indicating whether any delivery attempts returned permanent failure codes
 	CREATE VIEW outbound AS
 	SELECT
 		mail_id,
