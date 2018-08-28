@@ -82,3 +82,15 @@ Client synchronization
 	Instead NOOP is used to shoe-horn in updates about mail status changes (for the selected mailbox only (I guess)),
 	with IMAP IDLE being an addition that does next to nothing to ameliorate this except introducing a command that
 	allows the server to do the same thing but with one really long-running command.
+
+Mail parsing
+	One oft-bemoaned problem with mail is the complexity in parsing it. This should explicitly exclude SMTP and
+	POP, as implementations of those can get by just fine without actually parsing mail (RFC(2)822) data, as cmail
+	already proves. Mail data itself (and it's header-folding-and-unfolding nightmare of a syntax) is only rivalled
+	by MIME, which also allows you to bring arbitrary data in various formats into the horrible mix.
+	Now, in their quest to make this protocol as unimplementable by people preferring clean, sane code as possible,
+	section 7.4.2 destroys all hope of this being avoidable with an unholy list of things an IMAP server has
+	to do to a mailing under its command. This not only includes picking apart headers, MIME parts and and handling
+	their various special needs, but also sorting them, which pretty much requires dynamic memory management.
+	So if until now you tried to get by with statically allocated buffers for performance, testability or even security
+	reasons, kiss those dreams goodbye.
