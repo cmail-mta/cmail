@@ -13,6 +13,7 @@ ratelimit 50
 tls_padding 6
 tls_trustfile /etc/ssl/certs/ca-certificates.crt
 #tls_priorities NORMAL
+#bind BANNER
 
 # Privilege dropping
 user cmail

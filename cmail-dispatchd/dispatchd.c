@@ -54,7 +54,8 @@ int main(int argc, char** argv){
 			.retry_interval = 3600,
 			.tls_padding = 10,
 			.bounce_from = NULL,
-			.bounce_to = NULL
+			.bounce_to = NULL,
+			.bind_host = NULL
 		},
 		.pid_file = NULL
 	};

@@ -38,16 +38,14 @@ ssize_t network_read(CONNECTION* client, char* buffer, unsigned bytes){
 	return -2;
 }
 
-int network_connect(char* host, uint16_t port){
+int network_connect(char* host, uint16_t port, char* bind_host){
 	int sockfd = -1, error;
 	char port_str[20];
-	struct addrinfo hints;
-	struct addrinfo* head;
-	struct addrinfo* iter;
-
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
+	struct addrinfo hints = {
+		.ai_family = AF_UNSPEC,
+		.ai_socktype = SOCK_STREAM
+	};
+	struct addrinfo* head, *iter, *bind_head, *bind_iter;
 
 	snprintf(port_str, sizeof(port_str), "%d", port);
 
@@ -63,9 +61,39 @@ int network_connect(char* host, uint16_t port){
 			continue;
 		}
 
+		if(bind_host){
+			//resolve the bind host
+			hints.ai_family = iter->ai_family;
+			error = getaddrinfo(bind_host, "0", &hints, &bind_head);
+			if(error){
+				logprintf(LOG_WARNING, "Failed to resolve local side for outbound connection: %s\r\n", gai_strerror(error));
+				close(sockfd);
+				sockfd = -1;
+				continue;
+			}
+
+			for(bind_iter = bind_head; sockfd >= 0 && bind_iter; bind_iter = bind_iter->ai_next){
+				if(!bind(sockfd, bind_iter->ai_addr, bind_iter->ai_addrlen)){
+					break;
+				}
+
+				logprintf(LOG_WARNING, "Failed to bind local side for outbound connection: %s\r\n", strerror(errno));
+				if(!bind_iter->ai_next){
+					close(sockfd);
+					sockfd = -1;
+					logprintf(LOG_WARNING, "Current socket incompatible with bind host: %s\r\n", strerror(errno));
+				}
+			}
+		}
+
+		if(sockfd < 0){
+			continue;
+		}
+
 		error = connect(sockfd, iter->ai_addr, iter->ai_addrlen);
 		if(error != 0){
 			close(sockfd);
+			sockfd = -1;
 			continue;
 		}
 

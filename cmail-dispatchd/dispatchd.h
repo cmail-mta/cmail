@@ -103,6 +103,7 @@ typedef struct /*_MTA_SETTINGS*/ {
 	unsigned tls_padding;
 	char* bounce_from;
 	char** bounce_to;
+	char* bind_host;
 	#ifndef CMAIL_NO_TLS
 	gnutls_certificate_credentials_t tls_credentials;
 	#endif

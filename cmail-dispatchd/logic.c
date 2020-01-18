@@ -368,7 +368,7 @@ int logic_handle_remote(DATABASE* database, MTA_SETTINGS settings, REMOTE remote
 			logprintf(LOG_INFO, "Trying port %d\n", current_port.port);
 			#endif
 
-			conn.fd = network_connect(resolver_remote, current_port.port);
+			conn.fd = network_connect(resolver_remote, current_port.port, settings.bind_host);
 			//TODO only reconnect if port or remote have changed
 
 			if(conn.fd > 0){

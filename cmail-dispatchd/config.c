@@ -2,7 +2,7 @@ int config_privileges(CONFIGURATION* config, char* directive, char* params){
 	struct passwd* user_info;
 	struct group* group_info;
 
-	errno=0;
+	errno = 0;
 	if(!strcmp(directive, "user")){
 		user_info = getpwnam(params);
 		if(!user_info){
@@ -46,7 +46,7 @@ int config_trustfile(CONFIGURATION* config, char* directive, char* params){
 #endif
 
 int config_bounceto(CONFIGURATION* config, char* directive, char* params){
-	unsigned i = 0;
+	size_t i = 0;
 	char* bounce_rcpt;
 
 	if(config->settings.bounce_to){
@@ -101,8 +101,21 @@ int config_logger(CONFIGURATION* config, char* directive, char* params){
 }
 
 int config_announce(CONFIGURATION* config, char* directive, char* params){
+	if(config->settings.helo_announce){
+		free(config->settings.helo_announce);
+	}
+
 	config->settings.helo_announce = common_strdup(params);
-	return (config->settings.helo_announce) ? 0:-1;
+	return (config->settings.helo_announce) ? 0 : -1;
+}
+
+int config_bindhost(CONFIGURATION* config, char* directive, char* params){
+	if(config->settings.bind_host){
+		free(config->settings.bind_host);
+	}
+
+	config->settings.bind_host = common_strdup(params);
+	return (config->settings.bind_host) ? 0 : -1;
 }
 
 int config_ports(CONFIGURATION* config, char* directive, char* params){
@@ -257,11 +270,15 @@ int config_line(void* config_data, char* line){
 
 	else if(!strncmp(line, "bounce_from", 11)){
 		config->settings.bounce_from = common_strdup(line + parameter);
-		return (config->settings.bounce_from) ? 0:-1;
+		return (config->settings.bounce_from) ? 0 : -1;
 	}
 
 	else if(!strncmp(line, "bounce_copy", 11)){
 		return config_bounceto(config, line, line + parameter);
+	}
+
+	else if(!strncmp(line, "bind", 4)){
+		return config_bindhost(config, line, line + parameter);
 	}
 
 	else if(!strncmp(line, "pidfile", 7)){
@@ -273,7 +290,7 @@ int config_line(void* config_data, char* line){
 }
 
 void config_free(CONFIGURATION* config){
-	unsigned i;
+	size_t i;
 	database_free(&(config->database));
 
 	if(config->settings.helo_announce){
@@ -293,6 +310,10 @@ void config_free(CONFIGURATION* config){
 			free(config->settings.bounce_to[i]);
 		}
 		free(config->settings.bounce_to);
+	}
+
+	if(config->settings.bind_host){
+		free(config->settings.bind_host);
 	}
 
 	if(config->pid_file){
