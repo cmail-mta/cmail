@@ -133,7 +133,7 @@ int auth_hash(char* hash, unsigned hash_bytes, char* salt, unsigned salt_bytes, 
 	sha256_update(&hash_context, pass_bytes, (uint8_t*)pass);
 
 	sha256_digest(&hash_context, SHA256_DIGEST_SIZE, digest);
-	base16_encode_update((uint8_t*)hash, SHA256_DIGEST_SIZE, digest);
+	base16_encode_update(hash, SHA256_DIGEST_SIZE, digest);
 	return BASE16_ENCODE_LENGTH(SHA256_DIGEST_SIZE);
 }
 
